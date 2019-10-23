@@ -1,7 +1,7 @@
 #!/bin/bash
 REP_ID=$1
 OUT_DIR='/workdir/lcwgs-simulation/sim/rep_'$REP_ID'/'
-for k in {1..2}; do
+for k in {1..100}; do
   l=$(($k+100))
   ## merge
   samtools merge $OUTDIR'sample_'$k'.bam' \
@@ -13,7 +13,7 @@ for k in {1..2}; do
   samtools view \
   -s 0.05 \
   -b $OUTDIR'sample_'$k'_sorted.bam' \
-  > sample_'$k'_sorted_1x.bam
+  > $OUTDIR'sample_'$k'_sorted_1x.bam'
   ## delete intermediate files
   #rm $OUTDIR'derived_'$k'.bam' 
   #rm $OUTDIR'derived_'$j'.bam' 
