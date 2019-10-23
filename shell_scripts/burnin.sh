@@ -9,7 +9,7 @@ fi
   -d REP_ID=$REP_ID  \
   -d MUTATION_RATE=2e-7 \
   -d REC_RATE=1e-8 \
-  -d CHR_LENGTH=3000 \
+  -d CHR_LENGTH=30000000 \
   -d POP_SIZE=1000 \
   -d SAMPLE_SIZE=200 \
   -d "OUT_PATH='/workdir/lcwgs-simulation/sim/'" \
