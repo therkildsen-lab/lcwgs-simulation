@@ -7,8 +7,9 @@ output: github_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r eval=F}
+```{r eval=T}
 library(tidyverse)
+library(cowplot)
 ```
 
 ## Create a shell script to run SLiM with nohup
@@ -50,7 +51,7 @@ REP_ID=$1
 OUT_DIR='/workdir/lcwgs-simulation/sim/rep_'$REP_ID'/'
 for i in {1..200}; do
   echo '>rep_'$REP_ID > $OUT_DIR'temp_for_art.fasta'
-  tail -n 1 'derived_'$i'.fasta' >> $OUT_DIR'temp_for_art.fasta'
+  tail -n 1 $OUT_DIR'derived_'$i'.fasta' >> $OUT_DIR'temp_for_art.fasta'
   /workdir/programs/art_bin_MountRainier/art_illumina \\
   -ss HS25 \\
   -sam \\
@@ -112,6 +113,7 @@ done
 ```
 
 ## Make bam lists
+
 ```{r eval=F}
 for (i in 1:50){
   if (i==1){
@@ -120,4 +122,74 @@ for (i in 1:50){
     write_lines(paste0("/workdir/lcwgs-simulation/sim/rep_1/sample_", i, "_sorted_1x.bam"), "../sim/rep_1/bam_list_50_1x.txt", append = T)
   }
 }
+```
+
+## Make the ancestral fasta file to have the same header
+
+```{bash eval=F}
+for REP_ID in 1; do
+  OUT_DIR='/workdir/lcwgs-simulation/sim/rep_'$REP_ID'/'
+  echo '>rep_'$REP_ID > $OUT_DIR'ancestral_new.fasta'
+  tail -n 1 $OUT_DIR'ancestral.fasta' >> $OUT_DIR'ancestral_new.fasta'
+  samtools faidx $OUT_DIR'ancestral_new.fasta'
+done
+```
+
+## Get shell script for SNP calling
+
+```{r eval=F}
+## Note that I used -doMajorMinor 5, using the ancestral sequence to determine major and minor alleles
+shell_script <-"#!/bin/bash
+BASE_DIR='/workdir/lcwgs-simulation/sim/rep_1/'
+/workdir/programs/angsd0.931/angsd/angsd \\
+-b $BASE_DIR'bam_list_50_1x.txt' \\
+-anc $BASE_DIR'ancestral_new.fasta' \\
+-out $BASE_DIR'bam_list_50_1x' \\
+-dosaf 1 -GL 1 -doGlf 2 -doMaf 1 -doMajorMinor 5 -doPost 1 -doVcf 1 \\
+-doCounts 1 -doDepth 1 -dumpCounts 1 -doIBS 1 -makematrix 1 -doCov 1 \\
+-P 32 -SNP_pval 1e-6 \\
+-setMinDepth 25 -setMaxDepth 100 -minInd 25 -minQ 20 -minMaf 0.05 \\
+>& /workdir/lcwgs-simulation/nohups/snp_calling_rep_1_bam_list_50_1x.log"
+write_lines(shell_script, "../shell_scripts/snp_calling_rep_1_bam_list_50_1x.sh")
+```
+
+## Run the shell script for SNP calling
+
+```{bash eval=F}
+nohup bash /workdir/lcwgs-simulation/shell_scripts/snp_calling_rep_1_bam_list_50_1x.sh > /workdir/lcwgs-simulation/nohups/snp_calling_rep_1_bam_list_50_1x.nohup &
+```
+
+## Analysis
+
+### Read mutation file
+
+```{r eval=T, warning=F, message=F}
+mutations <- read_delim("../sim/rep_1/mutations.txt", delim = " ", col_names = F) %>%
+  select(7:13) %>%
+  transmute(position=X7+1, frequency=X12/2000, base=X13) %>%
+  arrange(position)
+head(mutations, n=20)
+```
+
+### Read maf estimation
+
+```{r eval=T, warning=F, message=F}
+maf <- read_tsv("../sim/rep_1/bam_list_50_1x.mafs.gz") %>%
+  mutate(estimated_frequency=knownEM)
+
+joined_frequency <- inner_join(mutations, maf, by="position")
+
+joined_frequency %>%
+  ggplot(aes(x=frequency, y=estimated_frequency)) +
+  geom_point(alpha=0.1, size=0.2) +
+  geom_abline(slope = 1, intercept = 0, color="blue", size=2) +
+  geom_smooth(method="lm", color="red", size=2, se = F) +
+  theme_cowplot()
+
+joined_frequency %>%
+  mutate(residual=frequency-estimated_frequency) %>%
+  ggplot(aes(x=frequency, y=residual)) +
+  geom_point(alpha=0.1, size=0.2) +
+  geom_abline(slope = 0, intercept = 0, color="blue", size=2) +
+  theme_cowplot()
 ```
