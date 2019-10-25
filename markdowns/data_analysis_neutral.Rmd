@@ -1,0 +1,179 @@
+---
+title: "Data analysis of neutral simulation"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r eval=T}
+library(tidyverse)
+library(cowplot)
+```
+
+## Read in the ancestral states
+
+```{r eval=T, warning=F, message=F}
+ancestral <- read_csv("../sim/rep_1/ancestral_new.fasta")[[1]] %>%
+  str_split(pattern="") %>%
+  .[[1]] %>%
+  bind_cols(ancestral=., position=1:30000000)
+```
+
+## Read mutation and substitution file
+
+```{r eval=T, warning=F, message=F}
+## Read in the mutation file outputted by SLiM
+mutations <- read_delim("../sim/rep_1/mutations.txt", delim = " ", col_names = F) %>%
+  select(7:13) %>%
+  transmute(position=X7+1, frequency=X12/2000, base=X13) %>%
+  arrange(position) %>%
+  left_join(ancestral, by="position")
+## Read in the substitutions file outputted by SLiM
+## This is necessary because mutations can happen again after one fixation, so frequencies from the mutation file do not always reflect the true derived allele frequency
+substitutions <- read_delim("../sim/rep_1/substitutions.txt", delim = " ", skip=2, col_names = F) %>%
+  transmute(position=X4+1, base=X10, frequency=1, generation=X9) %>%
+  group_by(position) %>%
+  filter(generation==max(generation)) %>%
+  ungroup() %>%
+  arrange(position) %>%
+  left_join(ancestral, by="position") %>%
+  filter(base!=ancestral)
+```
+
+## Data wrangling with the mutation file
+
+The following steps are necessary because there are complications such as back mutations and triallelic loci in the mutation file
+
+```{r eval=T, warning=F, message=F}
+## First, add up all the frequencies for mutations at the same position and base. These are the mutations that arised at different times, but they are effectively the same. 
+grouped_by_base <- mutations %>%
+  group_by(position, base, ancestral) %>%
+  summarize(frequency=sum(frequency)) %>%
+  ungroup()
+## Then, record any duplicated positions
+duplicated_positions <- grouped_by_base %>%
+  group_by(position) %>%
+  filter(n()>1) %>%
+  .$position
+## Final wrangling
+mutations_final <- grouped_by_base %>%
+  # Remove all non-back mutations if the site has already been fixed, because they all count as derived
+  filter(!(base!=ancestral & position %in% substitutions$position)) %>%
+  # Remove all back mutation if the site hasn't been fixed already
+  filter(!((base == ancestral) & (position %in% duplicated_positions) & !(position %in% substitutions$position))) %>%
+  # Remove all back mutations if they are the only mutation that occurred in its position
+  # This can happen because a first mutation could have arisen in this position, and before it went lost, the back mutation arose
+  filter(!((base == ancestral) & !(position %in% duplicated_positions) & !(position %in% substitutions$position))) %>%
+  # For the rest of the back mutations, get the derived allele frequency by substracting the back mutation frequency from 1
+  mutate(frequency=ifelse(base==ancestral, 1-frequency, frequency)) %>%
+  mutate(base=ifelse(base==ancestral, "N", base)) %>%
+  # For loci with more than two derived alleles, add up the derived allele frequency
+  group_by(position, ancestral) %>%
+  summarise(base=paste0(unique(base), collapse = ""), frequency=sum(frequency)) %>%
+  ungroup() %>%
+  # Removed any site where the ancestral allele is fixed or lost
+  filter(frequency>0, frequency<1)
+## Check the result from the wrangling
+group_by(mutations_final, position) %>%
+  filter(position %in% duplicated_positions) %>%
+  head()
+group_by(mutations_final, position) %>%
+  filter(base =="N") %>%
+  head()
+```
+
+## Plot the true site frequency spectrum
+
+```{r eval=T, warning=F, message=F, fig.height=8, fig.width=10}
+ggplot(mutations_final, aes(x=frequency)) +
+  geom_histogram(bins=101) +
+  theme_cowplot()
+```
+
+## Read maf estimation
+
+```{r eval=T, warning=F, message=F}
+maf <- read_tsv("../sim/rep_1/bam_list_50_1x.mafs.gz") %>%
+  mutate(estimated_frequency=knownEM) %>%
+  select(position, major, minor, anc, estimated_frequency, nInd) %>%
+  arrange(position)
+sfs <- scan("../sim/rep_1/bam_list_50_1x.sfs") %>%
+  enframe(name = frequency) %>%
+  mutate(frequency=0:100) 
+```
+
+## Plot the estimated site frequency spectrum
+
+```{r eval=T, warning=F, message=F, fig.height=8, fig.width=10}
+ggplot(sfs, aes(x=frequency, y=value)) +
+  geom_bar(stat = "identity") +
+  theme_cowplot()
+```
+
+## Join mutation and maf files
+
+```{r eval=T, warning=F, message=F, fig.height=8, fig.width=10}
+joined_frequency <- inner_join(mutations_final, maf, by="position") %>%
+  select(-ancestral)
+false_negatives <- anti_join(mutations_final, maf, by="position")
+false_positives <- anti_join(maf, mutations_final, by="position")
+arrange(false_negatives, abs(0.5-frequency))
+```
+
+## Plot estimated allele frequency vs. true allele frequency
+
+```{r eval=T, warning=F, message=F, fig.height=8, fig.width=10}
+joined_frequency %>%
+  ggplot(aes(x=frequency, y=estimated_frequency)) +
+  geom_point(alpha=0.1, size=0.2) +
+  geom_smooth(method="lm", color="red", size=1, se = F) +
+  theme_cowplot()
+```
+
+## Plot error vs. true allele frequency
+
+```{r eval=T, warning=F, message=F, fig.height=8, fig.width=10}
+joined_frequency %>%
+  mutate(error=frequency-estimated_frequency) %>%
+  ggplot(aes(x=frequency, y=error)) +
+  geom_point(alpha=0.1, size=0.2) +
+  geom_smooth(method="lm", color="red", size=1, se = F) +
+  theme_cowplot()
+```
+
+## Plot true vs. observed allele frequency spectrum
+
+```{r eval=T, warning=F, message=F, fig.height=8, fig.width=10}
+transmute(maf, frequency=estimated_frequency, type="observed") %>%
+  bind_rows(transmute(mutations, frequency=frequency, type="real")) %>%
+  ggplot(aes(x=frequency, color=type)) +
+  geom_density() +
+  theme_cowplot()
+```
+
+## Check the SNPs with highest error
+
+```{r eval=T, warning=F, message=F}
+joined_frequency %>%
+  mutate(error=frequency-estimated_frequency) %>%
+  arrange(desc(abs(error))) %>%
+  head()
+```
+
+## True frequency distribution of false negatives
+
+```{r eval=T, warning=F, message=F, fig.height=8, fig.width=10}
+ggplot(false_negatives, aes(x=frequency)) +
+  geom_histogram() +
+  theme_cowplot()
+```
+
+## Esimated frequency distribution of false positives
+
+```{r eval=T, warning=F, message=F, fig.height=8, fig.width=10}
+ggplot(false_positives, aes(x=estimated_frequency)) +
+  geom_histogram() +
+  theme_cowplot()
+```
