@@ -1,5 +1,5 @@
 ---
-title: "Data analysis of neutral simulation"
+title: "Data analysis with neutral simulation"
 output: github_document
 ---
 
@@ -7,7 +7,7 @@ output: github_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r eval=T}
+```{r eval=T, warning=F, message=F}
 library(tidyverse)
 library(cowplot)
 ```
