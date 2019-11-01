@@ -12,10 +12,10 @@ initialize() {
 }
 1 {	
 	// Output acestral sequence in fasta format
-	header = ">ancestral";
+	header = ">rep_" + REP_ID;
 	sequence = sim.chromosome.ancestralNucleotides();
-	writeFile(OUT_PATH + "rep_" + REP_ID + "/ancestral.fasta", header, append=F);
-	writeFile(OUT_PATH + "rep_" + REP_ID + "/ancestral.fasta", sequence, append=T);
+	writeFile(OUT_PATH + "rep_" + REP_ID + "/slim/ancestral.fasta", header, append=F);
+	writeFile(OUT_PATH + "rep_" + REP_ID + "/slim/ancestral.fasta", sequence, append=T);
 	sim.addSubpop("p1", POP_SIZE);
 }
 10000 late() {
@@ -30,13 +30,13 @@ initialize() {
 	// Output sampled haplotypes
 	for (sample_id in 1:SAMPLE_SIZE) {
 		g = p1.genomes[sample_id-1];
-		header = ">derived_" + sample_id;
+		header = ">rep_" + REP_ID;
 		sequence = g.nucleotides();
-		writeFile(OUT_PATH + "rep_" + REP_ID + "/derived_" + sample_id + ".fasta", header, append=F);
-		writeFile(OUT_PATH + "rep_" + REP_ID + "/derived_" + sample_id + ".fasta", sequence, append=T);
+		writeFile(OUT_PATH + "rep_" + REP_ID + "/fasta/derived_" + sample_id + ".fasta", header, append=F);
+		writeFile(OUT_PATH + "rep_" + REP_ID + "/fasta/derived_" + sample_id + ".fasta", sequence, append=T);
 	}
 	
 	// Output population-level allele frequencies
-	sim.outputMutations(sim.mutationsOfType(m1), OUT_PATH + "rep_" + REP_ID + "/mutations.txt");
-	sim.outputFixedMutations(OUT_PATH + "rep_" + REP_ID + "/substitutions.txt");
+	sim.outputMutations(sim.mutationsOfType(m1), OUT_PATH + "rep_" + REP_ID + "/slim/mutations.txt");
+	sim.outputFixedMutations(OUT_PATH + "rep_" + REP_ID + "/slim/substitutions.txt");
 }
