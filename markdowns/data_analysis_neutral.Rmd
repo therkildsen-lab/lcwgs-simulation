@@ -15,7 +15,7 @@ library(cowplot)
 ## Read in the ancestral states
 
 ```{r eval=T, warning=F, message=F}
-ancestral <- read_csv("../sim/rep_1/ancestral_new.fasta")[[1]] %>%
+ancestral <- read_csv("../neutral_sim/rep_1/slim/ancestral.fasta")[[1]] %>%
   str_split(pattern="") %>%
   .[[1]] %>%
   bind_cols(ancestral=., position=1:30000000)
@@ -25,14 +25,14 @@ ancestral <- read_csv("../sim/rep_1/ancestral_new.fasta")[[1]] %>%
 
 ```{r eval=T, warning=F, message=F}
 ## Read in the mutation file outputted by SLiM
-mutations <- read_delim("../sim/rep_1/mutations.txt", delim = " ", col_names = F) %>%
+mutations <- read_delim("../neutral_sim/rep_1/slim/mutations.txt", delim = " ", col_names = F) %>%
   select(7:13) %>%
   transmute(position=X7+1, frequency=X12/2000, base=X13) %>%
   arrange(position) %>%
   left_join(ancestral, by="position")
 ## Read in the substitutions file outputted by SLiM
 ## This is necessary because mutations can happen again after one fixation, so frequencies from the mutation file do not always reflect the true derived allele frequency
-substitutions <- read_delim("../sim/rep_1/substitutions.txt", delim = " ", skip=2, col_names = F) %>%
+substitutions <- read_delim("../neutral_sim/rep_1/slim/substitutions.txt", delim = " ", skip=2, col_names = F) %>%
   transmute(position=X4+1, base=X10, frequency=1, generation=X9) %>%
   group_by(position) %>%
   filter(generation==max(generation)) %>%
@@ -92,71 +92,106 @@ ggplot(mutations_final, aes(x=frequency)) +
   theme_cowplot()
 ```
 
-## Read maf estimation
+## Read maf estimation and join mutation and maf files
 
-```{r eval=T, warning=F, message=F}
-maf <- read_tsv("../sim/rep_1/bam_list_50_1x.mafs.gz") %>%
-  mutate(estimated_frequency=knownEM) %>%
-  select(position, major, minor, anc, estimated_frequency, nInd) %>%
-  arrange(position)
-sfs <- scan("../sim/rep_1/bam_list_50_1x.sfs") %>%
-  enframe(name = frequency) %>%
-  mutate(frequency=0:100) 
+```{r eval=F, warning=F, message=F}
+i=1
+for (coverage in c(0.25,0.5,1,2,4,8)){
+  for (sample_size in c(5,10,20,40)){
+    ## read in estimated maf
+    maf <- read_tsv(paste0("../neutral_sim/rep_1/angsd/bam_list_", sample_size, "_", coverage, "x.mafs.gz")) %>%
+      mutate(estimated_frequency=knownEM) %>%
+      select(position, major, minor, anc, estimated_frequency, nInd) %>%
+      arrange(position)
+    ## join estimated maf with true snps and only keep the snps that exist in both data frames
+    joined_frequency <- inner_join(mutations_final, maf, by="position") %>%
+      select(-ancestral) %>%
+      mutate(coverage=coverage, sample_size=sample_size)
+    ## find false negatives
+    false_negatives <- anti_join(mutations_final, maf, by="position") %>%
+      mutate(coverage=coverage, sample_size=sample_size)
+    ## find false positives
+    false_positives <- anti_join(maf, mutations_final, by="position") %>%
+      mutate(coverage=coverage, sample_size=sample_size)
+    ## read in estimated sfs
+    sfs <- scan(paste0("../neutral_sim/rep_1/angsd/bam_list_", sample_size, "_", coverage, "x.sfs")) %>%
+      enframe(name = frequency) %>%
+      mutate(frequency=(0:(sample_size*2))/(sample_size*2), coverage=coverage, sample_size=sample_size)
+    ## compile the final files for plotting
+    if (i==1){
+      joined_frequency_final <- joined_frequency
+      false_negatives_final <- false_negatives
+      false_positives_final <- false_positives
+      sfs_final <- sfs
+    } else {
+      joined_frequency_final <- bind_rows(joined_frequency_final, joined_frequency)
+      false_negatives_final <- bind_rows(false_negatives_final, false_negatives)
+      false_positives_final <- bind_rows(false_positives_final, false_positives)
+      sfs_final <- bind_rows(sfs_final, sfs)
+    }
+    i=i+1
+  }
+}
+write_tsv(joined_frequency_final, "../neutral_sim/rep_1/angsd/joined_frequency_final.tsv")
+write_tsv(false_negatives_final, "../neutral_sim/rep_1/angsd/false_negatives_final.tsv")
+write_tsv(false_positives_final, "../neutral_sim/rep_1/angsd/false_positives_final.tsv")
+write_tsv(sfs_final, "../neutral_sim/rep_1/angsd/sfs_final.tsv")
 ```
 
 ## Plot the estimated site frequency spectrum
 
 ```{r eval=T, warning=F, message=F, fig.height=8, fig.width=10}
-ggplot(sfs, aes(x=frequency, y=value)) +
+ggplot(sfs_final, aes(x=frequency, y=value)) +
   geom_bar(stat = "identity") +
+  facet_grid(coverage~sample_size) +
   theme_cowplot()
-```
-
-## Join mutation and maf files
-
-```{r eval=T, warning=F, message=F, fig.height=8, fig.width=10}
-joined_frequency <- inner_join(mutations_final, maf, by="position") %>%
-  select(-ancestral)
-false_negatives <- anti_join(mutations_final, maf, by="position")
-false_positives <- anti_join(maf, mutations_final, by="position")
-arrange(false_negatives, abs(0.5-frequency))
 ```
 
 ## Plot estimated allele frequency vs. true allele frequency
 
 ```{r eval=T, warning=F, message=F, fig.height=8, fig.width=10}
-joined_frequency %>%
+linear_model <- group_by(joined_frequency_final, coverage, sample_size) %>%
+  summarise(r_squared=summary(lm(estimated_frequency~frequency))$r.squared)
+joined_frequency_final %>%
   ggplot(aes(x=frequency, y=estimated_frequency)) +
   geom_point(alpha=0.1, size=0.2) +
   geom_smooth(method="lm", color="red", size=1, se = F) +
+  geom_text(data = linear_model, aes(x = 0.9, y = 0.2, label=round(r_squared,3)), color = 'red',  parse = TRUE) +
+  facet_grid(coverage~sample_size) +
+  theme_cowplot()
+```
+
+At low coverage, there tend to be a large number of sites that have very high estimated frequencies; this is because of a non-existent nInd filter and a low minDepth filter. Removing these sites will remove some of these noises but not all of them. Better strategy is needed. 
+
+```{r eval=T, warning=F, message=F, fig.height=8, fig.width=10}
+joined_frequency_final_nInd_5 <- filter(joined_frequency_final, nInd>=5)
+linear_model_nInd_5 <- group_by(joined_frequency_final_nInd_3, coverage, sample_size) %>%
+  summarise(r_squared=summary(lm(estimated_frequency~frequency))$r.squared)
+joined_frequency_final_nInd_5 %>%
+  ggplot(aes(x=frequency, y=estimated_frequency)) +
+  geom_point(alpha=0.1, size=0.2) +
+  geom_smooth(method="lm", color="blue", size=1, se = F) +
+  geom_text(data = linear_model_nInd_3, aes(x = 0.9, y = 0.2, label=round(r_squared,3)), color = 'blue',  parse = TRUE) +
+  facet_grid(coverage~sample_size) +
   theme_cowplot()
 ```
 
 ## Plot error vs. true allele frequency
 
 ```{r eval=T, warning=F, message=F, fig.height=8, fig.width=10}
-joined_frequency %>%
+joined_frequency_final %>%
   mutate(error=frequency-estimated_frequency) %>%
   ggplot(aes(x=frequency, y=error)) +
   geom_point(alpha=0.1, size=0.2) +
   geom_smooth(method="lm", color="red", size=1, se = F) +
-  theme_cowplot()
-```
-
-## Plot true vs. observed allele frequency spectrum
-
-```{r eval=T, warning=F, message=F, fig.height=8, fig.width=10}
-transmute(maf, frequency=estimated_frequency, type="observed") %>%
-  bind_rows(transmute(mutations, frequency=frequency, type="real")) %>%
-  ggplot(aes(x=frequency, color=type)) +
-  geom_density() +
+  facet_grid(coverage~sample_size) +
   theme_cowplot()
 ```
 
 ## Check the SNPs with highest error
 
 ```{r eval=T, warning=F, message=F}
-joined_frequency %>%
+filter(joined_frequency_final_nInd_4, coverage==0.5, sample_size==20) %>%
   mutate(error=frequency-estimated_frequency) %>%
   arrange(desc(abs(error))) %>%
   head()
@@ -165,15 +200,17 @@ joined_frequency %>%
 ## True frequency distribution of false negatives
 
 ```{r eval=T, warning=F, message=F, fig.height=8, fig.width=10}
-ggplot(false_negatives, aes(x=frequency)) +
+ggplot(false_negatives_final, aes(x=frequency)) +
   geom_histogram() +
+  facet_grid(coverage~sample_size) +
   theme_cowplot()
 ```
 
 ## Esimated frequency distribution of false positives
 
 ```{r eval=T, warning=F, message=F, fig.height=8, fig.width=10}
-ggplot(false_positives, aes(x=estimated_frequency)) +
+ggplot(false_positives_final, aes(x=estimated_frequency)) +
   geom_histogram() +
+  facet_grid(coverage~sample_size) +
   theme_cowplot()
 ```
