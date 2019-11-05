@@ -1,6 +1,10 @@
 Simulation workflow
 ================
 
+``` r
+library(tidyverse)
+```
+
 Create a shell script to run SLiM with nohup
 --------------------------------------------
 
@@ -8,8 +12,15 @@ Create a shell script to run SLiM with nohup
 shell_script <- "#!/bin/bash
 REP_ID=$1
 # Create output directory
-if [ ! -d /workdir/lcwgs-simulation/sim/rep_$REP_ID ]; then
-  mkdir /workdir/lcwgs-simulation/sim/rep_$REP_ID
+if [ ! -d /workdir/lcwgs-simulation/neutral_sim/rep_$REP_ID ]; then
+  mkdir /workdir/lcwgs-simulation/neutral_sim/rep_$REP_ID
+  cd /workdir/lcwgs-simulation/neutral_sim/rep_$REP_ID
+  mkdir angsd
+  mkdir bam
+  mkdir fasta
+  mkdir fastq
+  mkdir sample_lists
+  mkdir slim
 fi
 # Run SLiM 
 /programs/SLiM-3.3/bin/slim \\
@@ -18,19 +29,18 @@ fi
   -d REC_RATE=1e-8 \\
   -d CHR_LENGTH=30000000 \\
   -d POP_SIZE=1000 \\
-  -d SAMPLE_SIZE=200 \\
-  -d \"OUT_PATH='/workdir/lcwgs-simulation/sim/'\" \\
-  -d \"BurninFilename='Burnin.txt'\" \\
-  /workdir/lcwgs-simulation/slim_scripts/burnin.slim"
-write_lines(shell_script, "../shell_scripts/burnin.sh")
+  -d SAMPLE_SIZE=2000 \\
+  -d \"OUT_PATH='/workdir/lcwgs-simulation/neutral_sim/'\" \\
+  /workdir/lcwgs-simulation/slim_scripts/neutral_sim.slim"
+write_lines(shell_script, "../shell_scripts/neutral_sim.sh")
 ```
 
 Run the shell script for SLiM simulation on server
 --------------------------------------------------
 
 ``` bash
-for k in {1..10}; do
-  nohup bash /workdir/lcwgs-simulation/shell_scripts/burnin.sh $k > '/workdir/lcwgs-simulation/nohups/burnin_'$k'.nohup' &
+for k in 1; do
+  nohup bash /workdir/lcwgs-simulation/shell_scripts/neutral_sim.sh $k > '/workdir/lcwgs-simulation/nohups/neutral_sim_'$k'.nohup' &
 done
 ```
 
@@ -40,34 +50,34 @@ Create a shell script to run ART with nohup
 ``` r
 shell_script <-"#!/bin/bash
 REP_ID=$1
-OUT_DIR='/workdir/lcwgs-simulation/sim/rep_'$REP_ID'/'
-for i in {1..200}; do
-  echo '>rep_'$REP_ID > $OUT_DIR'temp_for_art.fasta'
-  tail -n 1 $OUT_DIR'derived_'$i'.fasta' >> $OUT_DIR'temp_for_art.fasta'
+OUT_DIR='/workdir/lcwgs-simulation/neutral_sim/rep_'$REP_ID'/'
+for i in {1..320}; do
   /workdir/programs/art_bin_MountRainier/art_illumina \\
   -ss HS25 \\
   -sam \\
-  -i $OUT_DIR'temp_for_art.fasta' \\
+  -i $OUT_DIR'fasta/derived_'$i'.fasta' \\
   -p \\
   -na \\
   -l 150 \\
   -f 10 \\
   -m 500 \\
   -s 75 \\
-  -rs $(($REP_ID*1000+$i)) \\
-  -o 'derived_'$i
-samtools view -bS -F 4 $OUT_DIR'derived_'$i'.sam' > $OUT_DIR'derived_'$i'.bam'
-rm $OUT_DIR'derived_'$i'.sam'
+  -rs $(($REP_ID*10000+$i)) \\
+  -o $OUT_DIR'bam/derived_'$i
+samtools view -bS -F 4 $OUT_DIR'bam/derived_'$i'.sam' > $OUT_DIR'bam/derived_'$i'.bam'
+rm $OUT_DIR'bam/derived_'$i'.sam'
+mv $OUT_DIR'bam/derived_'$i'1.fq' $OUT_DIR'fastq/'
+mv $OUT_DIR'bam/derived_'$i'2.fq' $OUT_DIR'fastq/'
 done"
-write_lines(shell_script, "../shell_scripts/run_art.sh")
+write_lines(shell_script, "../shell_scripts/art_neutral_sim.sh")
 ```
 
 Run the shell script for ART simulation on server
 -------------------------------------------------
 
 ``` bash
-for k in {1..10}; do
-  nohup bash /workdir/lcwgs-simulation/shell_scripts/run_art.sh $k > '/workdir/lcwgs-simulation/nohups/run_art_'$k'.nohup' &
+for k in 1; do
+  nohup bash /workdir/lcwgs-simulation/shell_scripts/art_neutral_sim.sh $k > '/workdir/lcwgs-simulation/nohups/art_neutral_sim_'$k'.nohup' &
 done
 ```
 
@@ -77,34 +87,36 @@ Merge, sort, and subsample bam files
 ``` r
 shell_script <-"#!/bin/bash
 REP_ID=$1
-OUT_DIR='/workdir/lcwgs-simulation/sim/rep_'$REP_ID'/'
-for k in {1..100}; do
-  l=$(($k+100))
+OUT_DIR='/workdir/lcwgs-simulation/neutral_sim/rep_'$REP_ID'/'
+for k in {1..160}; do
+  l=$(($k+160))
   ## merge
-  samtools merge $OUTDIR'sample_'$k'.bam' \\
-  $OUTDIR'derived_'$k'.bam' \\
-  $OUTDIR'derived_'$l'.bam'
+  samtools merge $OUT_DIR'bam/sample_'$k'.bam' \\
+  $OUT_DIR'bam/derived_'$k'.bam' \\
+  $OUT_DIR'bam/derived_'$l'.bam'
   ## sort
-  samtools sort -o $OUTDIR'sample_'$k'_sorted.bam' $OUTDIR'sample_'$k'.bam'
+  samtools sort -o $OUT_DIR'bam/sample_'$k'_sorted.bam' $OUT_DIR'bam/sample_'$k'.bam'
   ## subsample
-  samtools view \\
-  -s 0.05 \\
-  -b $OUTDIR'sample_'$k'_sorted.bam' \\
-  > $OUTDIR'sample_'$k'_sorted_1x.bam'
+  for j in {0.25,0.5,1,2,4,8}; do
+    samtools view \\
+    -s `awk -v j=$j 'BEGIN { print j / 20 }'` \\
+    -b $OUT_DIR'bam/sample_'$k'_sorted.bam' \\
+    > $OUT_DIR'bam/sample_'$k'_sorted_'$j'x.bam'
+  done
   ## delete intermediate files
-  #rm $OUTDIR'derived_'$k'.bam' 
-  #rm $OUTDIR'derived_'$j'.bam' 
-  rm $OUTDIR'sample_'$k'.bam' 
+  #rm $OUT_DIR'bam/derived_'$k'.bam' 
+  #rm $OUT_DIR'bam/derived_'$l'.bam' 
+  rm $OUT_DIR'bam/sample_'$k'.bam' 
 done"
-write_lines(shell_script, "../shell_scripts/merge_sort_subsample.sh")
+write_lines(shell_script, "../shell_scripts/merge_sort_subsample_neutral_sim.sh")
 ```
 
 Run the shell script for merging, sorting, and subsampling
 ----------------------------------------------------------
 
 ``` bash
-for k in {1..10}; do
-  nohup bash /workdir/lcwgs-simulation/shell_scripts/merge_sort_subsample.sh $k > '/workdir/lcwgs-simulation/nohups/merge_sort_subsample_'$k'.nohup' &
+for k in 1; do
+nohup bash /workdir/lcwgs-simulation/shell_scripts/merge_sort_subsample_neutral_sim.sh $k > '/workdir/lcwgs-simulation/nohups/merge_sort_subsample_neutral_sim_'$k'.nohup' &
 done
 ```
 
@@ -112,24 +124,26 @@ Make bam lists
 --------------
 
 ``` r
-for (i in 1:50){
-  if (i==1){
-    write_lines(paste0("/workdir/lcwgs-simulation/sim/rep_1/sample_", i, "_sorted_1x.bam"), "../sim/rep_1/bam_list_50_1x.txt")
-  } else {
-    write_lines(paste0("/workdir/lcwgs-simulation/sim/rep_1/sample_", i, "_sorted_1x.bam"), "../sim/rep_1/bam_list_50_1x.txt", append = T)
+for (coverage in c(0.25,0.5,1,2,4,8)){
+  for (sample_size in c(5,10,20,40,80,160)){
+    for (i in 1:sample_size){
+      if (i==1){
+        write_lines(paste0("/workdir/lcwgs-simulation/neutral_sim/rep_1/bam/sample_", i, "_sorted_", coverage, "x.bam"), paste0("../neutral_sim/rep_1/sample_lists/bam_list_", sample_size, "_", coverage, "x.txt"))
+      } else {
+        write_lines(paste0("/workdir/lcwgs-simulation/neutral_sim/rep_1/bam/sample_", i, "_sorted_", coverage, "x.bam"), paste0("../neutral_sim/rep_1/sample_lists/bam_list_", sample_size, "_", coverage, "x.txt"), append = T)
+      }
+    }
   }
 }
 ```
 
-Make the ancestral fasta file to have the same header
------------------------------------------------------
+Index the ancestral fasta file
+------------------------------
 
 ``` bash
 for REP_ID in 1; do
-  OUT_DIR='/workdir/lcwgs-simulation/sim/rep_'$REP_ID'/'
-  echo '>rep_'$REP_ID > $OUT_DIR'ancestral_new.fasta'
-  tail -n 1 $OUT_DIR'ancestral.fasta' >> $OUT_DIR'ancestral_new.fasta'
-  samtools faidx $OUT_DIR'ancestral_new.fasta'
+  OUT_DIR='/workdir/lcwgs-simulation/neutral_sim/rep_'$REP_ID'/'
+  samtools faidx $OUT_DIR'slim/ancestral.fasta'
 done
 ```
 
@@ -139,27 +153,34 @@ Get shell script for SNP calling
 ``` r
 ## Note that I used -doMajorMinor 5, using the ancestral sequence to determine major and minor alleles
 shell_script <-"#!/bin/bash
-BASE_DIR='/workdir/lcwgs-simulation/sim/rep_1/'
+SAMPLE_SIZE=$1
+COVERAGE=$2
+BASE_DIR='/workdir/lcwgs-simulation/neutral_sim/rep_1/'
 ## SNP calling
 /workdir/programs/angsd0.931/angsd/angsd \\
--b $BASE_DIR'bam_list_50_1x.txt' \\
--anc $BASE_DIR'ancestral_new.fasta' \\
--out $BASE_DIR'bam_list_50_1x' \\
+-b $BASE_DIR'sample_lists/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.txt' \\
+-anc $BASE_DIR'slim/ancestral.fasta' \\
+-out $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x' \\
 -dosaf 1 -GL 1 -doGlf 2 -doMaf 1 -doMajorMinor 5 -doPost 1 -doVcf 1 \\
 -doCounts 1 -doDepth 1 -dumpCounts 1 -doIBS 1 -makematrix 1 -doCov 1 \\
--P 32 -SNP_pval 1e-6 \\
--setMinDepth 10 -setMaxDepth 1000 -minInd 10 -minQ 20 -minMaf 0.01 \\
->& /workdir/lcwgs-simulation/nohups/snp_calling_rep_1_bam_list_50_1x.log
+-P 4 -SNP_pval 1e-6 \\
+-setMinDepth 2 -minInd 1 -minQ 20 \\
+>& '/workdir/lcwgs-simulation/nohups/snp_calling_neutral_sim_1_bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.log'
 ## estimate SFS
-/workdir/programs/angsd0.931/angsd/misc/realSFS $BASE_DIR'bam_list_50_1x.saf.idx' \\
-> $BASE_DIR'bam_list_50_1x.sfs'"
-write_lines(shell_script, "../shell_scripts/snp_calling_rep_1_bam_list_50_1x.sh")
+/workdir/programs/angsd0.931/angsd/misc/realSFS $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.saf.idx' \\
+> $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.sfs'"
+write_lines(shell_script, "../shell_scripts/snp_calling_neutral_sim.sh")
 ```
 
 Run the shell script for SNP calling
 ------------------------------------
 
 ``` bash
-nohup bash /workdir/lcwgs-simulation/shell_scripts/snp_calling_rep_1_bam_list_50_1x.sh \
-> /workdir/lcwgs-simulation/nohups/snp_calling_rep_1_bam_list_50_1x.nohup &
+for coverage in {0.25,0.5,1,2,4,8}; do
+  for sample_size in {5,10,20,40,80,160}; do
+    nohup bash /workdir/lcwgs-simulation/shell_scripts/snp_calling_neutral_sim.sh \
+    $sample_size $coverage \
+    > '/workdir/lcwgs-simulation/nohups/snp_calling_neutral_sim_1_bam_list_'$sample_size'_'$coverage'x.nohup' &
+  done
+done
 ```
