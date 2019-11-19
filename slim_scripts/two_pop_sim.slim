@@ -40,6 +40,6 @@ fitness(m2, p2) { return 1/relFitness; }
 	}
 	
 	// Output population-level allele frequencies
-	sim.outputMutations(sim.mutationsOfType(m1, m2), OUT_PATH + "rep_" + REP_ID + "/slim/mutations.txt");
+	sim.outputMutations(sim.mutationsOfType(c(m1, m2)), OUT_PATH + "rep_" + REP_ID + "/slim/mutations.txt");
 	sim.outputFixedMutations(OUT_PATH + "rep_" + REP_ID + "/slim/substitutions.txt");
 }
