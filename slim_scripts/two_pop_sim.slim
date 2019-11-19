@@ -6,8 +6,8 @@ initialize() {
 	setSeed(REP_ID);
 	initializeAncestralNucleotides(randomNucleotides(L));
 	initializeMutationTypeNuc("m1", 0.5, "f", 0.0);
-	initializeMutationTypeNuc("m2", 0.5, "f", 0.5);
-	initializeGenomicElementType("g1", m1, 1.0, mmJukesCantor(MUTATION_RATE));
+	initializeMutationTypeNuc("m2", 0.5, "f", SELECTION_COEFF);
+	initializeGenomicElementType("g1", c(m1, m2), c(0.99999, 0.00001), mmJukesCantor(MUTATION_RATE));
 	initializeGenomicElement(g1, 0, L-1);
 	initializeRecombinationRate(REC_RATE);
 }
@@ -25,7 +25,7 @@ initialize() {
 }
 fitness(m2, p2) { return 1/relFitness; }
 10000 late() {
-// Output sampled haplotypes
+	// Output sampled haplotypes
 	for (sample_id in 1:SAMPLE_SIZE) {
 		g = p1.genomes[sample_id-1];
 		header = ">rep_" + REP_ID;
@@ -40,6 +40,6 @@ fitness(m2, p2) { return 1/relFitness; }
 	}
 	
 	// Output population-level allele frequencies
-	sim.outputMutations(sim.mutationsOfType(m1), OUT_PATH + "rep_" + REP_ID + "/slim/mutations.txt");
+	sim.outputMutations(sim.mutationsOfType(m1, m2), OUT_PATH + "rep_" + REP_ID + "/slim/mutations.txt");
 	sim.outputFixedMutations(OUT_PATH + "rep_" + REP_ID + "/slim/substitutions.txt");
 }
