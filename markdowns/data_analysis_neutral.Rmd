@@ -87,8 +87,10 @@ group_by(mutations_final, position) %>%
 ## Plot the true site frequency spectrum
 
 ```{r eval=T, warning=F, message=F, fig.height=8, fig.width=10}
+n_mutations <- dim(mutations_final)[1]
 ggplot(mutations_final, aes(x=frequency)) +
-  geom_histogram(bins=101) +
+  geom_histogram(bins=201) +
+  annotate("text", x=0.8, y=150000, label=paste0("n=", n_mutations)) +
   theme_cowplot()
 ```
 
@@ -147,53 +149,85 @@ sfs_final <- read_tsv("../neutral_sim/rep_1/angsd/sfs_final.tsv")
 
 ## Plot the estimated site frequency spectrum
 
-```{r eval=T, warning=F, message=F, fig.height=10, fig.width=15}
-filter(sfs_final, frequency != 1) %>%
+These are obtained from `realSFS`.
+
+```{r eval=T, warning=F, message=F, fig.height=12, fig.width=15}
+sfs_final_sum <- group_by(sfs_final, coverage, sample_size) %>%
+  summarise(n=sum(value))
+
+sfs_final %>%
   ggplot(aes(x=frequency, y=value)) +
-  geom_bar(stat = "identity") +
+  geom_point(size=0.5) +
+  geom_line() +
+  geom_text(data=sfs_final_sum, x=0.8, y=40000, aes(label=paste0("n=",round(n,0)))) +
+  facet_grid(coverage~sample_size) +
+  theme_cowplot()
+
+sfs_final %>%
+  ggplot(aes(x=frequency, y=value)) +
+  geom_col(aes(width = 0.5/sample_size)) +
+  geom_text(data=sfs_final_sum, x=0.8, y=40000, aes(label=paste0("n=",round(n,0)))) +
   facet_grid(coverage~sample_size) +
   theme_cowplot()
 ```
 
-Note: the bars need to be made with different width.
+## Plot the estimated allele frequency distribution
+
+These are the histogram of estimated allele frequencies
+
+```{r eval=T, warning=F, message=F, fig.height=12, fig.width=15}
+linear_model <- group_by(joined_frequency_final, coverage, sample_size) %>%
+  summarise(r_squared=paste0("R^2 == ", round(summary(lm(estimated_frequency~frequency))$r.squared,3)),
+            n=paste0("n == ",n()))
+joined_frequency_final %>%
+  ggplot(aes(x=estimated_frequency)) +
+  geom_histogram() +
+  geom_text(data=linear_model, x=0.8, y=20000, aes(label=n), parse=T) +
+  facet_grid(coverage~sample_size, scales ="free_y") +
+  theme_cowplot()
+```
 
 ## Plot estimated allele frequency vs. true allele frequency
 
-```{r eval=T, warning=F, message=F, fig.height=10, fig.width=15}
-linear_model <- group_by(joined_frequency_final, coverage, sample_size) %>%
-  summarise(r_squared=summary(lm(estimated_frequency~frequency))$r.squared)
+```{r eval=T, warning=F, message=F, fig.height=12, fig.width=15}
 joined_frequency_final %>%
   ggplot(aes(x=frequency, y=estimated_frequency)) +
   geom_point(alpha=0.1, size=0.1) +
   geom_smooth(method="lm", color="red", size=1, se = F) +
-  geom_text(data = linear_model, aes(x = 0.9, y = 0.2, label=round(r_squared,3)), color = 'red',  parse = TRUE) +
+  geom_text(data = linear_model, x = 0.86, y = 0.25, aes(label=r_squared), color = 'red',  parse = TRUE) +
+  geom_text(data = linear_model, x = 0.86, y = 0.12, aes(label=n), color = 'red',  parse = TRUE) +
   facet_grid(coverage~sample_size) +
   theme_cowplot()
 ```
 
-At low coverage, there tend to be a large number of sites that have very high estimated frequencies; this is because of a non-existent nInd filter and a low minDepth filter. Removing these sites will remove some of these noises but not all of them. Better strategy is needed. 
+At low coverage and low sample size, the bias in estimation is quite high. This is because of a non-existent nInd filter and a low minDepth filter. Removing these sites will remove some of these noises but will further reduce the amount of data. 
 
-```{r eval=T, warning=F, message=F, fig.height=8, fig.width=10}
-joined_frequency_final_nInd_5 <- filter(joined_frequency_final, nInd>=5)
-linear_model_nInd_5 <- group_by(joined_frequency_final_nInd_5, coverage, sample_size) %>%
-  summarise(r_squared=summary(lm(estimated_frequency~frequency))$r.squared)
-joined_frequency_final_nInd_5 %>%
+```{r eval=T, warning=F, message=F, fig.height=12, fig.width=15}
+joined_frequency_final_nInd_4 <- filter(joined_frequency_final, nInd>=4)
+
+linear_model_nInd_4 <- group_by(joined_frequency_final_nInd_4, coverage, sample_size) %>%
+  summarise(r_squared=paste0("R^2 == ", round(summary(lm(estimated_frequency~frequency))$r.squared,3)),
+            n=paste0("n == ",n()))
+
+joined_frequency_final_nInd_4 %>%
   ggplot(aes(x=frequency, y=estimated_frequency)) +
   geom_point(alpha=0.1, size=0.2) +
   geom_smooth(method="lm", color="red", size=1, se = F) +
-  geom_text(data = linear_model_nInd_5, aes(x = 0.9, y = 0.2, label=round(r_squared,3)), color = 'red',  parse = TRUE) +
+  geom_text(data = linear_model_nInd_4, x = 0.86, y = 0.25, aes(label=r_squared), color = 'red',  parse = TRUE) +
+  geom_text(data = linear_model_nInd_4, x = 0.86, y = 0.12, aes(label=n), color = 'red',  parse = TRUE) +
   facet_grid(coverage~sample_size) +
   theme_cowplot()
 ```
 
 ## Plot error vs. true allele frequency
 
-```{r eval=T, warning=F, message=F, fig.height=8, fig.width=10}
+```{r eval=T, warning=F, message=F, fig.height=12, fig.width=15}
 joined_frequency_final %>%
   mutate(error=frequency-estimated_frequency) %>%
   ggplot(aes(x=frequency, y=error)) +
   geom_point(alpha=0.1, size=0.2) +
   geom_smooth(method="lm", color="red", size=1, se = F) +
+  geom_text(data = linear_model, x = 0.86, y = -0.6, aes(label=n), color = 'red',  parse = TRUE) +
   facet_grid(coverage~sample_size) +
   theme_cowplot()
 ```
@@ -201,17 +235,19 @@ joined_frequency_final %>%
 ## Check the SNPs with highest error
 
 ```{r eval=T, warning=F, message=F}
-filter(joined_frequency_final_nInd_5, coverage==0.5, sample_size==20) %>%
+filter(joined_frequency_final, coverage==8, sample_size==160) %>%
   mutate(error=frequency-estimated_frequency) %>%
   arrange(desc(abs(error))) %>%
-  head()
+  head(n=20)
 ```
 
 ## True frequency distribution of false negatives
 
 ```{r eval=T, warning=F, message=F, fig.height=10, fig.width=15}
+false_negatives_final_count <- count(false_negatives_final, coverage, sample_size)
 ggplot(false_negatives_final, aes(x=frequency)) +
   geom_histogram() +
+  geom_text(data=false_negatives_final_count, x=0.3, y=200000, aes(label=paste0("n=", n))) +
   facet_grid(coverage~sample_size) +
   theme_cowplot()
 ```
@@ -219,8 +255,10 @@ ggplot(false_negatives_final, aes(x=frequency)) +
 ## Esimated frequency distribution of false positives
 
 ```{r eval=T, warning=F, message=F, fig.height=10, fig.width=15}
+false_positives_final_count <- count(false_positives_final, coverage, sample_size)
 ggplot(false_positives_final, aes(x=estimated_frequency)) +
   geom_histogram() +
+  geom_text(data=false_positives_final_count, x=0.8, y=1500, aes(label=paste0("n=", n))) +
   facet_grid(coverage~sample_size) +
   theme_cowplot()
 ```

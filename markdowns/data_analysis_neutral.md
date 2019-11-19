@@ -110,8 +110,10 @@ Plot the true site frequency spectrum
 -------------------------------------
 
 ``` r
+n_mutations <- dim(mutations_final)[1]
 ggplot(mutations_final, aes(x=frequency)) +
-  geom_histogram(bins=101) +
+  geom_histogram(bins=201) +
+  annotate("text", x=0.8, y=150000, label=paste0("n=", n_mutations)) +
   theme_cowplot()
 ```
 
@@ -174,51 +176,89 @@ sfs_final <- read_tsv("../neutral_sim/rep_1/angsd/sfs_final.tsv")
 Plot the estimated site frequency spectrum
 ------------------------------------------
 
+These are obtained from `realSFS`.
+
 ``` r
-filter(sfs_final, frequency != 1) %>%
+sfs_final_sum <- group_by(sfs_final, coverage, sample_size) %>%
+  summarise(n=sum(value))
+
+sfs_final %>%
   ggplot(aes(x=frequency, y=value)) +
-  geom_bar(stat = "identity") +
+  geom_point(size=0.5) +
+  geom_line() +
+  geom_text(data=sfs_final_sum, x=0.8, y=40000, aes(label=paste0("n=",round(n,0)))) +
   facet_grid(coverage~sample_size) +
   theme_cowplot()
 ```
 
 ![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-8-1.png)
 
-Note: the bars need to be made with different width.
+``` r
+sfs_final %>%
+  ggplot(aes(x=frequency, y=value)) +
+  geom_col(aes(width = 0.5/sample_size)) +
+  geom_text(data=sfs_final_sum, x=0.8, y=40000, aes(label=paste0("n=",round(n,0)))) +
+  facet_grid(coverage~sample_size) +
+  theme_cowplot()
+```
 
-Plot estimated allele frequency vs. true allele frequency
----------------------------------------------------------
+![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-8-2.png)
+
+Plot the estimated allele frequency distribution
+------------------------------------------------
+
+These are the histogram of estimated allele frequencies
 
 ``` r
 linear_model <- group_by(joined_frequency_final, coverage, sample_size) %>%
-  summarise(r_squared=summary(lm(estimated_frequency~frequency))$r.squared)
+  summarise(r_squared=paste0("R^2 == ", round(summary(lm(estimated_frequency~frequency))$r.squared,3)),
+            n=paste0("n == ",n()))
 joined_frequency_final %>%
-  ggplot(aes(x=frequency, y=estimated_frequency)) +
-  geom_point(alpha=0.1, size=0.1) +
-  geom_smooth(method="lm", color="red", size=1, se = F) +
-  geom_text(data = linear_model, aes(x = 0.9, y = 0.2, label=round(r_squared,3)), color = 'red',  parse = TRUE) +
-  facet_grid(coverage~sample_size) +
+  ggplot(aes(x=estimated_frequency)) +
+  geom_histogram() +
+  geom_text(data=linear_model, x=0.8, y=20000, aes(label=n), parse=T) +
+  facet_grid(coverage~sample_size, scales ="free_y") +
   theme_cowplot()
 ```
 
 ![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-9-1.png)
 
-At low coverage, there tend to be a large number of sites that have very high estimated frequencies; this is because of a non-existent nInd filter and a low minDepth filter. Removing these sites will remove some of these noises but not all of them. Better strategy is needed.
+Plot estimated allele frequency vs. true allele frequency
+---------------------------------------------------------
 
 ``` r
-joined_frequency_final_nInd_5 <- filter(joined_frequency_final, nInd>=5)
-linear_model_nInd_5 <- group_by(joined_frequency_final_nInd_5, coverage, sample_size) %>%
-  summarise(r_squared=summary(lm(estimated_frequency~frequency))$r.squared)
-joined_frequency_final_nInd_5 %>%
+joined_frequency_final %>%
   ggplot(aes(x=frequency, y=estimated_frequency)) +
-  geom_point(alpha=0.1, size=0.2) +
+  geom_point(alpha=0.1, size=0.1) +
   geom_smooth(method="lm", color="red", size=1, se = F) +
-  geom_text(data = linear_model_nInd_5, aes(x = 0.9, y = 0.2, label=round(r_squared,3)), color = 'red',  parse = TRUE) +
+  geom_text(data = linear_model, x = 0.86, y = 0.25, aes(label=r_squared), color = 'red',  parse = TRUE) +
+  geom_text(data = linear_model, x = 0.86, y = 0.12, aes(label=n), color = 'red',  parse = TRUE) +
   facet_grid(coverage~sample_size) +
   theme_cowplot()
 ```
 
 ![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-10-1.png)
+
+At low coverage and low sample size, the bias in estimation is quite high. This is because of a non-existent nInd filter and a low minDepth filter. Removing these sites will remove some of these noises but will further reduce the amount of data.
+
+``` r
+joined_frequency_final_nInd_4 <- filter(joined_frequency_final, nInd>=4)
+
+linear_model_nInd_4 <- group_by(joined_frequency_final_nInd_4, coverage, sample_size) %>%
+  summarise(r_squared=paste0("R^2 == ", round(summary(lm(estimated_frequency~frequency))$r.squared,3)),
+            n=paste0("n == ",n()))
+
+joined_frequency_final_nInd_4 %>%
+  ggplot(aes(x=frequency, y=estimated_frequency)) +
+  geom_point(alpha=0.1, size=0.2) +
+  geom_smooth(method="lm", color="red", size=1, se = F) +
+  geom_text(data = linear_model_nInd_4, x = 0.86, y = 0.25, aes(label=r_squared), color = 'red',  parse = TRUE) +
+  geom_text(data = linear_model_nInd_4, x = 0.86, y = 0.12, aes(label=n), color = 'red',  parse = TRUE) +
+  facet_grid(coverage~sample_size) +
+  theme_cowplot()
+```
+
+![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-11-1.png)
 
 Plot error vs. true allele frequency
 ------------------------------------
@@ -229,53 +269,72 @@ joined_frequency_final %>%
   ggplot(aes(x=frequency, y=error)) +
   geom_point(alpha=0.1, size=0.2) +
   geom_smooth(method="lm", color="red", size=1, se = F) +
+  geom_text(data = linear_model, x = 0.86, y = -0.6, aes(label=n), color = 'red',  parse = TRUE) +
   facet_grid(coverage~sample_size) +
   theme_cowplot()
 ```
 
-![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-11-1.png)
+![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-12-1.png)
 
 Check the SNPs with highest error
 ---------------------------------
 
 ``` r
-filter(joined_frequency_final_nInd_5, coverage==0.5, sample_size==20) %>%
+filter(joined_frequency_final, coverage==8, sample_size==160) %>%
   mutate(error=frequency-estimated_frequency) %>%
   arrange(desc(abs(error))) %>%
-  head()
+  head(n=20)
 ```
 
-    ## # A tibble: 6 x 11
-    ##   position base  frequency major minor anc   estimated_frequ…  nInd
-    ##      <dbl> <chr>     <dbl> <chr> <chr> <chr>            <dbl> <dbl>
-    ## 1 28916699 G        0.0555 A     G     A                0.800     5
-    ## 2 29067636 C        0.268  T     C     T                1.000     5
-    ## 3 25769712 G        0.285  T     G     T                1.000     5
-    ## 4  7111545 C        0.138  T     C     T                0.845     6
-    ## 5 18820348 T        0.117  C     T     C                0.817     5
-    ## 6 24818194 C        0.125  A     C     A                0.817     5
+    ## # A tibble: 20 x 11
+    ##    position base  frequency major minor anc   estimated_frequ…  nInd
+    ##       <dbl> <chr>     <dbl> <chr> <chr> <chr>            <dbl> <dbl>
+    ##  1 24757910 C         0.526 A     C     A                0.631   160
+    ##  2 24758068 T         0.526 G     T     G                0.629   160
+    ##  3 24757978 T         0.526 C     T     C                0.626   160
+    ##  4 24763352 C         0.478 A     C     A                0.379   160
+    ##  5 24761076 C         0.526 T     C     T                0.625   160
+    ##  6 24762008 C         0.474 A     C     A                0.376   160
+    ##  7 24758967 A         0.474 C     A     C                0.376   160
+    ##  8 24760681 G         0.474 C     G     C                0.376   160
+    ##  9 24762957 T         0.526 C     T     C                0.624   160
+    ## 10 24755949 C         0.474 T     C     T                0.376   160
+    ## 11 24775810 T         0.514 G     T     G                0.611   160
+    ## 12 24759280 T         0.474 G     T     G                0.376   159
+    ## 13 24760349 C         0.526 T     C     T                0.623   160
+    ## 14 24760587 A         0.526 G     A     G                0.623   160
+    ## 15 24758814 A         0.526 C     A     C                0.623   160
+    ## 16 24762731 G         0.526 A     G     A                0.623   160
+    ## 17 24758467 A         0.474 C     A     C                0.377   159
+    ## 18 24762632 A         0.526 C     A     C                0.622   160
+    ## 19 24762719 A         0.526 C     A     C                0.622   159
+    ## 20 24761596 T         0.526 G     T     G                0.622   160
     ## # … with 3 more variables: coverage <dbl>, sample_size <dbl>, error <dbl>
 
 True frequency distribution of false negatives
 ----------------------------------------------
 
 ``` r
+false_negatives_final_count <- count(false_negatives_final, coverage, sample_size)
 ggplot(false_negatives_final, aes(x=frequency)) +
   geom_histogram() +
-  facet_grid(coverage~sample_size) +
-  theme_cowplot()
-```
-
-![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-13-1.png)
-
-Esimated frequency distribution of false positives
---------------------------------------------------
-
-``` r
-ggplot(false_positives_final, aes(x=estimated_frequency)) +
-  geom_histogram() +
+  geom_text(data=false_negatives_final_count, x=0.3, y=200000, aes(label=paste0("n=", n))) +
   facet_grid(coverage~sample_size) +
   theme_cowplot()
 ```
 
 ![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-14-1.png)
+
+Esimated frequency distribution of false positives
+--------------------------------------------------
+
+``` r
+false_positives_final_count <- count(false_positives_final, coverage, sample_size)
+ggplot(false_positives_final, aes(x=estimated_frequency)) +
+  geom_histogram() +
+  geom_text(data=false_positives_final_count, x=0.8, y=1500, aes(label=paste0("n=", n))) +
+  facet_grid(coverage~sample_size) +
+  theme_cowplot()
+```
+
+![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-15-1.png)
