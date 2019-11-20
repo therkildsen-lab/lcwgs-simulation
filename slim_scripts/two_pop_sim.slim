@@ -7,7 +7,7 @@ initialize() {
 	initializeAncestralNucleotides(randomNucleotides(L));
 	initializeMutationTypeNuc("m1", 0.5, "f", 0.0);
 	initializeMutationTypeNuc("m2", 0.5, "f", SELECTION_COEFF);
-	initializeGenomicElementType("g1", c(m1, m2), c(0.99999, 0.00001), mmJukesCantor(MUTATION_RATE));
+	initializeGenomicElementType("g1", c(m1, m2), c(0.999999, 0.000001), mmJukesCantor(MUTATION_RATE));
 	initializeGenomicElement(g1, 0, L-1);
 	initializeRecombinationRate(REC_RATE);
 }
