@@ -22,20 +22,22 @@ Read mutation and substitution file
 ``` r
 ## Read in the mutation file outputted by SLiM
 mutations <- read_delim("../neutral_sim/rep_1/slim/mutations.txt", delim = " ", col_names = F) %>%
-  select(7:13) %>%
-  transmute(position=X7+1, frequency=X12/2000, base=X13) %>%
-  arrange(position) %>%
-  left_join(ancestral, by="position")
+  transmute(type=X6, position=X7+1, base=X13, frequency=X12/2000) %>%
+  left_join(ancestral, by="position") %>%
+  group_by(type, position, ancestral, base) %>%
+  summarise(frequency=sum(frequency)) %>%
+  ungroup()
 ## Read in the substitutions file outputted by SLiM
 ## This is necessary because mutations can happen again after one fixation, so frequencies from the mutation file do not always reflect the true derived allele frequency
 substitutions <- read_delim("../neutral_sim/rep_1/slim/substitutions.txt", delim = " ", skip=2, col_names = F) %>%
-  transmute(position=X4+1, base=X10, frequency=1, generation=X9) %>%
-  group_by(position) %>%
+  transmute(type=X3, position=X4+1, base=X10, generation=X9) %>%
+  group_by(type, position) %>%
   filter(generation==max(generation)) %>%
   ungroup() %>%
-  arrange(position) %>%
   left_join(ancestral, by="position") %>%
-  filter(base!=ancestral)
+  select(-generation) %>%
+  filter(base!=ancestral) %>%
+  arrange(position)
 ```
 
 Data wrangling with the mutation file
@@ -44,67 +46,25 @@ Data wrangling with the mutation file
 The following steps are necessary because there are complications such as back mutations and triallelic loci in the mutation file
 
 ``` r
-## First, add up all the frequencies for mutations at the same position and base. These are the mutations that arised at different times, but they are effectively the same. 
-grouped_by_base <- mutations %>%
-  group_by(position, base, ancestral) %>%
-  summarize(frequency=sum(frequency)) %>%
-  ungroup()
-## Then, record any duplicated positions
-duplicated_positions <- grouped_by_base %>%
-  group_by(position) %>%
-  filter(n()>1) %>%
-  .$position
-## Final wrangling
-mutations_final <- grouped_by_base %>%
-  # Remove all non-back mutations if the site has already been fixed, because they all count as derived
-  filter(!(base!=ancestral & position %in% substitutions$position)) %>%
-  # Remove all back mutation if the site hasn't been fixed already
-  filter(!((base == ancestral) & (position %in% duplicated_positions) & !(position %in% substitutions$position))) %>%
-  # Remove all back mutations if they are the only mutation that occurred in its position
-  # This can happen because a first mutation could have arisen in this position, and before it went lost, the back mutation arose
-  filter(!((base == ancestral) & !(position %in% duplicated_positions) & !(position %in% substitutions$position))) %>%
-  # For the rest of the back mutations, get the derived allele frequency by substracting the back mutation frequency from 1
-  mutate(frequency=ifelse(base==ancestral, 1-frequency, frequency)) %>%
-  mutate(base=ifelse(base==ancestral, "N", base)) %>%
-  # For loci with more than two derived alleles, add up the derived allele frequency
-  group_by(position, ancestral) %>%
-  summarise(base=paste0(unique(base), collapse = ""), frequency=sum(frequency)) %>%
+## Join mutations and substitutions in a temp table
+mutations_final_temp <-  mutations %>%
+  spread(key = base, value=frequency) %>%
+  full_join(substitutions, by=c("position", "type", "ancestral")) %>%
+  arrange(position) %>%
+  mutate(base=ifelse(is.na(base), ancestral, base)) %>%
+  mutate_all(~replace(., is.na(.), 0)) %>%
+  mutate(frequency=1-`A` -`C` -`G` -`T`)
+## More wrangling
+mutations_final <- mutations_final_temp[1:7] %>%
+  gather(key=base, value=frequency, 4:7) %>%
+  bind_rows(mutations_final_temp[c(1:3, 8:9)]) %>%
+  mutate(frequency=ifelse(base==ancestral, 0, frequency)) %>%
+  group_by(type, position, ancestral) %>%
+  filter(frequency!=0) %>%
+  summarise(frequency=sum(frequency), base=paste0(base, collapse = "")) %>%
   ungroup() %>%
-  # Removed any site where the ancestral allele is fixed or lost
-  filter(frequency>0, frequency<1)
-## Check the result from the wrangling
-group_by(mutations_final, position) %>%
-  filter(position %in% duplicated_positions) %>%
-  head()
+  filter(frequency!=1)
 ```
-
-    ## # A tibble: 6 x 4
-    ## # Groups:   position [6]
-    ##   position ancestral base  frequency
-    ##      <dbl> <chr>     <chr>     <dbl>
-    ## 1     3126 G         AC       0.0025
-    ## 2     5941 T         AG       0.0135
-    ## 3    42589 C         GT       0.0145
-    ## 4    44162 C         AG       0.99  
-    ## 5    59168 G         AC       0.138 
-    ## 6    60497 C         AT       0.0065
-
-``` r
-group_by(mutations_final, position) %>%
-  filter(base =="N") %>%
-  head()
-```
-
-    ## # A tibble: 6 x 4
-    ## # Groups:   position [6]
-    ##   position ancestral base  frequency
-    ##      <dbl> <chr>     <chr>     <dbl>
-    ## 1      150 G         N         0.998
-    ## 2    23619 C         N         1.000
-    ## 3    97580 A         N         0.982
-    ## 4   112480 C         N         0.998
-    ## 5   181676 G         N         1.000
-    ## 6   215077 C         N         0.994
 
 Plot the true site frequency spectrum
 -------------------------------------
@@ -286,29 +246,29 @@ filter(joined_frequency_final, coverage==8, sample_size==160) %>%
   head(n=20)
 ```
 
-    ## # A tibble: 20 x 11
-    ##    position base  frequency major minor anc   estimated_frequ…  nInd
-    ##       <dbl> <chr>     <dbl> <chr> <chr> <chr>            <dbl> <dbl>
-    ##  1 24757910 C         0.526 A     C     A                0.631   160
-    ##  2 24758068 T         0.526 G     T     G                0.629   160
-    ##  3 24757978 T         0.526 C     T     C                0.626   160
-    ##  4 24763352 C         0.478 A     C     A                0.379   160
-    ##  5 24761076 C         0.526 T     C     T                0.625   160
-    ##  6 24762008 C         0.474 A     C     A                0.376   160
-    ##  7 24758967 A         0.474 C     A     C                0.376   160
-    ##  8 24760681 G         0.474 C     G     C                0.376   160
-    ##  9 24762957 T         0.526 C     T     C                0.624   160
-    ## 10 24755949 C         0.474 T     C     T                0.376   160
-    ## 11 24775810 T         0.514 G     T     G                0.611   160
-    ## 12 24759280 T         0.474 G     T     G                0.376   159
-    ## 13 24760349 C         0.526 T     C     T                0.623   160
-    ## 14 24760587 A         0.526 G     A     G                0.623   160
-    ## 15 24758814 A         0.526 C     A     C                0.623   160
-    ## 16 24762731 G         0.526 A     G     A                0.623   160
-    ## 17 24758467 A         0.474 C     A     C                0.377   159
-    ## 18 24762632 A         0.526 C     A     C                0.622   160
-    ## 19 24762719 A         0.526 C     A     C                0.622   159
-    ## 20 24761596 T         0.526 G     T     G                0.622   160
+    ## # A tibble: 20 x 12
+    ##    type  position frequency base  major minor anc   estimated_frequ…  nInd
+    ##    <chr>    <dbl>     <dbl> <chr> <chr> <chr> <chr>            <dbl> <dbl>
+    ##  1 m1    24757910     0.526 C     A     C     A                0.631   160
+    ##  2 m1    24758068     0.526 T     G     T     G                0.629   160
+    ##  3 m1    24757978     0.526 T     C     T     C                0.626   160
+    ##  4 m1    24763352     0.478 C     A     C     A                0.379   160
+    ##  5 m1    24761076     0.526 C     T     C     T                0.625   160
+    ##  6 m1    24762008     0.474 C     A     C     A                0.376   160
+    ##  7 m1    24758967     0.474 A     C     A     C                0.376   160
+    ##  8 m1    24760681     0.474 G     C     G     C                0.376   160
+    ##  9 m1    24762957     0.526 T     C     T     C                0.624   160
+    ## 10 m1    24755949     0.474 C     T     C     T                0.376   160
+    ## 11 m1    24775810     0.514 T     G     T     G                0.611   160
+    ## 12 m1    24759280     0.474 T     G     T     G                0.376   159
+    ## 13 m1    24760349     0.526 C     T     C     T                0.623   160
+    ## 14 m1    24760587     0.526 A     G     A     G                0.623   160
+    ## 15 m1    24758814     0.526 A     C     A     C                0.623   160
+    ## 16 m1    24762731     0.526 G     A     G     A                0.623   160
+    ## 17 m1    24758467     0.474 A     C     A     C                0.377   159
+    ## 18 m1    24762632     0.526 A     C     A     C                0.622   160
+    ## 19 m1    24762719     0.526 A     C     A     C                0.622   159
+    ## 20 m1    24761596     0.526 T     G     T     G                0.622   160
     ## # … with 3 more variables: coverage <dbl>, sample_size <dbl>, error <dbl>
 
 True frequency distribution of false negatives

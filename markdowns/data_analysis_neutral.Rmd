@@ -26,20 +26,22 @@ ancestral <- read_csv("../neutral_sim/rep_1/slim/ancestral.fasta")[[1]] %>%
 ```{r eval=T, warning=F, message=F}
 ## Read in the mutation file outputted by SLiM
 mutations <- read_delim("../neutral_sim/rep_1/slim/mutations.txt", delim = " ", col_names = F) %>%
-  select(7:13) %>%
-  transmute(position=X7+1, frequency=X12/2000, base=X13) %>%
-  arrange(position) %>%
-  left_join(ancestral, by="position")
+  transmute(type=X6, position=X7+1, base=X13, frequency=X12/2000) %>%
+  left_join(ancestral, by="position") %>%
+  group_by(type, position, ancestral, base) %>%
+  summarise(frequency=sum(frequency)) %>%
+  ungroup()
 ## Read in the substitutions file outputted by SLiM
 ## This is necessary because mutations can happen again after one fixation, so frequencies from the mutation file do not always reflect the true derived allele frequency
 substitutions <- read_delim("../neutral_sim/rep_1/slim/substitutions.txt", delim = " ", skip=2, col_names = F) %>%
-  transmute(position=X4+1, base=X10, frequency=1, generation=X9) %>%
-  group_by(position) %>%
+  transmute(type=X3, position=X4+1, base=X10, generation=X9) %>%
+  group_by(type, position) %>%
   filter(generation==max(generation)) %>%
   ungroup() %>%
-  arrange(position) %>%
   left_join(ancestral, by="position") %>%
-  filter(base!=ancestral)
+  select(-generation) %>%
+  filter(base!=ancestral) %>%
+  arrange(position)
 ```
 
 ## Data wrangling with the mutation file
@@ -47,41 +49,24 @@ substitutions <- read_delim("../neutral_sim/rep_1/slim/substitutions.txt", delim
 The following steps are necessary because there are complications such as back mutations and triallelic loci in the mutation file
 
 ```{r eval=T, warning=F, message=F}
-## First, add up all the frequencies for mutations at the same position and base. These are the mutations that arised at different times, but they are effectively the same. 
-grouped_by_base <- mutations %>%
-  group_by(position, base, ancestral) %>%
-  summarize(frequency=sum(frequency)) %>%
-  ungroup()
-## Then, record any duplicated positions
-duplicated_positions <- grouped_by_base %>%
-  group_by(position) %>%
-  filter(n()>1) %>%
-  .$position
-## Final wrangling
-mutations_final <- grouped_by_base %>%
-  # Remove all non-back mutations if the site has already been fixed, because they all count as derived
-  filter(!(base!=ancestral & position %in% substitutions$position)) %>%
-  # Remove all back mutation if the site hasn't been fixed already
-  filter(!((base == ancestral) & (position %in% duplicated_positions) & !(position %in% substitutions$position))) %>%
-  # Remove all back mutations if they are the only mutation that occurred in its position
-  # This can happen because a first mutation could have arisen in this position, and before it went lost, the back mutation arose
-  filter(!((base == ancestral) & !(position %in% duplicated_positions) & !(position %in% substitutions$position))) %>%
-  # For the rest of the back mutations, get the derived allele frequency by substracting the back mutation frequency from 1
-  mutate(frequency=ifelse(base==ancestral, 1-frequency, frequency)) %>%
-  mutate(base=ifelse(base==ancestral, "N", base)) %>%
-  # For loci with more than two derived alleles, add up the derived allele frequency
-  group_by(position, ancestral) %>%
-  summarise(base=paste0(unique(base), collapse = ""), frequency=sum(frequency)) %>%
+## Join mutations and substitutions in a temp table
+mutations_final_temp <-  mutations %>%
+  spread(key = base, value=frequency) %>%
+  full_join(substitutions, by=c("position", "type", "ancestral")) %>%
+  arrange(position) %>%
+  mutate(base=ifelse(is.na(base), ancestral, base)) %>%
+  mutate_all(~replace(., is.na(.), 0)) %>%
+  mutate(frequency=1-`A` -`C` -`G` -`T`)
+## More wrangling
+mutations_final <- mutations_final_temp[1:7] %>%
+  gather(key=base, value=frequency, 4:7) %>%
+  bind_rows(mutations_final_temp[c(1:3, 8:9)]) %>%
+  mutate(frequency=ifelse(base==ancestral, 0, frequency)) %>%
+  group_by(type, position, ancestral) %>%
+  filter(frequency!=0) %>%
+  summarise(frequency=sum(frequency), base=paste0(base, collapse = "")) %>%
   ungroup() %>%
-  # Removed any site where the ancestral allele is fixed or lost
-  filter(frequency>0, frequency<1)
-## Check the result from the wrangling
-group_by(mutations_final, position) %>%
-  filter(position %in% duplicated_positions) %>%
-  head()
-group_by(mutations_final, position) %>%
-  filter(base =="N") %>%
-  head()
+  filter(frequency!=1)
 ```
 
 ## Plot the true site frequency spectrum
