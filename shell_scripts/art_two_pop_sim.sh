@@ -3,7 +3,7 @@ REP_ID=$1
 OUT_DIR='/workdir/lcwgs-simulation/two_pop_sim/rep_'$REP_ID'/'
 N_CORE_MAX=28
 COUNT=0
-for i in {1..160}; do
+for i in {1..320}; do
   for j in {1..2}; do
     /workdir/programs/art_bin_MountRainier/art_illumina \
     -ss HS25 \
