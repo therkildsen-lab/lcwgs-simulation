@@ -30,8 +30,8 @@ fitness(m2, p2) { return 1/relFitness; }
 	allIndividuals_p2 = sample(p2.individuals, POP_SIZE, replace=F);
 	header = ">rep_" + REP_ID;
 	for (sample_id in 1:SAMPLE_SIZE) {
-		individual_p1 = allIndividuals_p1[sample_id];
-		individual_p2 = allIndividuals_p2[sample_id];
+		individual_p1 = allIndividuals_p1[sample_id-1];
+		individual_p2 = allIndividuals_p2[sample_id-1];
 		// p1, genome1
 		g = individual_p1.genomes[0];
 		sequence = g.nucleotides();
