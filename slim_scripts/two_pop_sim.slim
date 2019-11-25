@@ -33,22 +33,22 @@ fitness(m2, p2) { return 1/relFitness; }
 		individual_p1 = allIndividuals_p1[sample_id];
 		individual_p2 = allIndividuals_p2[sample_id];
 		// p1, genome1
-		g = individual_p1.genomes[1];
+		g = individual_p1.genomes[0];
 		sequence = g.nucleotides();
 		writeFile(OUT_PATH + "rep_" + REP_ID + "/fasta/p1_derived_" + sample_id + "_1.fasta", header, append=F);
 		writeFile(OUT_PATH + "rep_" + REP_ID + "/fasta/p1_derived_" + sample_id + "_1.fasta", sequence, append=T);
 		// p1, genome2
-		g = individual_p1.genomes[2];
+		g = individual_p1.genomes[1];
 		sequence = g.nucleotides();
 		writeFile(OUT_PATH + "rep_" + REP_ID + "/fasta/p1_derived_" + sample_id + "_2.fasta", header, append=F);
 		writeFile(OUT_PATH + "rep_" + REP_ID + "/fasta/p1_derived_" + sample_id + "_2.fasta", sequence, append=T);
 		// p2, genome1
-		g = individual_p2.genomes[1];
+		g = individual_p2.genomes[0];
 		sequence = g.nucleotides();
 		writeFile(OUT_PATH + "rep_" + REP_ID + "/fasta/p2_derived_" + sample_id + "_1.fasta", header, append=F);
 		writeFile(OUT_PATH + "rep_" + REP_ID + "/fasta/p2_derived_" + sample_id + "_1.fasta", sequence, append=T);
 		// p2, genome2
-		g = individual_p2.genomes[2];
+		g = individual_p2.genomes[1];
 		sequence = g.nucleotides();
 		writeFile(OUT_PATH + "rep_" + REP_ID + "/fasta/p2_derived_" + sample_id + "_2.fasta", header, append=F);
 		writeFile(OUT_PATH + "rep_" + REP_ID + "/fasta/p2_derived_" + sample_id + "_2.fasta", sequence, append=T);
