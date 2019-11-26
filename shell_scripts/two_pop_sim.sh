@@ -20,6 +20,6 @@ fi
   -d REC_RATE=1e-7 \
   -d CHR_LENGTH=30000000 \
   -d POP_SIZE=1000 \
-  -d SAMPLE_SIZE=2000 \
+  -d SAMPLE_SIZE=1000 \
   -d "OUT_PATH='/workdir/lcwgs-simulation/two_pop_sim/'" \
   /workdir/lcwgs-simulation/slim_scripts/two_pop_sim.slim
