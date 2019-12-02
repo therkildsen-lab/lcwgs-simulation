@@ -120,34 +120,34 @@ Read in read depth and estimated Fst
 ``` r
 i=1
 for (coverage in c(0.25,0.5,1,2,4,8)){
-  for (sample_size in c(5,10,20,40,80)){
+  for (sample_size in c(5,10,20,40,80,160)){
     ## read in estimated fst
     fst <- read_tsv(paste0("../two_pop_sim/rep_1/angsd/bam_list_", sample_size, "_", coverage, "x.fst"), col_names = F) %>%
       transmute(position=X2, alpha=X3, beta=X4, fst=X5, coverage=coverage, sample_size=sample_size)
     ## read per population depth
-    p1_depth <- read_tsv(paste0("../two_pop_sim/rep_1/angsd/bam_list_p1_", sample_size, "_", coverage, "x.pos.gz")) %>%
-      transmute(position=pos, p1_depth=totDepth)
-    p2_depth <- read_tsv(paste0("../two_pop_sim/rep_1/angsd/bam_list_p2_", sample_size, "_", coverage, "x.pos.gz")) %>%
-      transmute(position=pos, p2_depth=totDepth)
+    p1_n_ind <- read_tsv(paste0("../two_pop_sim/rep_1/angsd/bam_list_p1_", sample_size, "_", coverage, "x.mafs.gz")) %>%
+      transmute(position=position, p1_n_ind=nInd)
+    p2_n_ind <- read_tsv(paste0("../two_pop_sim/rep_1/angsd/bam_list_p2_", sample_size, "_", coverage, "x.mafs.gz")) %>%
+      transmute(position=position, p2_n_ind=nInd)
     ## join fst with depth_files
-    fst_depth <- left_join(fst, p1_depth, by="position") %>%
-      left_join(p2_depth, by="position")
+    fst_n_ind <- left_join(fst, p1_n_ind, by="position") %>%
+      left_join(p2_n_ind, by="position")
     ## compile the final files for plotting
     if (i==1){
-      fst_depth_final <- fst_depth
+      fst_n_ind_final <- fst_n_ind
     } else {
-      fst_depth_final <- bind_rows(fst_depth, fst_depth_final)
+      fst_n_ind_final <- bind_rows(fst_n_ind_final, fst_n_ind)
     }
     i=i+1
   }
 }
 ```
 
-Plot the estimated per-SNP Fst (with no depth filter)
------------------------------------------------------
+Plot the estimated per-SNP Fst (with no minimum individual filter)
+------------------------------------------------------------------
 
 ``` r
-ggplot(fst_depth_final, aes(x=position, y=fst)) +
+ggplot(fst_n_ind_final, aes(x=position, y=fst)) +
   geom_point(alpha=0.1, size=0.1) +
   geom_point(data=mutations_final_m2, aes(x=position, y=1.01), color="red", size=0.2, shape=8) +
   facet_grid(coverage~sample_size) +
@@ -156,11 +156,11 @@ ggplot(fst_depth_final, aes(x=position, y=fst)) +
 
 ![](data_analysis_two_pop_files/figure-markdown_github/unnamed-chunk-7-1.png)
 
-Plot the estimated per-SNP Fst (with minimum depth filter = 5)
---------------------------------------------------------------
+Plot the estimated per-SNP Fst (with minimum individual filter)
+---------------------------------------------------------------
 
 ``` r
-filter(fst_depth_final, p1_depth>=5, p2_depth>=5) %>%
+filter(fst_n_ind_final, p1_n_ind>=min(sample_size*coverage, sample_size), p2_n_ind>=min(sample_size*coverage, sample_size)) %>%
   ggplot(aes(x=position, y=fst)) +
     geom_point(alpha=0.1, size=0.1) +
     geom_point(data=mutations_final_m2, aes(x=position, y=1.01), color="red", size=0.2, shape=8) +
@@ -170,8 +170,8 @@ filter(fst_depth_final, p1_depth>=5, p2_depth>=5) %>%
 
 ![](data_analysis_two_pop_files/figure-markdown_github/unnamed-chunk-8-1.png)
 
-Compute and plot the estimated windowed Fst (with no depth filter and 1000bp fixed windows)
--------------------------------------------------------------------------------------------
+Compute and plot the estimated windowed Fst (with no minimum individual filter and 1,000bp fixed windows)
+---------------------------------------------------------------------------------------------------------
 
 ``` r
 fixed_windowed_fst <- function(x, window_length){
@@ -183,7 +183,7 @@ fixed_windowed_fst <- function(x, window_length){
     ungroup() %>%
     mutate(position=as.numeric(as.character(position)))
 }
-fixed_windowed_fst(fst_depth_final, 1000) %>%
+fixed_windowed_fst(fst_n_ind_final, 1000) %>%
   ggplot(aes(x=position, y=fst)) +
     geom_point(alpha=0.5, size=0.1) +
     geom_point(data=mutations_final_m2, aes(x=position, y=1.01), color="red", size=0.2, shape=8) +
@@ -192,3 +192,17 @@ fixed_windowed_fst(fst_depth_final, 1000) %>%
 ```
 
 ![](data_analysis_two_pop_files/figure-markdown_github/unnamed-chunk-9-1.png)
+
+Compute and plot the estimated windowed Fst (with no minimum individual filter and 10,000bp fixed windows)
+----------------------------------------------------------------------------------------------------------
+
+``` r
+fixed_windowed_fst(fst_n_ind_final, 10000) %>%
+  ggplot(aes(x=position, y=fst)) +
+    geom_point(alpha=0.5, size=0.1) +
+    geom_point(data=mutations_final_m2, aes(x=position, y=1.01), color="red", size=0.2, shape=8) +
+    facet_grid(coverage~sample_size) +
+    theme_cowplot()
+```
+
+![](data_analysis_two_pop_files/figure-markdown_github/unnamed-chunk-10-1.png)
