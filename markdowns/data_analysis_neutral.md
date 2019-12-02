@@ -298,3 +298,46 @@ ggplot(false_positives_final, aes(x=estimated_frequency)) +
 ```
 
 ![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-15-1.png)
+
+Read windowed thetas
+--------------------
+
+``` r
+i=1
+for (coverage in c(0.25,0.5,1,2,4,8)){
+  for (sample_size in c(5,10,20,40, 80, 160)){
+    ## read in estimated maf
+    thetas <- read_tsv(paste0("../neutral_sim/rep_1/angsd/bam_list_", sample_size, "_", coverage, "x.thetas.idx.pestPG")) %>%
+      transmute(position=WinCenter, theta_w=tW/nSites, theta_p=tP/nSites, tajima_d=Tajima) %>%
+      mutate(coverage=coverage, sample_size=sample_size) %>%
+      gather(key=summary_stats, value=value, 2:4)
+    average_thetas <- read_tsv(paste0("../neutral_sim/rep_1/angsd/bam_list_", sample_size, "_", coverage, "x.average_thetas.idx.pestPG")) %>%
+      transmute(theta_w=tW/nSites, theta_p=tP/nSites, tajima_d=Tajima) %>%
+      mutate(coverage=coverage, sample_size=sample_size)
+    ## compile the final files for plotting
+    if (i==1){
+      thetas_final <- thetas
+      average_thetas_final <- average_thetas
+    } else {
+      thetas_final <- bind_rows(thetas_final, thetas)
+      average_thetas_final <- bind_rows(average_thetas_final, average_thetas)
+    }
+    i=i+1
+  }
+}
+```
+
+Plot Watterson's estimator and Tajima's estimator of theta and Tajima's D in 10,000bp fixed windows
+---------------------------------------------------------------------------------------------------
+
+``` r
+ggplot(thetas_final, aes(x=position, y=value, color=summary_stats)) +
+  geom_line() +
+  # geom_text(data=false_positives_final_count, x=0.8, y=1500, aes(label=paste0("n=", n))) +
+  facet_grid(coverage~sample_size) +
+  theme_cowplot()
+```
+
+![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-17-1.png)
+
+I will annonate each figure with the chromosome average statistics later on.
