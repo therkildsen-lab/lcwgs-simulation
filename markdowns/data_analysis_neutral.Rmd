@@ -10,6 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r eval=T, warning=F, message=F}
 library(tidyverse)
 library(cowplot)
+library(knitr)
 ```
 
 ## Read in the ancestral states
@@ -90,10 +91,10 @@ for (coverage in c(0.25,0.5,1,2,4,8)){
       mutate(estimated_frequency=knownEM) %>%
       select(position, major, minor, anc, estimated_frequency, nInd) %>%
       arrange(position)
-    ## join estimated maf with true snps and only keep the snps that exist in both data frames
-    joined_frequency <- inner_join(mutations_final, maf, by="position") %>%
+    ## join estimated maf with true snps and only keep the snps that exist in estimated maf
+    joined_frequency <- right_join(mutations_final, maf, by="position") %>%
       select(-ancestral) %>%
-      mutate(coverage=coverage, sample_size=sample_size)
+      mutate(coverage=coverage, sample_size=sample_size, frequency=ifelse(is.na(frequency), 1, frequency))
     ## find false negatives
     false_negatives <- anti_join(mutations_final, maf, by="position") %>%
       mutate(coverage=coverage, sample_size=sample_size)
@@ -172,7 +173,7 @@ joined_frequency_final %>%
   theme_cowplot()
 ```
 
-## Plot estimated allele frequency vs. true allele frequency
+## Plot estimated allele frequency vs. true allele frequency (this includes the false positives but not the false negatives)
 
 ```{r eval=T, warning=F, message=F, fig.height=12, fig.width=15}
 joined_frequency_final %>%
@@ -185,7 +186,7 @@ joined_frequency_final %>%
   theme_cowplot()
 ```
 
-At low coverage and low sample size, the bias in estimation is quite high. This is because of a non-existent nInd filter and a low minDepth filter. Removing these sites will remove some of these noises but will further reduce the amount of data. 
+At low coverage and low sample size, the noise in estimation is quite high. This is because of a non-existent nInd filter and a low minDepth filter. Removing these sites will remove some of these noises but will further reduce the amount of data. 
 
 ```{r eval=T, warning=F, message=F, fig.height=12, fig.width=15}
 joined_frequency_final_nInd_4 <- filter(joined_frequency_final, nInd>=4)
@@ -249,7 +250,7 @@ ggplot(false_positives_final, aes(x=estimated_frequency)) +
 ```
 
 
-## Read windowed thetas
+## Read windowed thetas estimated by `realSFS`
 
 ```{r eval=T, warning=F, message=F}
 i=1
@@ -257,11 +258,11 @@ for (coverage in c(0.25,0.5,1,2,4,8)){
   for (sample_size in c(5,10,20,40, 80, 160)){
     ## read in estimated maf
     thetas <- read_tsv(paste0("../neutral_sim/rep_1/angsd/bam_list_", sample_size, "_", coverage, "x.thetas.idx.pestPG")) %>%
-      transmute(position=WinCenter, theta_w=tW/nSites, theta_p=tP/nSites, tajima_d=Tajima) %>%
+      transmute(position=WinCenter, theta_w=tW/nSites, theta_t=tP/nSites, tajima_d=Tajima) %>%
       mutate(coverage=coverage, sample_size=sample_size) %>%
       gather(key=summary_stats, value=value, 2:4)
     average_thetas <- read_tsv(paste0("../neutral_sim/rep_1/angsd/bam_list_", sample_size, "_", coverage, "x.average_thetas.idx.pestPG")) %>%
-      transmute(theta_w=tW/nSites, theta_p=tP/nSites, tajima_d=Tajima) %>%
+      transmute(theta_w=tW/nSites, theta_t=tP/nSites, tajima_d=Tajima) %>%
       mutate(coverage=coverage, sample_size=sample_size)
     ## compile the final files for plotting
     if (i==1){
@@ -275,6 +276,56 @@ for (coverage in c(0.25,0.5,1,2,4,8)){
   }
 }
 ```
+
+## real theta values with the entire population
+
+```{r eval=T, warning=F, message=F}
+real_theta_t <- sum(2*mutations_final$frequency*(1-mutations_final$frequency))/30000000
+real_theta_w <- dim(mutations_final)[1]/(30000000*sum(1/(1:999)))
+real_tajima_d <- real_theta_t-real_theta_w
+tibble(real_theta_t=round(real_theta_t, 5), real_theta_w=round(real_theta_w, 5)) %>%
+  kable()
+```
+
+## thetas estimated from the estimated allele frequencies (not from `realSFS`)
+
+Tajima's estimator
+
+```{r eval=T, warning=F, message=F}
+group_by(joined_frequency_final, coverage, sample_size) %>%
+  summarise(theta_t=round(sum(2*estimated_frequency*(1-estimated_frequency))/30000000,5)) %>%
+  ungroup() %>%
+  spread(key = sample_size, value = theta_t) %>%
+  kable()
+```
+
+Watterson's estimator
+
+```{r eval=T, warning=F, message=F}
+group_by(joined_frequency_final, coverage, sample_size) %>%
+  summarise(theta_w=round(n()/30000000/sum(1/(1:(unique(sample_size)-1))), 5)) %>%
+  spread(key = sample_size, value = theta_w) %>%
+  kable()
+```
+
+## thetas estimated from `realSFS`
+
+Tajima's estimator
+
+```{r eval=T, warning=F, message=F}
+select(average_thetas_final, theta_t, coverage, sample_size) %>%
+  spread(key = sample_size, value=theta_t) %>%
+  kable()
+```
+
+Watterson's estimator
+
+```{r eval=T, warning=F, message=F}
+select(average_thetas_final, theta_w, coverage, sample_size) %>%
+  spread(key = sample_size, value=theta_w) %>%
+  kable()
+```
+
 
 ## Plot Watterson's estimator and Tajima's estimator of theta and Tajima's D in 10,000bp fixed windows
 

@@ -4,6 +4,7 @@ Data analysis with neutral simulation
 ``` r
 library(tidyverse)
 library(cowplot)
+library(knitr)
 ```
 
 Read in the ancestral states
@@ -91,10 +92,10 @@ for (coverage in c(0.25,0.5,1,2,4,8)){
       mutate(estimated_frequency=knownEM) %>%
       select(position, major, minor, anc, estimated_frequency, nInd) %>%
       arrange(position)
-    ## join estimated maf with true snps and only keep the snps that exist in both data frames
-    joined_frequency <- inner_join(mutations_final, maf, by="position") %>%
+    ## join estimated maf with true snps and only keep the snps that exist in estimated maf
+    joined_frequency <- right_join(mutations_final, maf, by="position") %>%
       select(-ancestral) %>%
-      mutate(coverage=coverage, sample_size=sample_size)
+      mutate(coverage=coverage, sample_size=sample_size, frequency=ifelse(is.na(frequency), 1, frequency))
     ## find false negatives
     false_negatives <- anti_join(mutations_final, maf, by="position") %>%
       mutate(coverage=coverage, sample_size=sample_size)
@@ -183,8 +184,8 @@ joined_frequency_final %>%
 
 ![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-9-1.png)
 
-Plot estimated allele frequency vs. true allele frequency
----------------------------------------------------------
+Plot estimated allele frequency vs. true allele frequency (this includes the false positives but not the false negatives)
+-------------------------------------------------------------------------------------------------------------------------
 
 ``` r
 joined_frequency_final %>%
@@ -199,7 +200,7 @@ joined_frequency_final %>%
 
 ![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-10-1.png)
 
-At low coverage and low sample size, the bias in estimation is quite high. This is because of a non-existent nInd filter and a low minDepth filter. Removing these sites will remove some of these noises but will further reduce the amount of data.
+At low coverage and low sample size, the noise in estimation is quite high. This is because of a non-existent nInd filter and a low minDepth filter. Removing these sites will remove some of these noises but will further reduce the amount of data.
 
 ``` r
 joined_frequency_final_nInd_4 <- filter(joined_frequency_final, nInd>=4)
@@ -249,26 +250,26 @@ filter(joined_frequency_final, coverage==8, sample_size==160) %>%
     ## # A tibble: 20 x 12
     ##    type  position frequency base  major minor anc   estimated_frequ…  nInd
     ##    <chr>    <dbl>     <dbl> <chr> <chr> <chr> <chr>            <dbl> <dbl>
-    ##  1 m1    24757910     0.526 C     A     C     A                0.631   160
-    ##  2 m1    24758068     0.526 T     G     T     G                0.629   160
-    ##  3 m1    24757978     0.526 T     C     T     C                0.626   160
-    ##  4 m1    24763352     0.478 C     A     C     A                0.379   160
-    ##  5 m1    24761076     0.526 C     T     C     T                0.625   160
-    ##  6 m1    24762008     0.474 C     A     C     A                0.376   160
-    ##  7 m1    24758967     0.474 A     C     A     C                0.376   160
-    ##  8 m1    24760681     0.474 G     C     G     C                0.376   160
-    ##  9 m1    24762957     0.526 T     C     T     C                0.624   160
-    ## 10 m1    24755949     0.474 C     T     C     T                0.376   160
-    ## 11 m1    24775810     0.514 T     G     T     G                0.611   160
-    ## 12 m1    24759280     0.474 T     G     T     G                0.376   159
-    ## 13 m1    24760349     0.526 C     T     C     T                0.623   160
-    ## 14 m1    24760587     0.526 A     G     A     G                0.623   160
-    ## 15 m1    24758814     0.526 A     C     A     C                0.623   160
-    ## 16 m1    24762731     0.526 G     A     G     A                0.623   160
-    ## 17 m1    24758467     0.474 A     C     A     C                0.377   159
-    ## 18 m1    24762632     0.526 A     C     A     C                0.622   160
-    ## 19 m1    24762719     0.526 A     C     A     C                0.622   159
-    ## 20 m1    24761596     0.526 T     G     T     G                0.622   160
+    ##  1 m1    24757910     0.526 C     A     C     A                0.633   159
+    ##  2 m1    24762719     0.526 A     C     A     C                0.633   160
+    ##  3 m1    24762731     0.526 G     A     G     A                0.631   160
+    ##  4 m1    24760780     0.474 G     C     G     C                0.371   160
+    ##  5 m1    24758068     0.526 T     G     T     G                0.628   160
+    ##  6 m1    24761596     0.526 T     G     T     G                0.628   160
+    ##  7 m1    24757978     0.526 T     C     T     C                0.627   160
+    ##  8 m1    24761154     0.526 G     T     G     T                0.627   160
+    ##  9 m1    24761026     0.526 T     C     T     C                0.627   160
+    ## 10 m1    24761017     0.474 G     C     G     C                0.374   160
+    ## 11 m1    24762576     0.474 T     C     T     C                0.374   160
+    ## 12 m1    24762888     0.474 A     T     A     T                0.375   160
+    ## 13 m1    24761046     0.474 C     T     C     T                0.375   160
+    ## 14 m1    24762008     0.474 C     A     C     A                0.375   160
+    ## 15 m1    24762957     0.526 T     C     T     C                0.624   160
+    ## 16 m1    24763170     0.522 T     A     T     A                0.619   160
+    ## 17 m1    24756684     0.474 A     C     A     C                0.377   159
+    ## 18 m1    24763352     0.478 C     A     C     A                0.381   160
+    ## 19 m1    24760349     0.526 C     T     C     T                0.623   160
+    ## 20 m1    24761076     0.526 C     T     C     T                0.623   160
     ## # … with 3 more variables: coverage <dbl>, sample_size <dbl>, error <dbl>
 
 True frequency distribution of false negatives
@@ -299,8 +300,8 @@ ggplot(false_positives_final, aes(x=estimated_frequency)) +
 
 ![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-15-1.png)
 
-Read windowed thetas
---------------------
+Read windowed thetas estimated by `realSFS`
+-------------------------------------------
 
 ``` r
 i=1
@@ -308,11 +309,11 @@ for (coverage in c(0.25,0.5,1,2,4,8)){
   for (sample_size in c(5,10,20,40, 80, 160)){
     ## read in estimated maf
     thetas <- read_tsv(paste0("../neutral_sim/rep_1/angsd/bam_list_", sample_size, "_", coverage, "x.thetas.idx.pestPG")) %>%
-      transmute(position=WinCenter, theta_w=tW/nSites, theta_p=tP/nSites, tajima_d=Tajima) %>%
+      transmute(position=WinCenter, theta_w=tW/nSites, theta_t=tP/nSites, tajima_d=Tajima) %>%
       mutate(coverage=coverage, sample_size=sample_size) %>%
       gather(key=summary_stats, value=value, 2:4)
     average_thetas <- read_tsv(paste0("../neutral_sim/rep_1/angsd/bam_list_", sample_size, "_", coverage, "x.average_thetas.idx.pestPG")) %>%
-      transmute(theta_w=tW/nSites, theta_p=tP/nSites, tajima_d=Tajima) %>%
+      transmute(theta_w=tW/nSites, theta_t=tP/nSites, tajima_d=Tajima) %>%
       mutate(coverage=coverage, sample_size=sample_size)
     ## compile the final files for plotting
     if (i==1){
@@ -327,6 +328,98 @@ for (coverage in c(0.25,0.5,1,2,4,8)){
 }
 ```
 
+real theta values with the entire population
+--------------------------------------------
+
+``` r
+real_theta_t <- sum(2*mutations_final$frequency*(1-mutations_final$frequency))/30000000
+real_theta_w <- dim(mutations_final)[1]/(30000000*sum(1/(1:999)))
+real_tajima_d <- real_theta_t-real_theta_w
+tibble(real_theta_t=round(real_theta_t, 5), real_theta_w=round(real_theta_w, 5)) %>%
+  kable()
+```
+
+|  real\_theta\_t|  real\_theta\_w|
+|---------------:|---------------:|
+|         0.00241|         0.00264|
+
+thetas estimated from the estimated allele frequencies (not from `realSFS`)
+---------------------------------------------------------------------------
+
+Tajima's estimator
+
+``` r
+group_by(joined_frequency_final, coverage, sample_size) %>%
+  summarise(theta_t=round(sum(2*estimated_frequency*(1-estimated_frequency))/30000000,5)) %>%
+  ungroup() %>%
+  spread(key = sample_size, value = theta_t) %>%
+  kable()
+```
+
+|  coverage|        5|       10|       20|       40|       80|      160|
+|---------:|--------:|--------:|--------:|--------:|--------:|--------:|
+|      0.25|  0.00008|  0.00034|  0.00093|  0.00152|  0.00185|  0.00210|
+|      0.50|  0.00033|  0.00091|  0.00151|  0.00186|  0.00210|  0.00224|
+|      1.00|  0.00088|  0.00148|  0.00185|  0.00210|  0.00224|  0.00230|
+|      2.00|  0.00143|  0.00183|  0.00209|  0.00223|  0.00230|  0.00234|
+|      4.00|  0.00179|  0.00207|  0.00223|  0.00231|  0.00234|  0.00236|
+|      8.00|  0.00201|  0.00220|  0.00230|  0.00235|  0.00237|  0.00237|
+
+Watterson's estimator
+
+``` r
+group_by(joined_frequency_final, coverage, sample_size) %>%
+  summarise(theta_w=round(n()/30000000/sum(1/(1:(unique(sample_size)-1))), 5)) %>%
+  spread(key = sample_size, value = theta_w) %>%
+  kable()
+```
+
+|  coverage|        5|       10|       20|       40|       80|      160|
+|---------:|--------:|--------:|--------:|--------:|--------:|--------:|
+|      0.25|  0.00008|  0.00027|  0.00061|  0.00088|  0.00101|  0.00115|
+|      0.50|  0.00035|  0.00074|  0.00105|  0.00119|  0.00131|  0.00141|
+|      1.00|  0.00097|  0.00129|  0.00143|  0.00154|  0.00162|  0.00166|
+|      2.00|  0.00170|  0.00178|  0.00185|  0.00190|  0.00193|  0.00195|
+|      4.00|  0.00236|  0.00228|  0.00230|  0.00228|  0.00226|  0.00226|
+|      8.00|  0.00291|  0.00273|  0.00269|  0.00262|  0.00256|  0.00254|
+
+thetas estimated from `realSFS`
+-------------------------------
+
+Tajima's estimator
+
+``` r
+select(average_thetas_final, theta_t, coverage, sample_size) %>%
+  spread(key = sample_size, value=theta_t) %>%
+  kable()
+```
+
+|  coverage|          5|         10|         20|         40|         80|        160|
+|---------:|----------:|----------:|----------:|----------:|----------:|----------:|
+|      0.25|  0.5333326|  0.5109110|  0.5072566|  0.4423951|  0.3309748|  0.2114757|
+|      0.50|  0.5399204|  0.5176457|  0.4059113|  0.3237879|  0.1822043|  0.1139976|
+|      1.00|  0.5350875|  0.4340718|  0.2961400|  0.1837320|  0.1061036|  0.0559763|
+|      2.00|  0.3969553|  0.2568805|  0.1542679|  0.0852147|  0.0451601|  0.0249101|
+|      4.00|  0.2209974|  0.1165028|  0.0619564|  0.0336780|  0.0177424|  0.0101486|
+|      8.00|  0.2019484|  0.1022169|  0.0523737|  0.0274309|        NaN|  0.0086496|
+
+Watterson's estimator
+
+``` r
+select(average_thetas_final, theta_w, coverage, sample_size) %>%
+  spread(key = sample_size, value=theta_w) %>%
+  kable()
+```
+
+|  coverage|          5|         10|         20|         40|         80|        160|
+|---------:|----------:|----------:|----------:|----------:|----------:|----------:|
+|      0.25|  0.3534858|  0.2818696|  0.2350981|  0.2018987|  0.1770143|  0.1576299|
+|      0.50|  0.3534858|  0.2818696|  0.2350981|  0.2018987|  0.1770143|  0.1576298|
+|      1.00|  0.3534858|  0.2818696|  0.2350981|  0.2018987|  0.1770143|  0.1576299|
+|      2.00|  0.3534858|  0.2818696|  0.2350981|  0.2018987|  0.1770142|  0.1576299|
+|      4.00|  0.3534858|  0.2818696|  0.2350981|  0.2018987|  0.1770143|  0.1576296|
+|      8.00|  0.3534858|  0.2818696|  0.2350981|  0.2018987|        NaN|  0.1576299|
+
 Plot Watterson's estimator and Tajima's estimator of theta and Tajima's D in 10,000bp fixed windows
 ---------------------------------------------------------------------------------------------------
 
@@ -338,6 +431,6 @@ ggplot(thetas_final, aes(x=position, y=value, color=summary_stats)) +
   theme_cowplot()
 ```
 
-![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-17-1.png)
+![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-22-1.png)
 
 I will annonate each figure with the chromosome average statistics later on.
