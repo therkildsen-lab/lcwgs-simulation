@@ -54,7 +54,10 @@ Create a shell script to run ART with nohup
 shell_script <-"#!/bin/bash
 REP_ID=$1
 OUT_DIR='/workdir/lcwgs-simulation/neutral_sim/rep_'$REP_ID'/'
-for i in {1..320}; do
+N_CORE_MAX=40
+## Generate sam files
+COUNT=0
+for i in {1..2000}; do
   /workdir/programs/art_bin_MountRainier/art_illumina \\
   -ss HS25 \\
   -sam \\
@@ -66,11 +69,30 @@ for i in {1..320}; do
   -m 500 \\
   -s 75 \\
   -rs $(($REP_ID*10000+$i)) \\
-  -o $OUT_DIR'bam/derived_'$i
-samtools view -bS -F 4 $OUT_DIR'bam/derived_'$i'.sam' > $OUT_DIR'bam/derived_'$i'.bam'
-rm $OUT_DIR'bam/derived_'$i'.sam'
-mv $OUT_DIR'bam/derived_'$i'1.fq' $OUT_DIR'fastq/'
-mv $OUT_DIR'bam/derived_'$i'2.fq' $OUT_DIR'fastq/'
+  -o $OUT_DIR'bam/derived_'$i &
+  COUNT=$(( COUNT + 1 ))
+  if [ $COUNT == $N_CORE_MAX ]; then
+    wait
+    COUNT=0
+  fi
+done
+wait
+## Generate bam files
+COUNT=0
+for i in {1..2000}; do
+  samtools view -bS -F 4 $OUT_DIR'bam/derived_'$i'.sam' > $OUT_DIR'bam/derived_'$i'.bam' &
+  COUNT=$(( COUNT + 1 ))
+  if [ $COUNT == $N_CORE_MAX ]; then
+    wait
+    COUNT=0
+  fi
+done
+wait
+## Sort bam files
+for i in {1..2000}; do
+  rm $OUT_DIR'bam/derived_'$i'.sam'
+  mv $OUT_DIR'bam/derived_'$i'1.fq' $OUT_DIR'fastq/'
+  mv $OUT_DIR'bam/derived_'$i'2.fq' $OUT_DIR'fastq/'
 done"
 write_lines(shell_script, "../shell_scripts/art_neutral_sim.sh")
 ```
@@ -91,24 +113,56 @@ Merge, sort, and subsample bam files
 shell_script <-"#!/bin/bash
 REP_ID=$1
 OUT_DIR='/workdir/lcwgs-simulation/neutral_sim/rep_'$REP_ID'/'
-for k in {1..160}; do
-  l=$(($k+160))
+N_CORE_MAX=40
+## merge
+COUNT=0
+for k in {1..1000}; do
+  i=$((2*$k-1))
+  j=$((2*$k))
   ## merge
   samtools merge $OUT_DIR'bam/sample_'$k'.bam' \\
-  $OUT_DIR'bam/derived_'$k'.bam' \\
-  $OUT_DIR'bam/derived_'$l'.bam'
-  ## sort
-  samtools sort -o $OUT_DIR'bam/sample_'$k'_sorted.bam' $OUT_DIR'bam/sample_'$k'.bam'
-  ## subsample
+  $OUT_DIR'bam/derived_'$i'.bam' \\
+  $OUT_DIR'bam/derived_'$j'.bam' &
+  COUNT=$(( COUNT + 1 ))
+  if [ $COUNT == $N_CORE_MAX ]; then
+    wait
+    COUNT=0
+  fi
+done
+wait
+## sort
+COUNT=0
+for k in {1..1000}; do
+  samtools sort -o $OUT_DIR'bam/sample_'$k'_sorted.bam' $OUT_DIR'bam/sample_'$k'.bam' &
+  COUNT=$(( COUNT + 1 ))
+  if [ $COUNT == $N_CORE_MAX ]; then
+    wait
+    COUNT=0
+  fi
+done
+wait
+## subsample
+COUNT=0
+for k in {1..1000}; do
   for j in {0.25,0.5,1,2,4,8}; do
     samtools view \\
     -s `awk -v j=$j 'BEGIN { print j / 20 }'` \\
     -b $OUT_DIR'bam/sample_'$k'_sorted.bam' \\
-    > $OUT_DIR'bam/sample_'$k'_sorted_'$j'x.bam'
+    > $OUT_DIR'bam/sample_'$k'_sorted_'$j'x.bam' &
+    COUNT=$(( COUNT + 1 ))
+    if [ $COUNT == $N_CORE_MAX ]; then
+      wait
+      COUNT=0
+    fi
   done
+done
+wait
+for k in {1..1000}; do
+  i=$((2*$k-1))
+  j=$((2*$k))
   ## delete intermediate files
-  #rm $OUT_DIR'bam/derived_'$k'.bam' 
-  #rm $OUT_DIR'bam/derived_'$l'.bam' 
+  #rm $OUT_DIR'bam/derived_'$i'.bam' 
+  #rm $OUT_DIR'bam/derived_'$j'.bam' 
   rm $OUT_DIR'bam/sample_'$k'.bam' 
 done"
 write_lines(shell_script, "../shell_scripts/merge_sort_subsample_neutral_sim.sh")
@@ -119,7 +173,7 @@ Run the shell script for merging, sorting, and subsampling
 
 ``` bash
 for k in 1; do
-nohup bash /workdir/lcwgs-simulation/shell_scripts/merge_sort_subsample_neutral_sim.sh $k > '/workdir/lcwgs-simulation/nohups/merge_sort_subsample_neutral_sim_'$k'.nohup' &
+  nohup bash /workdir/lcwgs-simulation/shell_scripts/merge_sort_subsample_neutral_sim.sh $k > '/workdir/lcwgs-simulation/nohups/merge_sort_subsample_neutral_sim_'$k'.nohup' &
 done
 ```
 
@@ -166,7 +220,7 @@ BASE_DIR='/workdir/lcwgs-simulation/neutral_sim/rep_1/'
 -out $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x' \\
 -dosaf 1 -GL 1 -doGlf 2 -doMaf 1 -doMajorMinor 5 \\
 -doCounts 1 -doDepth 1 -dumpCounts 1 \\
--P 1 -SNP_pval 1e-6 -rmTriallelic 1e-6 \\
+-P 4 -SNP_pval 1e-6 -rmTriallelic 1e-6 \\
 -setMinDepth 2 -minInd 1 -minMaf 0.0005 -minQ 20 \\
 >& '/workdir/lcwgs-simulation/nohups/snp_calling_neutral_sim_1_bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.log'
 ## estimate SFS
