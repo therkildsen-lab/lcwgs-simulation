@@ -27,7 +27,7 @@ initialize() {
 	for (i in 1:N_M2) {
 		print(i);
 		target = sample(p1.genomes, 1);
-		position = round(L*i/(N_M2+1));
+		position = asInteger(round(L*i/(N_M2+1)));
 		print(position);
 		ancestral_nucleotide = sim.chromosome.ancestralNucleotides(position, position);
 		print(c("ancestral nucleotide: ", ancestral_nucleotide));
