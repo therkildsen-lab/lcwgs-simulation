@@ -26,7 +26,7 @@ initialize() {
 	// Add m2 mutations
 	for (i in 1:N_M2) {
 		print(i);
-		target = sample(p1.genomes, 10);
+		target = sample(p1.genomes, 20);
 		position = asInteger(round(L*i/(N_M2+1)));
 		print(position);
 		ancestral_nucleotide = sim.chromosome.ancestralNucleotides(position, position);
