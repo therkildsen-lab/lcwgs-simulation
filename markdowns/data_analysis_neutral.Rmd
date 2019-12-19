@@ -138,10 +138,12 @@ sfs_final <- read_tsv("../neutral_sim/rep_1/angsd/sfs_final.tsv")
 These are obtained from `realSFS`.
 
 ```{r eval=T, warning=F, message=F, fig.height=12, fig.width=15}
-sfs_final_sum <- group_by(sfs_final, coverage, sample_size) %>%
+sfs_final_sum <- filter(sfs_final, frequency>0, frequency<1) %>%
+  group_by(coverage, sample_size) %>%
   summarise(n=sum(value))
 
-sfs_final %>%
+filter(sfs_final, frequency>0, frequency<1) %>%
+  group_by(coverage, sample_size) %>%
   ggplot(aes(x=frequency, y=value)) +
   geom_point(size=0.5) +
   geom_line() +
@@ -149,7 +151,7 @@ sfs_final %>%
   facet_grid(coverage~sample_size) +
   theme_cowplot()
 
-sfs_final %>%
+filter(sfs_final, frequency>0, frequency<1) %>%
   ggplot(aes(x=frequency, y=value)) +
   geom_col(aes(width = 0.5/sample_size)) +
   geom_text(data=sfs_final_sum, x=0.8, y=40000, aes(label=paste0("n=",round(n,0)))) +
@@ -330,8 +332,16 @@ select(average_thetas_final, theta_w, coverage, sample_size) %>%
 ## Plot Watterson's estimator and Tajima's estimator of theta and Tajima's D in 10,000bp fixed windows
 
 ```{r eval=T, warning=F, message=F, fig.height=10, fig.width=15}
-ggplot(thetas_final, aes(x=position, y=value, color=summary_stats)) +
-  geom_line() +
+filter(thetas_final, summary_stats !="tajima_d") %>%
+  ggplot(aes(x=position, y=value, color=summary_stats)) +
+  geom_line(size=0.2) +
+  # geom_text(data=false_positives_final_count, x=0.8, y=1500, aes(label=paste0("n=", n))) +
+  facet_grid(coverage~sample_size) +
+  theme_cowplot()
+filter(thetas_final, summary_stats =="tajima_d") %>%
+  ggplot(aes(x=position, y=value, color=summary_stats)) +
+  geom_line(size=0.2) +
+  geom_hline(yintercept = 0, color="black") +
   # geom_text(data=false_positives_final_count, x=0.8, y=1500, aes(label=paste0("n=", n))) +
   facet_grid(coverage~sample_size) +
   theme_cowplot()

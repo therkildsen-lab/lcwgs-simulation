@@ -140,10 +140,12 @@ Plot the estimated site frequency spectrum
 These are obtained from `realSFS`.
 
 ``` r
-sfs_final_sum <- group_by(sfs_final, coverage, sample_size) %>%
+sfs_final_sum <- filter(sfs_final, frequency>0, frequency<1) %>%
+  group_by(coverage, sample_size) %>%
   summarise(n=sum(value))
 
-sfs_final %>%
+filter(sfs_final, frequency>0, frequency<1) %>%
+  group_by(coverage, sample_size) %>%
   ggplot(aes(x=frequency, y=value)) +
   geom_point(size=0.5) +
   geom_line() +
@@ -155,7 +157,7 @@ sfs_final %>%
 ![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-8-1.png)
 
 ``` r
-sfs_final %>%
+filter(sfs_final, frequency>0, frequency<1) %>%
   ggplot(aes(x=frequency, y=value)) +
   geom_col(aes(width = 0.5/sample_size)) +
   geom_text(data=sfs_final_sum, x=0.8, y=40000, aes(label=paste0("n=",round(n,0)))) +
@@ -396,12 +398,12 @@ select(average_thetas_final, theta_t, coverage, sample_size) %>%
 
 |  coverage|          5|         10|         20|         40|         80|        160|
 |---------:|----------:|----------:|----------:|----------:|----------:|----------:|
-|      0.25|  0.5333326|  0.5109110|  0.5072566|  0.4423951|  0.3309748|  0.2114757|
-|      0.50|  0.5399204|  0.5176457|  0.4059113|  0.3237879|  0.1822043|  0.1139976|
-|      1.00|  0.5350875|  0.4340718|  0.2961400|  0.1837320|  0.1061036|  0.0559763|
-|      2.00|  0.3969553|  0.2568805|  0.1542679|  0.0852147|  0.0451601|  0.0249101|
-|      4.00|  0.2209974|  0.1165028|  0.0619564|  0.0336780|  0.0177424|  0.0101486|
-|      8.00|  0.2019484|  0.1022169|  0.0523737|  0.0274309|        NaN|  0.0086496|
+|      0.25|  0.0015662|  0.0016898|  0.0018505|  0.0020342|  0.0021798|  0.0022721|
+|      0.50|  0.0016706|  0.0018448|  0.0020416|  0.0021909|  0.0022782|  0.0023243|
+|      1.00|  0.0018609|  0.0020519|  0.0022033|  0.0022887|  0.0023335|  0.0023569|
+|      2.00|  0.0020727|  0.0022106|  0.0023012|  0.0023450|  0.0023670|  0.0023782|
+|      4.00|  0.0022303|  0.0023078|  0.0023607|  0.0023799|  0.0023877|  0.0023889|
+|      8.00|  0.0023189|  0.0023593|  0.0023952|  0.0024009|  0.0023990|  0.0023960|
 
 Watterson's estimator
 
@@ -413,24 +415,37 @@ select(average_thetas_final, theta_w, coverage, sample_size) %>%
 
 |  coverage|          5|         10|         20|         40|         80|        160|
 |---------:|----------:|----------:|----------:|----------:|----------:|----------:|
-|      0.25|  0.3534858|  0.2818696|  0.2350981|  0.2018987|  0.1770143|  0.1576299|
-|      0.50|  0.3534858|  0.2818696|  0.2350981|  0.2018987|  0.1770143|  0.1576298|
-|      1.00|  0.3534858|  0.2818696|  0.2350981|  0.2018987|  0.1770143|  0.1576299|
-|      2.00|  0.3534858|  0.2818696|  0.2350981|  0.2018987|  0.1770142|  0.1576299|
-|      4.00|  0.3534858|  0.2818696|  0.2350981|  0.2018987|  0.1770143|  0.1576296|
-|      8.00|  0.3534858|  0.2818696|  0.2350981|  0.2018987|        NaN|  0.1576299|
+|      0.25|  0.0012116|  0.0012162|  0.0010533|  0.0011123|  0.0011836|  0.0012411|
+|      0.50|  0.0012829|  0.0012259|  0.0012706|  0.0013467|  0.0014101|  0.0014541|
+|      1.00|  0.0014777|  0.0015099|  0.0015911|  0.0016441|  0.0016801|  0.0017079|
+|      2.00|  0.0018566|  0.0018917|  0.0019652|  0.0019831|  0.0019938|  0.0019732|
+|      4.00|  0.0021340|  0.0021587|  0.0022277|  0.0022230|  0.0022177|  0.0022236|
+|      8.00|  0.0022951|  0.0023055|  0.0023670|  0.0023521|  0.0023417|  0.0023431|
 
 Plot Watterson's estimator and Tajima's estimator of theta and Tajima's D in 10,000bp fixed windows
 ---------------------------------------------------------------------------------------------------
 
 ``` r
-ggplot(thetas_final, aes(x=position, y=value, color=summary_stats)) +
-  geom_line() +
+filter(thetas_final, summary_stats !="tajima_d") %>%
+  ggplot(aes(x=position, y=value, color=summary_stats)) +
+  geom_line(size=0.2) +
   # geom_text(data=false_positives_final_count, x=0.8, y=1500, aes(label=paste0("n=", n))) +
   facet_grid(coverage~sample_size) +
   theme_cowplot()
 ```
 
 ![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-22-1.png)
+
+``` r
+filter(thetas_final, summary_stats =="tajima_d") %>%
+  ggplot(aes(x=position, y=value, color=summary_stats)) +
+  geom_line(size=0.2) +
+  geom_hline(yintercept = 0, color="black") +
+  # geom_text(data=false_positives_final_count, x=0.8, y=1500, aes(label=paste0("n=", n))) +
+  facet_grid(coverage~sample_size) +
+  theme_cowplot()
+```
+
+![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-22-2.png)
 
 I will annonate each figure with the chromosome average statistics later on.
