@@ -5,7 +5,7 @@
 sim/*
 nohups/*
 neutral_sim/*
-two_pop_sim/*
+two_pop_sim*/*
 
 # History files
 .Rhistory
