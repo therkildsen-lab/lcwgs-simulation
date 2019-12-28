@@ -1,0 +1,67 @@
+// Keywords: nucleotide-based, nucleotide sequence
+
+initialize() {
+	defineConstant("L", CHR_LENGTH);
+	initializeSLiMOptions(nucleotideBased=T);
+	setSeed(REP_ID);
+	initializeAncestralNucleotides(randomNucleotides(L));
+	initializeMutationTypeNuc("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0, mmJukesCantor(MUTATION_RATE));
+	initializeGenomicElement(g1, 0, L-1);
+	initializeRecombinationRate(REC_RATE);
+}
+1 {	
+	// Output acestral sequence in fasta format
+	header = ">rep_" + REP_ID;
+	sequence = sim.chromosome.ancestralNucleotides();
+	writeFile(OUT_PATH + "rep_" + REP_ID + "/slim/ancestral.fasta", header, append=F);
+	writeFile(OUT_PATH + "rep_" + REP_ID + "/slim/ancestral.fasta", sequence, append=T);
+	
+	// add spatial subpopulations	
+	defineConstant("meta_pop_size", META_POP_SIDE * META_POP_SIDE);
+	for (i in 1:meta_pop_size)
+		sim.addSubpop(i, POP_SIZE);
+		
+ 	subpops = sim.subpopulations;
+ 	for (x in 1:META_POP_SIDE)
+		for (y in 1:META_POP_SIDE)
+		{
+			dest_id = (x - 1) + (y - 1) * META_POP_SIDE + 1;
+			destSubpop = subpops[dest_id - 1];
+			if (x > 1) // left to right
+				destSubpop.setMigrationRates(dest_id - 1, MIGRATION_RATE);
+ 			if (x < META_POP_SIDE) // right to left
+				destSubpop.setMigrationRates(dest_id + 1, MIGRATION_RATE);
+ 			if (y > 1) // top to bottom
+				destSubpop.setMigrationRates(dest_id - META_POP_SIDE, MIGRATION_RATE);
+ 			if (y < META_POP_SIDE) // bottom to top
+				destSubpop.setMigrationRates(dest_id + META_POP_SIDE, MIGRATION_RATE);
+		}
+}
+10000 late() {
+	// Define fasta file header
+	header = ">rep_" + REP_ID;
+	// Output sampled haplotypes
+	for (meta_pop_id in 1:meta_pop_size){
+		// Define this metapopulation
+		meta_pop = sim.subpopulations[(meta_pop_id - 1)];
+		meta_pop_all_individuals = sample(meta_pop.individuals, POP_SIZE, replace=F);
+		for (sample_id in 1:SAMPLE_SIZE){
+			// Define this sample
+			sample = meta_pop_all_individuals[(sample_id - 1)];
+			// genome 1
+			g = sample.genomes[0];
+			sequence = g.nucleotides();
+			writeFile(OUT_PATH + "rep_" + REP_ID + "/fasta/p" + meta_pop_id + "_sample" + sample_id + "_genome1.fasta", header, append=F);
+			writeFile(OUT_PATH + "rep_" + REP_ID + "/fasta/p" + meta_pop_id + "_sample" + sample_id + "_genome1.fasta", sequence, append=T);
+			// genome 2
+			g = sample.genomes[1];
+			sequence = g.nucleotides();
+			writeFile(OUT_PATH + "rep_" + REP_ID + "/fasta/p" + meta_pop_id + "_sample" + sample_id + "_genome2.fasta", header, append=F);
+			writeFile(OUT_PATH + "rep_" + REP_ID + "/fasta/p" + meta_pop_id + "_sample" + sample_id + "_genome2.fasta", sequence, append=T);	
+		}
+	}
+	// Output population-level allele frequencies
+	sim.outputMutations(sim.mutationsOfType(m1), OUT_PATH + "rep_" + REP_ID + "/slim/mutations.txt");
+	sim.outputFixedMutations(OUT_PATH + "rep_" + REP_ID + "/slim/substitutions.txt");
+}
