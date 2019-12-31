@@ -1,6 +1,8 @@
 ---
 title: "Data analysis with neutral simulation"
-output: github_document
+output: 
+  github_document: 
+    toc: true
 ---
 
 ```{r setup, include=FALSE}
@@ -12,6 +14,8 @@ library(tidyverse)
 library(cowplot)
 library(knitr)
 ```
+
+# Data wrangling with SLiM output
 
 ## Read in the ancestral states
 
@@ -79,6 +83,8 @@ ggplot(mutations_final, aes(x=frequency)) +
   annotate("text", x=0.8, y=150000, label=paste0("n=", n_mutations)) +
   theme_cowplot()
 ```
+
+# ANGSD results
 
 ## Read maf estimation and join mutation and maf files
 
@@ -348,3 +354,82 @@ filter(thetas_final, summary_stats =="tajima_d") %>%
 ```
 
 I will annonate each figure with the chromosome average statistics later on.
+
+# Compare individual barcoding with Pool-seq
+
+I assumed equal sequencing output from all individuals in this step. This is highly unlikely when no individual barcode is given, but it represents the best case scenario for Pool-seq.
+
+A better way to do this is to merge all the 20x bam files from all individuals, and subsample from this huge merged bam file. This can be costly computationally, but can still be feasible if we want to go with it. 
+
+I used the same set of SNPs obtained from ANGSD and calculated allele frequency based on total allele count across the population. This is to make the results from the two methods more comparable. In reality, however, the SNP calling result will be different if no individual barcode is provided. 
+
+## Define relevant functions
+
+```{r eval=F, warning=F, message=F}
+count_to_maf <- function(ancestral_allele, totA, totC, totG, totT){
+  if(ancestral_allele == "A"){
+    minor_allele_count <- max(totC, totG, totT)
+  } else if(ancestral_allele == "C"){
+    minor_allele_count <- max(totA, totG, totT)
+  } else if(ancestral_allele == "G"){
+    minor_allele_count <- max(totA, totC, totT)
+  } else if(ancestral_allele == "T"){
+    minor_allele_count <- max(totA, totC, totG)
+  }
+  maf <- minor_allele_count/sum(totA, totC, totG, totT)
+  return(maf)
+}
+```
+
+## Get minor allele frequencies estimated from Pool-seq
+
+```{r eval=F, warning=F, message=F}
+i=1
+for (coverage in c(0.25,0.5,1,2,4,8)){
+  for (sample_size in c(5,10,20,40, 80, 160)){
+    ## read in allele count
+    allele_count <- read_tsv(paste0("../neutral_sim/rep_1/angsd/bam_list_", sample_size, "_", coverage, "x.pos.gz")) %>%
+      bind_cols(read_tsv(paste0("../neutral_sim/rep_1/angsd/bam_list_", sample_size, "_", coverage, "x.counts.gz"))) %>%
+      mutate(ancestral_allele = ancestral$ancestral[pos]) %>%
+    ## turn allele count into maf
+      rowwise() %>%
+      mutate(maf = count_to_maf(ancestral_allele, totA, totC, totG, totT), position=pos) %>%
+      ungroup()
+    ## join estimated maf with true snps and only keep the snps that exist in estimated maf
+    joined_frequency <- right_join(mutations_final, allele_count, by="position") %>%
+      select(-ancestral) %>%
+      mutate(coverage=coverage, sample_size=sample_size, frequency=ifelse(is.na(frequency), 1, frequency))
+    ## compile the final files for plotting
+    if (i==1){
+      joined_frequency_final <- joined_frequency
+    } else {
+      joined_frequency_final <- bind_rows(joined_frequency_final, joined_frequency)
+    }
+    i=i+1
+  }
+}
+write_tsv(joined_frequency_final, "../neutral_sim/rep_1/angsd/joined_frequency_final_poolseq.tsv")
+```
+
+```{r eval=T, warning=F, message=F}
+joined_frequency_final <- read_tsv("../neutral_sim/rep_1/angsd/joined_frequency_final_poolseq.tsv")
+```
+
+## Plot estimated allele frequency vs. true allele frequency (this includes the false positives but not the false negatives)
+
+```{r eval=T, warning=F, message=F, fig.height=12, fig.width=15}
+linear_model <- joined_frequency_final %>%
+  mutate(estimated_frequency=maf) %>%
+  group_by(coverage, sample_size) %>%
+  summarise(r_squared=paste0("R^2 == ", round(summary(lm(estimated_frequency~frequency))$r.squared,3)),
+            n=paste0("n == ",n()))
+joined_frequency_final %>%
+  mutate(estimated_frequency=maf) %>%
+  ggplot(aes(x=frequency, y=estimated_frequency)) +
+  geom_point(alpha=0.1, size=0.1) +
+  geom_smooth(method="lm", color="red", size=1, se = F) +
+  geom_text(data = linear_model, x = 0.86, y = 0.25, aes(label=r_squared), color = 'red',  parse = TRUE) +
+  geom_text(data = linear_model, x = 0.86, y = 0.12, aes(label=n), color = 'red',  parse = TRUE) +
+  facet_grid(coverage~sample_size) +
+  theme_cowplot()
+```
