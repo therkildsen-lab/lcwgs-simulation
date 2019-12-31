@@ -7,7 +7,7 @@ for SAMPLE_SIZE in {5,10,20,40,80}; do
       ## Run PCAngsd
       python /workdir/programs/pcangsd/pcangsd.py \
       -beagle $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.beagle.gz' \
-      -minMaf 0.01 \
+      -minMaf 0.05 \
       -threads 42 \
       -o $BASE_DIR'angsd/pcagnsd_bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x'
   done
