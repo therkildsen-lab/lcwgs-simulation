@@ -25,6 +25,10 @@ Data analysis with simulation of divergent selection on two populations
     -   [Read in read depth and estimated Fst](#read-in-read-depth-and-estimated-fst-2)
     -   [Plot the estimated per-SNP Fst (with no minimum individual filter)](#plot-the-estimated-per-snp-fst-with-no-minimum-individual-filter-2)
     -   [Compute and plot the estimated windowed Fst (with no minimum individual filter and 1,000bp fixed windows)](#compute-and-plot-the-estimated-windowed-fst-with-no-minimum-individual-filter-and-1000bp-fixed-windows-2)
+-   [RAD seq simulation with lower selection and lower recombination](#rad-seq-simulation-with-lower-selection-and-lower-recombination)
+    -   [Get true sample allele count](#get-true-sample-allele-count)
+    -   [Get sample true MAF and Fst from allele counts](#get-sample-true-maf-and-fst-from-allele-counts)
+    -   [Plot per SNP Fst](#plot-per-snp-fst)
 -   [Lower selection and lower migration](#lower-selection-and-lower-migration)
     -   [Read in the ancestral states](#read-in-the-ancestral-states-3)
     -   [Read mutation and substitution file](#read-mutation-and-substitution-file-3)
@@ -32,11 +36,16 @@ Data analysis with simulation of divergent selection on two populations
     -   [Read in read depth and estimated Fst](#read-in-read-depth-and-estimated-fst-3)
     -   [Plot the estimated per-SNP Fst (with no minimum individual filter)](#plot-the-estimated-per-snp-fst-with-no-minimum-individual-filter-3)
     -   [Compute and plot the estimated windowed Fst (with no minimum individual filter and 1,000bp fixed windows)](#compute-and-plot-the-estimated-windowed-fst-with-no-minimum-individual-filter-and-1000bp-fixed-windows-3)
+-   [RAD seq simulation with lower selection and lower recombination](#rad-seq-simulation-with-lower-selection-and-lower-recombination-1)
+    -   [Get true sample allele count](#get-true-sample-allele-count-1)
+    -   [Get sample true MAF and Fst from allele counts](#get-sample-true-maf-and-fst-from-allele-counts-1)
+    -   [Plot per SNP Fst](#plot-per-snp-fst-1)
 
 ``` r
 library(tidyverse)
 library(cowplot)
 library(knitr)
+library(data.table)
 ```
 
 Define all relevant functions
@@ -129,6 +138,80 @@ fixed_windowed_fst <- function(x, window_length){
     summarise(fst=sum(alpha)/sum(beta)) %>%
     ungroup() %>%
     mutate(position=as.numeric(as.character(position)))
+}
+count_to_maf <- function(ancestral_allele, totA, totC, totG, totT){
+  if(ancestral_allele == "A"){
+    minor_allele_count <- max(totC, totG, totT)
+  } else if(ancestral_allele == "C"){
+    minor_allele_count <- max(totA, totG, totT)
+  } else if(ancestral_allele == "G"){
+    minor_allele_count <- max(totA, totC, totT)
+  } else if(ancestral_allele == "T"){
+    minor_allele_count <- max(totA, totC, totG)
+  }
+  maf <- minor_allele_count/sum(totA, totC, totG, totT)
+  return(maf)
+}
+get_sample_allele_count_per_pop <- function(x){
+  for (p in 1:2){
+    i <- 1
+    for (sample_id in 1:160){
+      for (genome in 1:2){
+        sequence <- read_csv(paste0(x, "fasta/p", p, "_derived_", sample_id, "_", genome, ".fasta"), col_types = cols())[[1]] %>%
+          str_split(pattern="") %>%
+          .[[1]] %>%
+          tibble(base=., position=1:30000000, ancestral=ancestral$ancestral) %>%
+          filter(position %in% mutations_final$position)
+        allele_count <- transmute(sequence,
+                                  A_count = ifelse(base=="A", 1, 0),
+                                  C_count = ifelse(base=="C", 1, 0),
+                                  G_count = ifelse(base=="G", 1, 0),
+                                  T_count = ifelse(base=="T", 1, 0))
+        if (i==1){
+          allele_count_final <- allele_count
+        } else {
+          allele_count_final <- allele_count + allele_count_final
+        }
+        i <- i+1
+      }
+      if (sample_id %in% c(5,10,20,40,80,160)){
+        write_tsv(bind_cols(select(sequence, -base), allele_count_final), paste0(x,"slim/p", p, "_", sample_id, "_base_count.tsv")) 
+      }
+    }
+  }
+}
+allele_count_to_fst <- function(x){
+  set.seed(1)
+  rad_intervals <- sample(1:(30000000-150), 10000) %>%
+    tibble(start=., stop=.+150) %>%
+    arrange(by=start)
+  i <- 1
+  for (sample_size in c(5,10,20,40,80,160)){
+    base_count_p1 <- read_tsv(paste0(x,"slim/p1_", sample_size, "_base_count.tsv"), col_types = cols()) %>%
+      filter(position %inrange% as.list(rad_intervals))
+    maf_p1 <- base_count_p1 %>%
+      rowwise() %>%
+      transmute(maf = count_to_maf(ancestral, A_count, C_count, G_count, T_count), position=position) %>%
+      ungroup()
+    base_count_p2 <- read_tsv(paste0(x, "slim/p2_", sample_size, "_base_count.tsv"), col_types = cols()) %>%
+      filter(position %inrange% as.list(rad_intervals))
+    maf_p2 <- base_count_p2 %>%
+      rowwise() %>%
+      transmute(maf = count_to_maf(ancestral, A_count, C_count, G_count, T_count), position=position) %>%
+      ungroup()
+    fst <- tibble(position=maf_p1$position, p1=maf_p1$maf, p2=maf_p2$maf) %>%
+      rowwise() %>%
+      mutate(maf_mean = (p1+p2)/2) %>%
+      filter(maf_mean>0.05, maf_mean < 0.95) %>%
+      mutate(h_t=2*maf_mean*(1-maf_mean), h_s=p1*(1-p1) + p2*(1-p2), fst=1-h_s/h_t, sample_size=sample_size)
+    if (i==1) {
+      fst_final <- fst
+    } else {
+      fst_final <- bind_rows(fst_final, fst)
+    }
+    i <- i+1
+  }
+  return(fst_final)
 }
 ```
 
@@ -447,6 +530,39 @@ fixed_windowed_fst(fst_n_ind_final, 1000) %>%
 
 ![](data_analysis_two_pop_fixed_m2_pos_files/figure-markdown_github/unnamed-chunk-22-1.png)
 
+RAD seq simulation with lower selection and lower recombination
+===============================================================
+
+To simulate RAD-seq, I assumed that the genotype calling is perfectly accurate (i.e. sequence depth is high). I then took random samples along the chromosome representing RAD tags.
+
+Get true sample allele count
+----------------------------
+
+``` r
+get_sample_allele_count_per_pop("../two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/")
+```
+
+Get sample true MAF and Fst from allele counts
+----------------------------------------------
+
+``` r
+maf_final <- allele_count_to_fst("../two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/")
+```
+
+Plot per SNP Fst
+----------------
+
+``` r
+mutate(maf_final, coverage="RAD") %>%
+  ggplot(aes(x=position, y=fst)) +
+    geom_point(alpha=0.5, size=0.1) +
+    geom_point(data=mutations_final_m2, aes(x=position, y=0.75), color="red", size=0.2, shape=8) +
+    facet_grid(coverage~sample_size) +
+    theme_cowplot()
+```
+
+![](data_analysis_two_pop_fixed_m2_pos_files/figure-markdown_github/unnamed-chunk-25-1.png)
+
 Lower selection and lower migration
 ===================================
 
@@ -477,7 +593,7 @@ ggplot(mutations_final_m1, aes(x=position, y=fst, color=type)) +
   theme_cowplot()
 ```
 
-![](data_analysis_two_pop_fixed_m2_pos_files/figure-markdown_github/unnamed-chunk-25-1.png)
+![](data_analysis_two_pop_fixed_m2_pos_files/figure-markdown_github/unnamed-chunk-28-1.png)
 
 ``` r
 arrange(mutations_final, desc(fst)) %>%
@@ -526,7 +642,7 @@ ggplot(fst_n_ind_final, aes(x=position, y=fst)) +
   theme_cowplot()
 ```
 
-![](data_analysis_two_pop_fixed_m2_pos_files/figure-markdown_github/unnamed-chunk-27-1.png)
+![](data_analysis_two_pop_fixed_m2_pos_files/figure-markdown_github/unnamed-chunk-30-1.png)
 
 Compute and plot the estimated windowed Fst (with no minimum individual filter and 1,000bp fixed windows)
 ---------------------------------------------------------------------------------------------------------
@@ -541,4 +657,37 @@ fixed_windowed_fst(fst_n_ind_final, 1000) %>%
     theme_cowplot()
 ```
 
-![](data_analysis_two_pop_fixed_m2_pos_files/figure-markdown_github/unnamed-chunk-28-1.png)
+![](data_analysis_two_pop_fixed_m2_pos_files/figure-markdown_github/unnamed-chunk-31-1.png)
+
+RAD seq simulation with lower selection and lower recombination
+===============================================================
+
+To simulate RAD-seq, I assumed that the genotype calling is perfectly accurate (i.e. sequence depth is high). I then took random samples along the chromosome to represent RAD tags.
+
+Get true sample allele count
+----------------------------
+
+``` r
+get_sample_allele_count_per_pop("../two_pop_sim_fixed_m2_pos_lower_s_lower_m/rep_1/")
+```
+
+Get sample true MAF and Fst from allele counts
+----------------------------------------------
+
+``` r
+maf_final <- allele_count_to_fst("../two_pop_sim_fixed_m2_pos_lower_s_lower_m/rep_1/")
+```
+
+Plot per SNP Fst
+----------------
+
+``` r
+mutate(maf_final, coverage="RAD") %>%
+  ggplot(aes(x=position, y=fst)) +
+    geom_point(alpha=0.5, size=0.1) +
+    geom_point(data=mutations_final_m2, aes(x=position, y=0.75), color="red", size=0.2, shape=8) +
+    facet_grid(coverage~sample_size) +
+    theme_cowplot()
+```
+
+![](data_analysis_two_pop_fixed_m2_pos_files/figure-markdown_github/unnamed-chunk-34-1.png)
