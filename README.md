@@ -15,3 +15,7 @@
 [simulation workflow with spatially structured populations](https://github.com/therkildsen-lab/lcwgs-simulation/blob/master/markdowns/simulation_workflow_spatial_pop_sim.md)
 
 [data analysis with spatially structured populations](https://github.com/therkildsen-lab/lcwgs-simulation/blob/master/markdowns/data_analysis_spatial_pop.md)
+
+[simulation workflow with spatially structured populations and lower migration rate](https://github.com/therkildsen-lab/lcwgs-simulation/blob/master/markdowns/simulation_workflow_spatial_pop_sim_lower_m.md)
+
+[data analysis with spatially structured populations and lower migration rate](https://github.com/therkildsen-lab/lcwgs-simulation/blob/master/markdowns/data_analysis_spatial_pop_lower_m.md)
