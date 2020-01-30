@@ -7,6 +7,7 @@ nohups/*
 neutral_sim/*
 two_pop_sim*/*
 spatial_pop_sim/*
+spatial_pop_sim_lower_m/*
 
 # History files
 .Rhistory

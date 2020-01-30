@@ -2,7 +2,7 @@
 REP_ID=$1
 OUT_DIR_BASE=$2
 OUT_DIR=$OUT_DIR_BASE'rep_'$REP_ID'/'
-N_CORE_MAX=42
+N_CORE_MAX=9
 ## merge
 COUNT=0
 for k in {1..80}; do
