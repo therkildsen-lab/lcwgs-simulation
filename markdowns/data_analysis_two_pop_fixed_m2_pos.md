@@ -182,7 +182,7 @@ get_sample_allele_count_per_pop <- function(x){
 }
 allele_count_to_fst <- function(x){
   set.seed(1)
-  rad_intervals <- sample(1:(30000000-150), 10000) %>%
+  rad_intervals <- sample(1:(30000000-150), 250) %>%
     tibble(start=., stop=.+150) %>%
     arrange(by=start)
   i <- 1
