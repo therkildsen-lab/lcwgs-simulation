@@ -1,6 +1,8 @@
 #!/bin/bash
 REP_ID=$1
-OUT_DIR='/workdir/lcwgs-simulation/neutral_sim/rep_'$REP_ID'/'
+DIR=${2:-/workdir/lcwgs-simulation/neutral_sim/}
+
+OUT_DIR=$DIR'rep_'$REP_ID'/'
 N_CORE_MAX=40
 ## Generate sam files
 COUNT=0

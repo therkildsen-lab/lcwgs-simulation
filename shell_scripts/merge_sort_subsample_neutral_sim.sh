@@ -1,6 +1,8 @@
 #!/bin/bash
 REP_ID=$1
-OUT_DIR='/workdir/lcwgs-simulation/neutral_sim/rep_'$REP_ID'/'
+DIR=${2:-/workdir/lcwgs-simulation/neutral_sim/}
+
+OUT_DIR=$DIR'rep_'$REP_ID'/'
 N_CORE_MAX=40
 ## merge
 COUNT=0
@@ -32,7 +34,7 @@ wait
 ## subsample
 COUNT=0
 for k in {1..1000}; do
-  for j in {0.25,0.5,1,2,4,8}; do
+  for j in {1,2,4}; do
     samtools view \
     -s `awk -v j=$j 'BEGIN { print j / 20 }'` \
     -b $OUT_DIR'bam/sample_'$k'_sorted.bam' \
