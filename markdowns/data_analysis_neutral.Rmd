@@ -15,6 +15,64 @@ library(cowplot)
 library(knitr)
 ```
 
+# Define some functions
+
+```{r eval=T, warning=F, message=F}
+summarise_by_design <- function(joined_frequency_table){
+  joined_frequency_table %>%
+  mutate(error_squared=error^2) %>%
+  group_by(coverage, sample_size) %>%
+  summarise(r_squared=paste0("R^2==", round(summary(lm(estimated_frequency~frequency))$r.squared,3)), 
+            n=paste0("n==",n()), 
+            root_mean_error_squared=paste0("RMSE==", round(sqrt(mean(error_squared)), 3)))
+}
+plot_frequency <- function(joined_frequency_table, joined_summary_table){
+  joined_frequency_table %>%
+    ggplot(aes(x=frequency, y=estimated_frequency)) +
+    geom_point(alpha=0.1, size=0.1) +
+    geom_smooth(method="lm", color="red", size=1, se = F) +
+    geom_text(data = joined_summary_table, x = 0.86, y = 0.25, aes(label=r_squared), color = 'red',  parse = TRUE) +
+    geom_text(data = joined_summary_table, x = 0.86, y = 0.12, aes(label=n), color = 'red',  parse = TRUE) +
+    facet_grid(coverage~sample_size) +
+    theme_cowplot()
+}
+plot_frequency_in_bins <- function(joined_frequency_table, joined_summary_table){
+  joined_frequency_table %>%
+    ggplot(aes(x=frequency_bin, y=estimated_frequency)) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_text(data = joined_summary_table, x = 8.6, y = 0.2, aes(label=r_squared), color = 'black',  parse = TRUE) +
+    geom_text(data = joined_summary_table, x = 8.6, y = 0.07, aes(label=n), color = 'black',  parse = TRUE) +
+    scale_x_discrete(labels=seq(0.05, 0.95, 0.1))  +
+    facet_grid(coverage~sample_size) +
+    theme_cowplot() +
+    theme(axis.text.x = element_text(angle=45))
+}
+plot_error_in_bins <- function(joined_frequency_table, joined_summary_table){
+  joined_frequency_table %>%
+    ggplot(aes(x=frequency_bin, y=abs(error))) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_text(data = joined_summary_table, x = 8, y = 0.9, aes(label=root_mean_error_squared), color = 'black',  parse = TRUE) +
+    geom_text(data = joined_summary_table, x = 8, y = 0.77, aes(label=n), color = 'black',  parse = TRUE) +
+    facet_grid(coverage~sample_size) +
+    scale_x_discrete(labels=seq(0.05, 0.95, 0.1))  +
+    theme_cowplot() +
+    theme(axis.text.x = element_text(angle=45))
+}
+count_to_maf <- function(ancestral_allele, totA, totC, totG, totT){
+  if(ancestral_allele == "A"){
+    minor_allele_count <- max(totC, totG, totT)
+  } else if(ancestral_allele == "C"){
+    minor_allele_count <- max(totA, totG, totT)
+  } else if(ancestral_allele == "G"){
+    minor_allele_count <- max(totA, totC, totT)
+  } else if(ancestral_allele == "T"){
+    minor_allele_count <- max(totA, totC, totG)
+  }
+  maf <- minor_allele_count/sum(totA, totC, totG, totT)
+  return(maf)
+}
+```
+
 # Data wrangling with SLiM output
 
 ## Read in the ancestral states
@@ -133,7 +191,8 @@ write_tsv(sfs_final, "../neutral_sim/rep_1/angsd/sfs_final.tsv")
 ```
 
 ```{r eval=T, warning=F, message=F}
-joined_frequency_final <- read_tsv("../neutral_sim/rep_1/angsd/joined_frequency_final.tsv")
+joined_frequency_final <- read_tsv("../neutral_sim/rep_1/angsd/joined_frequency_final.tsv") %>%
+  mutate(frequency_bin = cut(frequency, breaks = 0:10/10), error=estimated_frequency-frequency)
 false_negatives_final <- read_tsv("../neutral_sim/rep_1/angsd/false_negatives_final.tsv")
 false_positives_final <- read_tsv("../neutral_sim/rep_1/angsd/false_positives_final.tsv")
 sfs_final <- read_tsv("../neutral_sim/rep_1/angsd/sfs_final.tsv")
@@ -170,13 +229,12 @@ filter(sfs_final, frequency>0, frequency<1) %>%
 These are the histogram of estimated allele frequencies
 
 ```{r eval=T, warning=F, message=F, fig.height=12, fig.width=15}
-linear_model <- group_by(joined_frequency_final, coverage, sample_size) %>%
-  summarise(r_squared=paste0("R^2 == ", round(summary(lm(estimated_frequency~frequency))$r.squared,3)),
-            n=paste0("n == ",n()))
+joined_summary <- summarise_by_design(joined_frequency_final)
+
 joined_frequency_final %>%
   ggplot(aes(x=estimated_frequency)) +
   geom_histogram() +
-  geom_text(data=linear_model, x=0.8, y=20000, aes(label=n), parse=T) +
+  geom_text(data=joined_summary, x=0.8, y=20000, aes(label=n), parse=T) +
   facet_grid(coverage~sample_size, scales ="free_y") +
   theme_cowplot()
 ```
@@ -184,46 +242,27 @@ joined_frequency_final %>%
 ## Plot estimated allele frequency vs. true allele frequency (this includes the false positives but not the false negatives)
 
 ```{r eval=T, warning=F, message=F, fig.height=12, fig.width=15}
-joined_frequency_final %>%
-  ggplot(aes(x=frequency, y=estimated_frequency)) +
-  geom_point(alpha=0.1, size=0.1) +
-  geom_smooth(method="lm", color="red", size=1, se = F) +
-  geom_text(data = linear_model, x = 0.86, y = 0.25, aes(label=r_squared), color = 'red',  parse = TRUE) +
-  geom_text(data = linear_model, x = 0.86, y = 0.12, aes(label=n), color = 'red',  parse = TRUE) +
-  facet_grid(coverage~sample_size) +
-  theme_cowplot()
+plot_frequency(joined_frequency_final, joined_summary)
 ```
 
 At low coverage and low sample size, the noise in estimation is quite high. This is because of a non-existent nInd filter and a low minDepth filter. Removing these sites will remove some of these noises but will further reduce the amount of data. 
 
 ```{r eval=T, warning=F, message=F, fig.height=12, fig.width=15}
 joined_frequency_final_nInd_4 <- filter(joined_frequency_final, nInd>=4)
-
-linear_model_nInd_4 <- group_by(joined_frequency_final_nInd_4, coverage, sample_size) %>%
-  summarise(r_squared=paste0("R^2 == ", round(summary(lm(estimated_frequency~frequency))$r.squared,3)),
-            n=paste0("n == ",n()))
-
-joined_frequency_final_nInd_4 %>%
-  ggplot(aes(x=frequency, y=estimated_frequency)) +
-  geom_point(alpha=0.1, size=0.2) +
-  geom_smooth(method="lm", color="red", size=1, se = F) +
-  geom_text(data = linear_model_nInd_4, x = 0.86, y = 0.25, aes(label=r_squared), color = 'red',  parse = TRUE) +
-  geom_text(data = linear_model_nInd_4, x = 0.86, y = 0.12, aes(label=n), color = 'red',  parse = TRUE) +
-  facet_grid(coverage~sample_size) +
-  theme_cowplot()
+joined_summary_nInd_4 <- summarise_by_design(joined_frequency_final)
+plot_frequency(joined_frequency_final_nInd_4, joined_summary_nInd_4)
 ```
 
-## Plot error vs. true allele frequency
+## Plot estimated allele frequency vs. true allele frequency in bins (this includes the false positives but not the false negatives)
 
 ```{r eval=T, warning=F, message=F, fig.height=12, fig.width=15}
-joined_frequency_final %>%
-  mutate(error=frequency-estimated_frequency) %>%
-  ggplot(aes(x=frequency, y=error)) +
-  geom_point(alpha=0.1, size=0.2) +
-  geom_smooth(method="lm", color="red", size=1, se = F) +
-  geom_text(data = linear_model, x = 0.86, y = -0.6, aes(label=n), color = 'red',  parse = TRUE) +
-  facet_grid(coverage~sample_size) +
-  theme_cowplot()
+plot_frequency_in_bins(joined_frequency_final, joined_summary)
+```
+
+## Plot error vs. true allele frequency in bins
+
+```{r eval=T, warning=F, message=F, fig.height=12, fig.width=15}
+plot_error_in_bins(joined_frequency_final, joined_summary)
 ```
 
 ## Check the SNPs with highest error
@@ -363,24 +402,6 @@ A better way to do this is to merge all the 20x bam files from all individuals, 
 
 I used the same set of SNPs obtained from ANGSD and calculated allele frequency based on total allele count across the population. This is to make the results from the two methods more comparable. In reality, however, the SNP calling result will be different if no individual barcode is provided. 
 
-## Define relevant functions
-
-```{r eval=F, warning=F, message=F}
-count_to_maf <- function(ancestral_allele, totA, totC, totG, totT){
-  if(ancestral_allele == "A"){
-    minor_allele_count <- max(totC, totG, totT)
-  } else if(ancestral_allele == "C"){
-    minor_allele_count <- max(totA, totG, totT)
-  } else if(ancestral_allele == "G"){
-    minor_allele_count <- max(totA, totC, totT)
-  } else if(ancestral_allele == "T"){
-    minor_allele_count <- max(totA, totC, totG)
-  }
-  maf <- minor_allele_count/sum(totA, totC, totG, totT)
-  return(maf)
-}
-```
-
 ## Get minor allele frequencies estimated from Pool-seq
 
 ```{r eval=F, warning=F, message=F}
@@ -412,24 +433,25 @@ write_tsv(joined_frequency_final, "../neutral_sim/rep_1/angsd/joined_frequency_f
 ```
 
 ```{r eval=T, warning=F, message=F}
-joined_frequency_final <- read_tsv("../neutral_sim/rep_1/angsd/joined_frequency_final_poolseq.tsv")
+joined_frequency_final <- read_tsv("../neutral_sim/rep_1/angsd/joined_frequency_final_poolseq.tsv") %>%
+  mutate(estimated_frequency=maf, frequency_bin = cut(frequency, breaks = 0:10/10), error=estimated_frequency-frequency) 
+joined_summary <- summarise_by_design(joined_frequency_final)
 ```
 
 ## Plot estimated allele frequency vs. true allele frequency (this includes the false positives but not the false negatives)
 
 ```{r eval=T, warning=F, message=F, fig.height=12, fig.width=15}
-linear_model <- joined_frequency_final %>%
-  mutate(estimated_frequency=maf) %>%
-  group_by(coverage, sample_size) %>%
-  summarise(r_squared=paste0("R^2 == ", round(summary(lm(estimated_frequency~frequency))$r.squared,3)),
-            n=paste0("n == ",n()))
-joined_frequency_final %>%
-  mutate(estimated_frequency=maf) %>%
-  ggplot(aes(x=frequency, y=estimated_frequency)) +
-  geom_point(alpha=0.1, size=0.1) +
-  geom_smooth(method="lm", color="red", size=1, se = F) +
-  geom_text(data = linear_model, x = 0.86, y = 0.25, aes(label=r_squared), color = 'red',  parse = TRUE) +
-  geom_text(data = linear_model, x = 0.86, y = 0.12, aes(label=n), color = 'red',  parse = TRUE) +
-  facet_grid(coverage~sample_size) +
-  theme_cowplot()
+plot_frequency(joined_frequency_final, joined_summary)
+```
+
+## Plot estimated allele frequency vs. true allele frequency in bins (this includes the false positives but not the false negatives)
+
+```{r eval=T, warning=F, message=F, fig.height=12, fig.width=15}
+plot_frequency_in_bins(joined_frequency_final, joined_summary)
+```
+
+## Plot absolute values of error vs. true allele frequency in bins (this includes the false positives but not the false negatives)
+
+```{r eval=T, warning=F, message=F, fig.height=12, fig.width=15}
+plot_error_in_bins(joined_frequency_final, joined_summary)
 ```
