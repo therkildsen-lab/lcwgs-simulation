@@ -7,6 +7,10 @@
 
 [simulation workflow with neutral simulation, sampling with replacement](https://github.com/therkildsen-lab/lcwgs-simulation/blob/master/markdowns/simulation_workflow_neutral_sim_with_replacement.md)
 
+[simulation workflow with neutral simulation, with uneven input acorss individuals](https://github.com/therkildsen-lab/lcwgs-simulation/blob/master/markdowns/simulation_workflow_neutral_sim_uneven_input.md)
+
+[data analysis with neutral simulation, with uneven input acorss individuals (including pool-seq comparison)](https://github.com/therkildsen-lab/lcwgs-simulation/blob/master/markdowns/data_analysis_neutral_uneven_input.md)
+
 ## divergent selection
 
 [simulation workflow with divergent selection and random m2 positions](https://github.com/therkildsen-lab/lcwgs-simulation/blob/master/markdowns/simulation_workflow_two_pop_sim_random_m2_pos.md)
