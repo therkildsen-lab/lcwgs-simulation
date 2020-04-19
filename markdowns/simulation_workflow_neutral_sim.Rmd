@@ -34,8 +34,8 @@ fi
 # Run SLiM 
 /programs/SLiM-3.3/bin/slim \\
   -d REP_ID=$REP_ID  \\
-  -d MUTATION_RATE=2e-7 \\
-  -d REC_RATE=1e-8 \\
+  -d MUTATION_RATE=100e-8 \\
+  -d REC_RATE=250e-8 \\
   -d CHR_LENGTH=30000000 \\
   -d POP_SIZE=1000 \\
   -d SAMPLE_SIZE=2000 \\
@@ -252,6 +252,8 @@ for COVERAGE in {0.25,0.5,1,2,4,8}; do
     -anc $BASE_DIR'slim/ancestral.fasta' \
     -GL 1 \
     -P 1 \
+    -doCounts 1 \
+    -setMinDepth 2 \
     > '/workdir/lcwgs-simulation/nohups/get_saf_neutral_sim_1_bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.nohup' &
   done
 done
@@ -261,7 +263,7 @@ for COVERAGE in {0.25,0.5,1,2,4,8}; do
   for SAMPLE_SIZE in {5,10,20,40,80,160}; do
     nohup /workdir/programs/angsd0.931/angsd/misc/realSFS \
       $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.saf.idx' \
-      -P 4 \
+      -P 1 \
       >& $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.sfs' \
       2> '/workdir/lcwgs-simulation/nohups/get_sfs_neutral_sim_1_bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.nohup' < /dev/null &
   done
@@ -279,6 +281,8 @@ for COVERAGE in {0.25,0.5,1,2,4,8}; do
     -anc $BASE_DIR'slim/ancestral.fasta' \
     -GL 1 \
     -P 1 \
+    -doCounts 1 \
+    -setMinDepth 2 \
     > '/workdir/lcwgs-simulation/nohups/estimate_theta_neutral_sim_1_bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.nohup' &
   done
 done
@@ -294,7 +298,7 @@ done
 ## Do fixed window theta
 BASE_DIR='/workdir/lcwgs-simulation/neutral_sim/rep_1/'
 for COVERAGE in {0.25,0.5,1,2,4,8}; do
-  for SAMPLE_SIZE in {5,10,20,40,80}; do
+  for SAMPLE_SIZE in {5,10,20,40,80,160}; do
     nohup /workdir/programs/angsd0.931/angsd/misc/thetaStat do_stat \
     $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.thetas.idx' \
     -win 10000 -step 10000 \
@@ -305,7 +309,7 @@ done
 ## Do per-chromosome average theta
 BASE_DIR='/workdir/lcwgs-simulation/neutral_sim/rep_1/'
 for COVERAGE in {0.25,0.5,1,2,4,8}; do
-  for SAMPLE_SIZE in {5,10,20,40,80}; do
+  for SAMPLE_SIZE in {5,10,20,40,80,160}; do
     nohup /workdir/programs/angsd0.931/angsd/misc/thetaStat do_stat \
     $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.thetas.idx' \
     -outnames $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.average_thetas.idx' \
