@@ -14,8 +14,8 @@ fi
 # Run SLiM 
 /workdir/programs/SLiM_build/slim \
   -d REP_ID=$REP_ID  \
-  -d MUTATION_RATE=5e-8 \
-  -d REC_RATE=1e-8 \
+  -d MUTATION_RATE=20e-8 \
+  -d REC_RATE=50e-8 \
   -d CHR_LENGTH=30000000 \
   -d META_POP_SIDE=3 \
   -d POP_SIZE=500 \

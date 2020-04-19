@@ -1,25 +1,33 @@
----
-title: "Simulation workflow for two dimensional spatial populations with lower migration rate"
-output: 
-  github_document: 
-    toc: true
----
+Simulation workflow for two dimensional spatial populations with lower migration rate
+================
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+-   [Two dimensional spatial populations with lower migration rate](#two-dimensional-spatial-populations-with-lower-migration-rate)
+    -   [Create a shell script to run SLiM with nohup](#create-a-shell-script-to-run-slim-with-nohup)
+    -   [Run the shell script for SLiM simulation on server](#run-the-shell-script-for-slim-simulation-on-server)
+    -   [Create a shell script to run ART with nohup](#create-a-shell-script-to-run-art-with-nohup)
+    -   [Run the shell script for ART simulation on server](#run-the-shell-script-for-art-simulation-on-server)
+    -   [Merge, sort, and subsample bam files](#merge-sort-and-subsample-bam-files)
+    -   [Run the shell script for merging, sorting, and subsampling](#run-the-shell-script-for-merging-sorting-and-subsampling)
+    -   [Make bam lists](#make-bam-lists)
+    -   [Index the ancestral fasta file](#index-the-ancestral-fasta-file)
+    -   [Get shell script for SNP calling](#get-shell-script-for-snp-calling)
+    -   [Run the shell script for SNP calling](#run-the-shell-script-for-snp-calling)
+    -   [Get shell script for PCA](#get-shell-script-for-pca)
+    -   [Run the shell script for PCA](#run-the-shell-script-for-pca)
 
-```{r message=F, warning=F}
+``` r
 library(tidyverse)
 ```
 
-# Two dimensional spatial populations with lower migration rate
+Two dimensional spatial populations with lower migration rate
+=============================================================
 
-## Create a shell script to run SLiM with nohup
+Create a shell script to run SLiM with nohup
+--------------------------------------------
 
 The only parameter that I've changed is the migration rate.
 
-```{r eval=F}
+``` r
 shell_script <- "#!/bin/bash
 REP_ID=$1
 # Create output directory
@@ -48,17 +56,19 @@ fi
 write_lines(shell_script, "../shell_scripts/spatial_pop_sim_lower_m.sh")
 ```
 
-## Run the shell script for SLiM simulation on server
+Run the shell script for SLiM simulation on server
+--------------------------------------------------
 
-```{bash eval=F}
+``` bash
 for k in 1; do
   nohup bash /workdir/lcwgs-simulation/shell_scripts/spatial_pop_sim_lower_m.sh $k > '/workdir/lcwgs-simulation/nohups/spatial_pop_sim_lower_m_'$k'.nohup' &
 done
 ```
 
-## Create a shell script to run ART with nohup
+Create a shell script to run ART with nohup
+-------------------------------------------
 
-```{r eval=F}
+``` r
 shell_script <-"#!/bin/bash
 REP_ID=$1
 OUT_DIR_BASE=$2
@@ -119,17 +129,19 @@ done"
 write_lines(shell_script, "../shell_scripts/art_spatial_pop_sim.sh")
 ```
 
-## Run the shell script for ART simulation on server
+Run the shell script for ART simulation on server
+-------------------------------------------------
 
-```{bash eval=F}
+``` bash
 for k in 1; do
   nohup bash /workdir/lcwgs-simulation/shell_scripts/art_spatial_pop_sim.sh $k '/workdir/lcwgs-simulation/spatial_pop_sim_lower_m/' > '/workdir/lcwgs-simulation/nohups/art_spatial_pop_sim_lower_m_'$k'.nohup' &
 done
 ```
 
-## Merge, sort, and subsample bam files
+Merge, sort, and subsample bam files
+------------------------------------
 
-```{r eval=F}
+``` r
 shell_script <-"#!/bin/bash
 REP_ID=$1
 OUT_DIR_BASE=$2
@@ -192,17 +204,19 @@ done"
 write_lines(shell_script, "../shell_scripts/merge_sort_subsample_spatial_pop_sim.sh")
 ```
 
-## Run the shell script for merging, sorting, and subsampling
+Run the shell script for merging, sorting, and subsampling
+----------------------------------------------------------
 
-```{bash eval=F}
+``` bash
 for k in 1; do
   nohup bash /workdir/lcwgs-simulation/shell_scripts/merge_sort_subsample_spatial_pop_sim.sh $k '/workdir/lcwgs-simulation/spatial_pop_sim_lower_m/' > '/workdir/lcwgs-simulation/nohups/merge_sort_subsample_spatial_pop_sim_lower_m_'$k'.nohup' &
 done
 ```
 
-## Make bam lists
+Make bam lists
+--------------
 
-```{r eval=F}
+``` r
 make_bam_lists <- function(basedir){
   i=1
   for (population in 1:9) {
@@ -227,20 +241,22 @@ make_bam_lists <- function(basedir){
 make_bam_lists("/workdir/lcwgs-simulation/spatial_pop_sim_lower_m/rep_1/")
 ```
 
-## Index the ancestral fasta file
+Index the ancestral fasta file
+------------------------------
 
-```{bash eval=F}
+``` bash
 for REP_ID in 1; do
   OUT_DIR='/workdir/lcwgs-simulation/spatial_pop_sim_lower_m/rep_'$REP_ID'/'
   samtools faidx $OUT_DIR'slim/ancestral.fasta'
 done
 ```
 
-## Get shell script for SNP calling
+Get shell script for SNP calling
+--------------------------------
 
-After some experimentation, it turns out that a MAF filter is very important to have. 
+After some experimentation, it turns out that a MAF filter is very important to have.
 
-```{r eval=F}
+``` r
 ## Note that I used -doMajorMinor 5, using the ancestral sequence to determine major and minor alleles
 shell_script <-"#!/bin/bash
 REP_ID=$1
@@ -271,16 +287,18 @@ done"
 write_lines(shell_script, "../shell_scripts/snp_calling_spatial_pop_sim.sh")
 ```
 
-## Run the shell script for SNP calling
+Run the shell script for SNP calling
+------------------------------------
 
-```{bash eval=F}
+``` bash
 nohup bash /workdir/lcwgs-simulation/shell_scripts/snp_calling_spatial_pop_sim.sh 1 '/workdir/lcwgs-simulation/spatial_pop_sim_lower_m/' \
 > /workdir/lcwgs-simulation/nohups/snp_calling_spatial_pop_sim_lower_m.nohup &
 ```
 
-## Get shell script for PCA
+Get shell script for PCA
+------------------------
 
-```{r eval=F}
+``` r
 shell_script <-"#!/bin/bash
 REP_ID=$1
 OUT_DIR_BASE=$2
@@ -298,9 +316,10 @@ done"
 write_lines(shell_script, "../shell_scripts/run_pcangd_spatial_pop_sim.sh")
 ```
 
-## Run the shell script for PCA
+Run the shell script for PCA
+----------------------------
 
-```{bash eval=F}
+``` bash
 nohup bash /workdir/lcwgs-simulation/shell_scripts/run_pcangd_spatial_pop_sim.sh 1 '/workdir/lcwgs-simulation/spatial_pop_sim_lower_m/' \
 > /workdir/lcwgs-simulation/nohups/run_pcangd_spatial_pop_sim_lower_m.nohup &
 ```
