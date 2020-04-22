@@ -3,7 +3,7 @@ REP_ID=$1
 DIR=${2:-/workdir/lcwgs-simulation/neutral_sim/}
 
 OUT_DIR=$DIR'rep_'$REP_ID'/'
-N_CORE_MAX=40
+N_CORE_MAX=30
 ## Generate sam files
 COUNT=0
 for i in {1..2000}; do
