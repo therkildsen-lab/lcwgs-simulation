@@ -241,28 +241,35 @@ joined_frequency_final %>%
 
 ## Plot estimated allele frequency vs. true allele frequency (this includes the false positives but not the false negatives)
 
-```{r eval=T, warning=F, message=F, fig.height=12, fig.width=15}
-plot_frequency(joined_frequency_final, joined_summary)
+```{r eval=F, warning=F, message=F, fig.height=12, fig.width=15}
+estimated_vs_true_frequency <- plot_frequency(joined_frequency_final, joined_summary)
+ggsave("../figures/neutral_estimated_vs_true_frequency.png", estimated_vs_true_frequency, height = 12, width=15, units = "in")
 ```
 
-At low coverage and low sample size, the noise in estimation is quite high. This is because of a non-existent nInd filter and a low minDepth filter. Removing these sites will remove some of these noises but will further reduce the amount of data. 
-
-```{r eval=T, warning=F, message=F, fig.height=12, fig.width=15}
-joined_frequency_final_nInd_4 <- filter(joined_frequency_final, nInd>=4)
-joined_summary_nInd_4 <- summarise_by_design(joined_frequency_final)
-plot_frequency(joined_frequency_final_nInd_4, joined_summary_nInd_4)
+```{r}
+include_graphics("../figures/neutral_estimated_vs_true_frequency.png")
 ```
 
 ## Plot estimated allele frequency vs. true allele frequency in bins (this includes the false positives but not the false negatives)
 
-```{r eval=T, warning=F, message=F, fig.height=12, fig.width=15}
-plot_frequency_in_bins(joined_frequency_final, joined_summary)
+```{r eval=F, warning=F, message=F, fig.height=12, fig.width=15}
+estimated_vs_true_frequency_bin <- plot_frequency_in_bins(joined_frequency_final, joined_summary)
+ggsave("../figures/neutral_estimated_vs_true_frequency_bin.png", estimated_vs_true_frequency_bin, height = 12, width=15, units = "in")
+```
+
+```{r}
+include_graphics("../figures/neutral_estimated_vs_true_frequency_bin.png")
 ```
 
 ## Plot error vs. true allele frequency in bins
 
-```{r eval=T, warning=F, message=F, fig.height=12, fig.width=15}
-plot_error_in_bins(joined_frequency_final, joined_summary)
+```{r eval=F, warning=F, message=F, fig.height=12, fig.width=15}
+error_vs_true_frequency_bin <- plot_error_in_bins(joined_frequency_final, joined_summary)
+ggsave("../figures/neutral_error_vs_true_frequency_bin.png", error_vs_true_frequency_bin, height = 12, width=15, units = "in")
+```
+
+```{r}
+include_graphics("../figures/neutral_error_vs_true_frequency_bin.png")
 ```
 
 ## Check the SNPs with highest error
@@ -440,18 +447,35 @@ joined_summary <- summarise_by_design(joined_frequency_final)
 
 ## Plot estimated allele frequency vs. true allele frequency (this includes the false positives but not the false negatives)
 
-```{r eval=T, warning=F, message=F, fig.height=12, fig.width=15}
-plot_frequency(joined_frequency_final, joined_summary)
+```{r eval=F, warning=F, message=F, fig.height=12, fig.width=15}
+estimated_vs_true_frequency_pool <- plot_frequency(joined_frequency_final, joined_summary)
+ggsave("../figures/neutral_estimated_vs_true_frequency_pool.png", estimated_vs_true_frequency_pool, height = 12, width=15, units = "in")
 ```
+
+```{r}
+include_graphics("../figures/neutral_estimated_vs_true_frequency_pool.png")
+```
+
 
 ## Plot estimated allele frequency vs. true allele frequency in bins (this includes the false positives but not the false negatives)
 
-```{r eval=T, warning=F, message=F, fig.height=12, fig.width=15}
-plot_frequency_in_bins(joined_frequency_final, joined_summary)
+```{r eval=F, warning=F, message=F, fig.height=12, fig.width=15}
+estimated_vs_true_frequency_pool_bin <- plot_frequency_in_bins(joined_frequency_final, joined_summary)
+ggsave("../figures/neutral_estimated_vs_true_frequency_pool_bin.png", estimated_vs_true_frequency_pool_bin, height = 12, width=15, units = "in")
+```
+
+```{r}
+include_graphics("../figures/neutral_estimated_vs_true_frequency_pool_bin.png")
 ```
 
 ## Plot absolute values of error vs. true allele frequency in bins (this includes the false positives but not the false negatives)
 
-```{r eval=T, warning=F, message=F, fig.height=12, fig.width=15}
-plot_error_in_bins(joined_frequency_final, joined_summary)
+```{r eval=F, warning=F, message=F, fig.height=12, fig.width=15}
+error_vs_true_frequency_pool_bin <- plot_error_in_bins(joined_frequency_final, joined_summary)
+ggsave("../figures/neutral_error_vs_true_frequency_pool_bin.png", error_vs_true_frequency_pool_bin, height = 12, width=15, units = "in")
 ```
+
+```{r}
+include_graphics("../figures/neutral_error_vs_true_frequency_pool_bin.png")
+```
+

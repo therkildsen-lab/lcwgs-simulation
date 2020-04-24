@@ -282,38 +282,43 @@ Plot estimated allele frequency vs. true allele frequency (this includes the fal
 -------------------------------------------------------------------------------------------------------------------------
 
 ``` r
-plot_frequency(joined_frequency_final, joined_summary)
+estimated_vs_true_frequency <- plot_frequency(joined_frequency_final, joined_summary)
+ggsave("../figures/neutral_estimated_vs_true_frequency.png", estimated_vs_true_frequency, height = 12, width=15, units = "in")
 ```
-
-![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-11-1.png)
-
-At low coverage and low sample size, the noise in estimation is quite high. This is because of a non-existent nInd filter and a low minDepth filter. Removing these sites will remove some of these noises but will further reduce the amount of data.
 
 ``` r
-joined_frequency_final_nInd_4 <- filter(joined_frequency_final, nInd>=4)
-joined_summary_nInd_4 <- summarise_by_design(joined_frequency_final)
-plot_frequency(joined_frequency_final_nInd_4, joined_summary_nInd_4)
+include_graphics("../figures/neutral_estimated_vs_true_frequency.png")
 ```
 
-![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-12-1.png)
+<img src="../figures/neutral_estimated_vs_true_frequency.png" width="4500" />
 
 Plot estimated allele frequency vs. true allele frequency in bins (this includes the false positives but not the false negatives)
 ---------------------------------------------------------------------------------------------------------------------------------
 
 ``` r
-plot_frequency_in_bins(joined_frequency_final, joined_summary)
+estimated_vs_true_frequency_bin <- plot_frequency_in_bins(joined_frequency_final, joined_summary)
+ggsave("../figures/neutral_estimated_vs_true_frequency_bin.png", estimated_vs_true_frequency_bin, height = 12, width=15, units = "in")
 ```
 
-![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-13-1.png)
+``` r
+include_graphics("../figures/neutral_estimated_vs_true_frequency_bin.png")
+```
+
+<img src="../figures/neutral_estimated_vs_true_frequency_bin.png" width="4500" />
 
 Plot error vs. true allele frequency in bins
 --------------------------------------------
 
 ``` r
-plot_error_in_bins(joined_frequency_final, joined_summary)
+error_vs_true_frequency_bin <- plot_error_in_bins(joined_frequency_final, joined_summary)
+ggsave("../figures/neutral_error_vs_true_frequency_bin.png", error_vs_true_frequency_bin, height = 12, width=15, units = "in")
 ```
 
-![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-14-1.png)
+``` r
+include_graphics("../figures/neutral_error_vs_true_frequency_bin.png")
+```
+
+<img src="../figures/neutral_error_vs_true_frequency_bin.png" width="4500" />
 
 Check the SNPs with highest error
 ---------------------------------
@@ -328,26 +333,26 @@ filter(joined_frequency_final, coverage==8, sample_size==160) %>%
     ## # A tibble: 20 x 13
     ##    type  position frequency base  major minor anc   estimated_frequ…  nInd
     ##    <chr>    <dbl>     <dbl> <chr> <chr> <chr> <chr>            <dbl> <dbl>
-    ##  1 m1    24757910     0.526 C     A     C     A                0.633   159
-    ##  2 m1    24762719     0.526 A     C     A     C                0.633   160
-    ##  3 m1    24762731     0.526 G     A     G     A                0.631   160
-    ##  4 m1    24760780     0.474 G     C     G     C                0.371   160
-    ##  5 m1    24758068     0.526 T     G     T     G                0.628   160
-    ##  6 m1    24761596     0.526 T     G     T     G                0.628   160
-    ##  7 m1    24757978     0.526 T     C     T     C                0.627   160
-    ##  8 m1    24761154     0.526 G     T     G     T                0.627   160
-    ##  9 m1    24761026     0.526 T     C     T     C                0.627   160
-    ## 10 m1    24761017     0.474 G     C     G     C                0.374   160
-    ## 11 m1    24762576     0.474 T     C     T     C                0.374   160
-    ## 12 m1    24762888     0.474 A     T     A     T                0.375   160
-    ## 13 m1    24761046     0.474 C     T     C     T                0.375   160
-    ## 14 m1    24762008     0.474 C     A     C     A                0.375   160
-    ## 15 m1    24762957     0.526 T     C     T     C                0.624   160
-    ## 16 m1    24763170     0.522 T     A     T     A                0.619   160
-    ## 17 m1    24756684     0.474 A     C     A     C                0.377   159
-    ## 18 m1    24763352     0.478 C     A     C     A                0.381   160
-    ## 19 m1    24760349     0.526 C     T     C     T                0.623   160
-    ## 20 m1    24761076     0.526 C     T     C     T                0.623   160
+    ##  1 m1    23704228     0.683 C     G     C     G                0.567   160
+    ##  2 m1    28110618     0.36  T     G     T     G                0.470   160
+    ##  3 m1    28604410     0.469 T     G     T     G                0.366   160
+    ##  4 m1    19794246     0.567 A     G     A     G                0.669   160
+    ##  5 m1    19462710     0.496 G     T     G     T                0.395   160
+    ##  6 m1    23705057     0.464 T     G     T     G                0.364   160
+    ##  7 m1    23705146     0.458 C     T     C     T                0.358   160
+    ##  8 m1    19794252     0.414 C     T     C     T                0.316   160
+    ##  9 m1           6     0.674 T     C     T     C                0.773    22
+    ## 10 m1    28110381     0.359 C     T     C     T                0.458   160
+    ## 11 m1    19794182     0.584 C     A     C     A                0.681   160
+    ## 12 m1    23543799     0.352 C     A     C     A                0.256   160
+    ## 13 m1      824660     0.337 C     T     C     T                0.433   160
+    ## 14 m1    27387986     0.487 T     A     T     A                0.583   160
+    ## 15 m1    18417553     0.523 A     C     A     C                0.427   160
+    ## 16 m1    11118911     0.527 G     T     G     T                0.431   160
+    ## 17 m1    24595214     0.376 G     C     G     C                0.280   160
+    ## 18 m1    24354179     0.494 T     C     T     C                0.589   160
+    ## 19 m1    24595222     0.379 G     T     G     T                0.285   160
+    ## 20 m1    23775604     0.387 T     G     T     G                0.481   160
     ## # … with 4 more variables: coverage <dbl>, sample_size <dbl>,
     ## #   frequency_bin <fct>, error <dbl>
 
@@ -363,7 +368,7 @@ ggplot(false_negatives_final, aes(x=frequency)) +
   theme_cowplot()
 ```
 
-![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-16-1.png)
+![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-18-1.png)
 
 Esimated frequency distribution of false positives
 --------------------------------------------------
@@ -377,7 +382,7 @@ ggplot(false_positives_final, aes(x=estimated_frequency)) +
   theme_cowplot()
 ```
 
-![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-17-1.png)
+![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-19-1.png)
 
 Read windowed thetas estimated by `realSFS`
 -------------------------------------------
@@ -420,7 +425,7 @@ tibble(real_theta_t=round(real_theta_t, 5), real_theta_w=round(real_theta_w, 5))
 
 |  real\_theta\_t|  real\_theta\_w|
 |---------------:|---------------:|
-|         0.00241|         0.00264|
+|         0.00394|         0.00433|
 
 thetas estimated from the estimated allele frequencies (not from `realSFS`)
 ---------------------------------------------------------------------------
@@ -437,12 +442,12 @@ group_by(joined_frequency_final, coverage, sample_size) %>%
 
 |  coverage|        5|       10|       20|       40|       80|      160|
 |---------:|--------:|--------:|--------:|--------:|--------:|--------:|
-|      0.25|  0.00008|  0.00034|  0.00093|  0.00152|  0.00185|  0.00210|
-|      0.50|  0.00033|  0.00091|  0.00151|  0.00186|  0.00210|  0.00224|
-|      1.00|  0.00088|  0.00148|  0.00185|  0.00210|  0.00224|  0.00230|
-|      2.00|  0.00143|  0.00183|  0.00209|  0.00223|  0.00230|  0.00234|
-|      4.00|  0.00179|  0.00207|  0.00223|  0.00231|  0.00234|  0.00236|
-|      8.00|  0.00201|  0.00220|  0.00230|  0.00235|  0.00237|  0.00237|
+|      0.25|  0.00013|  0.00055|  0.00149|  0.00245|  0.00301|  0.00343|
+|      0.50|  0.00055|  0.00148|  0.00243|  0.00301|  0.00343|  0.00366|
+|      1.00|  0.00146|  0.00242|  0.00301|  0.00342|  0.00365|  0.00377|
+|      2.00|  0.00239|  0.00301|  0.00341|  0.00365|  0.00376|  0.00382|
+|      4.00|  0.00299|  0.00341|  0.00364|  0.00377|  0.00382|  0.00385|
+|      8.00|  0.00335|  0.00363|  0.00376|  0.00383|  0.00386|  0.00387|
 
 Watterson's estimator
 
@@ -455,12 +460,12 @@ group_by(joined_frequency_final, coverage, sample_size) %>%
 
 |  coverage|        5|       10|       20|       40|       80|      160|
 |---------:|--------:|--------:|--------:|--------:|--------:|--------:|
-|      0.25|  0.00008|  0.00027|  0.00061|  0.00088|  0.00101|  0.00115|
-|      0.50|  0.00035|  0.00074|  0.00105|  0.00119|  0.00131|  0.00141|
-|      1.00|  0.00097|  0.00129|  0.00143|  0.00154|  0.00162|  0.00166|
-|      2.00|  0.00170|  0.00178|  0.00185|  0.00190|  0.00193|  0.00195|
-|      4.00|  0.00236|  0.00228|  0.00230|  0.00228|  0.00226|  0.00226|
-|      8.00|  0.00291|  0.00273|  0.00269|  0.00262|  0.00256|  0.00254|
+|      0.25|  0.00014|  0.00044|  0.00098|  0.00143|  0.00166|  0.00190|
+|      0.50|  0.00058|  0.00122|  0.00171|  0.00194|  0.00218|  0.00235|
+|      1.00|  0.00162|  0.00213|  0.00235|  0.00254|  0.00269|  0.00277|
+|      2.00|  0.00284|  0.00296|  0.00306|  0.00315|  0.00320|  0.00323|
+|      4.00|  0.00393|  0.00383|  0.00378|  0.00376|  0.00374|  0.00372|
+|      8.00|  0.00483|  0.00454|  0.00439|  0.00429|  0.00422|  0.00415|
 
 thetas estimated from `realSFS`
 -------------------------------
@@ -475,12 +480,12 @@ select(average_thetas_final, theta_t, coverage, sample_size) %>%
 
 |  coverage|          5|         10|         20|         40|         80|        160|
 |---------:|----------:|----------:|----------:|----------:|----------:|----------:|
-|      0.25|  0.0015662|  0.0016898|  0.0018505|  0.0020342|  0.0021798|  0.0022721|
-|      0.50|  0.0016706|  0.0018448|  0.0020416|  0.0021909|  0.0022782|  0.0023243|
-|      1.00|  0.0018609|  0.0020519|  0.0022033|  0.0022887|  0.0023335|  0.0023569|
-|      2.00|  0.0020727|  0.0022106|  0.0023012|  0.0023450|  0.0023670|  0.0023782|
-|      4.00|  0.0022303|  0.0023078|  0.0023607|  0.0023799|  0.0023877|  0.0023889|
-|      8.00|  0.0023189|  0.0023593|  0.0023952|  0.0024009|  0.0023990|  0.0023960|
+|      0.25|  0.0030088|  0.0031173|  0.0032274|  0.0034026|  0.0035929|  0.0037340|
+|      0.50|  0.0031236|  0.0032582|  0.0034238|  0.0036063|  0.0037399|  0.0038178|
+|      1.00|  0.0032917|  0.0034688|  0.0036279|  0.0037529|  0.0038254|  0.0038660|
+|      2.00|  0.0035273|  0.0036772|  0.0037772|  0.0038415|  0.0038763|  0.0038965|
+|      4.00|  0.0037369|  0.0038194|  0.0038671|  0.0038948|  0.0039081|  0.0039119|
+|      8.00|  0.0038659|  0.0039005|  0.0039167|  0.0039249|  0.0039249|  0.0039203|
 
 Watterson's estimator
 
@@ -492,12 +497,12 @@ select(average_thetas_final, theta_w, coverage, sample_size) %>%
 
 |  coverage|          5|         10|         20|         40|         80|        160|
 |---------:|----------:|----------:|----------:|----------:|----------:|----------:|
-|      0.25|  0.0012116|  0.0012162|  0.0010533|  0.0011123|  0.0011836|  0.0012411|
-|      0.50|  0.0012829|  0.0012259|  0.0012706|  0.0013467|  0.0014101|  0.0014541|
-|      1.00|  0.0014777|  0.0015099|  0.0015911|  0.0016441|  0.0016801|  0.0017079|
-|      2.00|  0.0018566|  0.0018917|  0.0019652|  0.0019831|  0.0019938|  0.0019732|
-|      4.00|  0.0021340|  0.0021587|  0.0022277|  0.0022230|  0.0022177|  0.0022236|
-|      8.00|  0.0022951|  0.0023055|  0.0023670|  0.0023521|  0.0023417|  0.0023431|
+|      0.25|  0.0022136|  0.0026979|  0.0020827|  0.0019467|  0.0020228|  0.0021034|
+|      0.50|  0.0024797|  0.0023719|  0.0022627|  0.0022889|  0.0023783|  0.0024655|
+|      1.00|  0.0027266|  0.0027040|  0.0026855|  0.0027496|  0.0028259|  0.0028785|
+|      2.00|  0.0032023|  0.0032218|  0.0032648|  0.0033000|  0.0033316|  0.0033438|
+|      4.00|  0.0035851|  0.0036249|  0.0036617|  0.0036731|  0.0036847|  0.0036793|
+|      8.00|  0.0038146|  0.0038444|  0.0038651|  0.0038656|  0.0038690|  0.0038578|
 
 Plot Watterson's estimator and Tajima's estimator of theta and Tajima's D in 10,000bp fixed windows
 ---------------------------------------------------------------------------------------------------
@@ -511,7 +516,7 @@ filter(thetas_final, summary_stats !="tajima_d") %>%
   theme_cowplot()
 ```
 
-![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-24-1.png)
+![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-26-1.png)
 
 ``` r
 filter(thetas_final, summary_stats =="tajima_d") %>%
@@ -523,7 +528,7 @@ filter(thetas_final, summary_stats =="tajima_d") %>%
   theme_cowplot()
 ```
 
-![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-24-2.png)
+![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-26-2.png)
 
 I will annonate each figure with the chromosome average statistics later on.
 
@@ -577,25 +582,40 @@ Plot estimated allele frequency vs. true allele frequency (this includes the fal
 -------------------------------------------------------------------------------------------------------------------------
 
 ``` r
-plot_frequency(joined_frequency_final, joined_summary)
+estimated_vs_true_frequency_pool <- plot_frequency(joined_frequency_final, joined_summary)
+ggsave("../figures/neutral_estimated_vs_true_frequency_pool.png", estimated_vs_true_frequency_pool, height = 12, width=15, units = "in")
 ```
 
-![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-27-1.png)
+``` r
+include_graphics("../figures/neutral_estimated_vs_true_frequency_pool.png")
+```
+
+<img src="../figures/neutral_estimated_vs_true_frequency_pool.png" width="4500" />
 
 Plot estimated allele frequency vs. true allele frequency in bins (this includes the false positives but not the false negatives)
 ---------------------------------------------------------------------------------------------------------------------------------
 
 ``` r
-plot_frequency_in_bins(joined_frequency_final, joined_summary)
+estimated_vs_true_frequency_pool_bin <- plot_frequency_in_bins(joined_frequency_final, joined_summary)
+ggsave("../figures/neutral_estimated_vs_true_frequency_pool_bin.png", estimated_vs_true_frequency_pool_bin, height = 12, width=15, units = "in")
 ```
 
-![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-28-1.png)
+``` r
+include_graphics("../figures/neutral_estimated_vs_true_frequency_pool_bin.png")
+```
+
+<img src="../figures/neutral_estimated_vs_true_frequency_pool_bin.png" width="4500" />
 
 Plot absolute values of error vs. true allele frequency in bins (this includes the false positives but not the false negatives)
 -------------------------------------------------------------------------------------------------------------------------------
 
 ``` r
-plot_error_in_bins(joined_frequency_final, joined_summary)
+error_vs_true_frequency_pool_bin <- plot_error_in_bins(joined_frequency_final, joined_summary)
+ggsave("../figures/neutral_error_vs_true_frequency_pool_bin.png", error_vs_true_frequency_pool_bin, height = 12, width=15, units = "in")
 ```
 
-![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-29-1.png)
+``` r
+include_graphics("../figures/neutral_error_vs_true_frequency_pool_bin.png")
+```
+
+<img src="../figures/neutral_error_vs_true_frequency_pool_bin.png" width="4500" />
