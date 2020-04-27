@@ -2,7 +2,7 @@
 REP_ID=$1
 OUT_DIR_BASE=$2
 OUT_DIR=$OUT_DIR_BASE'rep_'$REP_ID'/'
-N_CORE_MAX=9
+N_CORE_MAX=18
 ## Generate sam files
 COUNT=0
 for i in {1..80}; do
