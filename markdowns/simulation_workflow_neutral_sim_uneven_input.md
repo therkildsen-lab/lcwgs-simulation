@@ -8,7 +8,7 @@ Simulation workflow for neutral simulation with uneven input across individuals
         -   [silverside](#silverside)
     -   [Get a matrix of ways to subsample](#get-a-matrix-of-ways-to-subsample)
     -   [Merge, sort, and subsample bam files](#merge-sort-and-subsample-bam-files)
-    -   [Run the shell script for merging, sorting, and subsampling](#run-the-shell-script-for-merging-sorting-and-subsampling)
+    -   [Run the shell script for subsampling](#run-the-shell-script-for-subsampling)
     -   [Make bam lists](#make-bam-lists)
     -   [Copy ancestral fasta file from `neutral_sim`](#copy-ancestral-fasta-file-from-neutral_sim)
     -   [Get shell script for SNP calling](#get-shell-script-for-snp-calling)
@@ -19,6 +19,7 @@ library(tidyverse)
 library(cowplot)
 library(readxl)
 library(truncnorm)
+normalize <- function(x) {x / mean(x)}
 ```
 
 Neutral simulation with uneven input across individuals
@@ -55,6 +56,11 @@ ggplot(read_count, aes(x=raw_bases)) +
 
 ![](simulation_workflow_neutral_sim_uneven_input_files/figure-markdown_github/unnamed-chunk-2-1.png)
 
+``` r
+set.seed(42)
+cod_scaled_contribution <- sample(read_count$raw_bases, 198) %>% normalize()
+```
+
 ### smallmouth bass
 
 ``` r
@@ -79,6 +85,10 @@ ggplot(read_count, aes(x=raw_bases)) +
 ```
 
 ![](simulation_workflow_neutral_sim_uneven_input_files/figure-markdown_github/unnamed-chunk-3-1.png)
+
+``` r
+bass_scaled_contribution <- normalize(read_count$raw_bases)
+```
 
 ### silverside
 
@@ -109,23 +119,41 @@ ggplot(read_count, aes(x=RawBases)) +
 
 ![](simulation_workflow_neutral_sim_uneven_input_files/figure-markdown_github/unnamed-chunk-4-1.png)
 
+``` r
+set.seed(42)
+silverside_scaled_contribution <- sample(read_count$RawBases, 198) %>% normalize()
+```
+
 Get a matrix of ways to subsample
 ---------------------------------
 
-It seems that in the best case scenario, the distribution of raw sequencing output follows a normal distribution with a standard deviation ~40% of its mean.
-
-We will therefore use a truncated normal distribution with mean of 1, standard deviation of 0.4, and a fixed sum, to generate the coverage of each individual.
+We will subsample the normalized contribution from cod and silverside project to down to 198 samples per project, merge these normalized contributions from three projects together, and further subsample from these to determine our simulated depth across individuals.
 
 ``` r
-## define the funciton to generate truncated normal distribution with fixed sum
-rtruncnorm_fixed_sum <- function(n, a, b, mean, sd) {
-  vec <- rtruncnorm(n, a, b, mean, sd)
+## the distribution to subsample from
+scaled_contribution <- c(bass_scaled_contribution, cod_scaled_contribution, silverside_scaled_contribution)
+ggplot(as_tibble(scaled_contribution), aes(value)) +
+  geom_histogram(bins = 50)
+```
+
+![](simulation_workflow_neutral_sim_uneven_input_files/figure-markdown_github/unnamed-chunk-5-1.png)
+
+``` r
+sd(scaled_contribution)/mean(scaled_contribution)
+```
+
+    ## [1] 0.5850283
+
+``` r
+## define the funciton to subsample from scaled_contribution with fixed sum
+subsample_fixed_sum <- function(n, mean) {
+  vec <- sample(scaled_contribution, n)
   vec/sum(vec)*mean*n
 }
 ## generate individual coverages and write these in tsv format
 for (sample_size in c(5, 10, 20, 40, 80, 160)) {
   set.seed(1)
-  coverage <- rtruncnorm_fixed_sum(sample_size, 0, 2, 1, 0.4)
+  coverage <- subsample_fixed_sum(sample_size, 1)
   coverage_matrix <- tibble(coverage_0.25=coverage/4, coverage_0.5=coverage/2, coverage_1=coverage, coverage_2=coverage*2, coverage_4=coverage*4, coverage_8=coverage*8)
   write_tsv(coverage_matrix, paste0("../neutral_sim_uneven_input/rep_1/misc/coverage_matrix_", sample_size, ".tsv"), col_names = F)
 }
@@ -166,8 +194,8 @@ done"
 write_lines(shell_script, "../shell_scripts/subsample_neutral_sim_uneven_input.sh")
 ```
 
-Run the shell script for merging, sorting, and subsampling
-----------------------------------------------------------
+Run the shell script for subsampling
+------------------------------------
 
 ``` bash
 for k in 1; do
@@ -240,4 +268,4 @@ nohup bash /workdir/lcwgs-simulation/shell_scripts/snp_calling_neutral_sim.sh \
 > '/workdir/lcwgs-simulation/nohups/snp_calling_neutral_sim_uneven_input_1.nohup' &
 ```
 
-It turns out that popoolation2 only does simple allele count to estimate allele frequency, so we will not use it for the simulation of pool-seq and wills simply use the allele counts outputted by ANGSD.
+It turns out that popoolation2 only does simple allele count to estimate allele frequency, so we will not use it for the simulation of pool-seq and will simply use the allele counts outputted by ANGSD.
