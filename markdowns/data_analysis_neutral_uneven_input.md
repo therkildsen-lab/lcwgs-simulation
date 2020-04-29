@@ -221,28 +221,43 @@ Plot estimated allele frequency vs. true allele frequency (this includes the fal
 -------------------------------------------------------------------------------------------------------------------------
 
 ``` r
-plot_frequency(joined_frequency_final, joined_summary)
+estimated_vs_true_frequency <- plot_frequency(joined_frequency_final, joined_summary)
+ggsave("../figures/neutral_uneven_input_estimated_vs_true_frequency.png", estimated_vs_true_frequency, height = 12, width=15, units = "in")
 ```
 
-![](data_analysis_neutral_uneven_input_files/figure-markdown_github/unnamed-chunk-9-1.png)
+``` r
+include_graphics("../figures/neutral_uneven_input_estimated_vs_true_frequency.png")
+```
+
+<img src="../figures/neutral_uneven_input_estimated_vs_true_frequency.png" width="4500" />
 
 Plot estimated allele frequency vs. true allele frequency in bins (this includes the false positives but not the false negatives)
 ---------------------------------------------------------------------------------------------------------------------------------
 
 ``` r
-plot_frequency_in_bins(joined_frequency_final, joined_summary)
+estimated_vs_true_frequency_bin <- plot_frequency_in_bins(joined_frequency_final, joined_summary)
+ggsave("../figures/neutral_uneven_input_estimated_vs_true_frequency_bin.png", estimated_vs_true_frequency_bin, height = 12, width=15, units = "in")
 ```
 
-![](data_analysis_neutral_uneven_input_files/figure-markdown_github/unnamed-chunk-10-1.png)
+``` r
+include_graphics("../figures/neutral_uneven_input_estimated_vs_true_frequency_bin.png")
+```
+
+<img src="../figures/neutral_uneven_input_estimated_vs_true_frequency_bin.png" width="4500" />
 
 Plot error vs. true allele frequency in bins
 --------------------------------------------
 
 ``` r
-plot_error_in_bins(joined_frequency_final, joined_summary)
+error_vs_true_frequency_bin <- plot_error_in_bins(joined_frequency_final, joined_summary)
+ggsave("../figures/neutral_uneven_input_error_vs_true_frequency_bin.png", error_vs_true_frequency_bin, height = 12, width=15, units = "in")
 ```
 
-![](data_analysis_neutral_uneven_input_files/figure-markdown_github/unnamed-chunk-11-1.png)
+``` r
+include_graphics("../figures/neutral_uneven_input_error_vs_true_frequency_bin.png")
+```
+
+<img src="../figures/neutral_uneven_input_error_vs_true_frequency_bin.png" width="4500" />
 
 Check the SNPs with highest error
 ---------------------------------
@@ -257,26 +272,26 @@ filter(joined_frequency_final, coverage==8, sample_size==160) %>%
     ## # A tibble: 20 x 13
     ##    type  position frequency base  major minor anc   estimated_frequ…  nInd
     ##    <chr>    <dbl>     <dbl> <chr> <chr> <chr> <chr>            <dbl> <dbl>
-    ##  1 m1    24762719     0.526 A     C     A     C                0.635   159
-    ##  2 m1    24762731     0.526 G     A     G     A                0.635   159
-    ##  3 m1    24786360     0.486 G     T     G     T                0.382   159
-    ##  4 m1    24762008     0.474 C     A     C     A                0.372   156
-    ##  5 m1    24754959     0.498 T     C     T     C                0.398   159
-    ##  6 m1    24762670     0.474 G     C     G     C                0.374   159
-    ##  7 m1    24758467     0.474 A     C     A     C                0.375   158
-    ##  8 m1    24760780     0.474 G     C     G     C                0.375   158
-    ##  9 m1    24758068     0.526 T     G     T     G                0.625   160
-    ## 10 m1    24762438     0.526 T     C     T     C                0.624   159
-    ## 11 m1    24736557     0.436 C     A     C     A                0.534   159
-    ## 12 m1    24754911     0.498 T     G     T     G                0.402   159
-    ## 13 m1    24755378     0.474 T     G     T     G                0.377   160
-    ## 14 m1    24757910     0.526 C     A     C     A                0.622   157
-    ## 15 m1    24758814     0.526 A     C     A     C                0.622   159
-    ## 16 m1    24775355     0.486 A     G     A     G                0.391   158
-    ## 17 m1    24774805     0.486 A     G     A     G                0.391   158
-    ## 18 m1    24760729     0.526 G     A     G     A                0.621   159
-    ## 19 m1    24761154     0.526 G     T     G     T                0.621   156
-    ## 20 m1    24773300     0.486 G     T     G     T                0.392   159
+    ##  1 m1    23704228     0.683 C     G     C     G                0.560   157
+    ##  2 m1    24354179     0.494 T     C     T     C                0.610   155
+    ##  3 m1    28110618     0.36  T     G     T     G                0.467   156
+    ##  4 m1     9314108     0.608 T     G     T     G                0.714   157
+    ##  5 m1    24595214     0.376 G     C     G     C                0.271   160
+    ##  6 m1    19794246     0.567 A     G     A     G                0.671   156
+    ##  7 m1    29611160     0.384 A     T     A     T                0.488   155
+    ##  8 m1    24353696     0.561 T     G     T     G                0.665   154
+    ##  9 m1           6     0.674 T     C     T     C                0.778    27
+    ## 10 m1    23543799     0.352 C     A     C     A                0.249   156
+    ## 11 m1    13085188     0.434 C     T     C     T                0.536   156
+    ## 12 m1    23705057     0.464 T     G     T     G                0.361   157
+    ## 13 m1    26068129     0.651 G     A     G     A                0.549   154
+    ## 14 m1     8721212     0.672 A     C     A     C                0.773   157
+    ## 15 m1     1442975     0.548 C     T     C     T                0.649   159
+    ## 16 m1     1572463     0.424 G     A     G     A                0.524   157
+    ## 17 m1    15849236     0.654 G     A     G     A                0.554   159
+    ## 18 m1    15849280     0.346 G     T     G     T                0.446   157
+    ## 19 m1    24595222     0.379 G     T     G     T                0.281   160
+    ## 20 m1    19814972     0.572 A     G     A     G                0.474   156
     ## # … with 4 more variables: coverage <dbl>, sample_size <dbl>,
     ## #   frequency_bin <fct>, error <dbl>
 
@@ -292,7 +307,7 @@ ggplot(false_negatives_final, aes(x=frequency)) +
   theme_cowplot()
 ```
 
-![](data_analysis_neutral_uneven_input_files/figure-markdown_github/unnamed-chunk-13-1.png)
+![](data_analysis_neutral_uneven_input_files/figure-markdown_github/unnamed-chunk-16-1.png)
 
 Esimated frequency distribution of false positives
 --------------------------------------------------
@@ -306,7 +321,7 @@ ggplot(false_positives_final, aes(x=estimated_frequency)) +
   theme_cowplot()
 ```
 
-![](data_analysis_neutral_uneven_input_files/figure-markdown_github/unnamed-chunk-14-1.png)
+![](data_analysis_neutral_uneven_input_files/figure-markdown_github/unnamed-chunk-17-1.png)
 
 Compare individual barcoding with Pool-seq
 ==========================================
@@ -354,25 +369,40 @@ Plot estimated allele frequency vs. true allele frequency (this includes the fal
 -------------------------------------------------------------------------------------------------------------------------
 
 ``` r
-plot_frequency(joined_frequency_final, joined_summary)
+estimated_vs_true_frequency_pool <- plot_frequency(joined_frequency_final, joined_summary)
+ggsave("../figures/neutral_uneven_input_estimated_vs_true_frequency_pool.png", estimated_vs_true_frequency_pool, height = 12, width=15, units = "in")
 ```
 
-![](data_analysis_neutral_uneven_input_files/figure-markdown_github/unnamed-chunk-17-1.png)
+``` r
+include_graphics("../figures/neutral_uneven_input_estimated_vs_true_frequency_pool.png")
+```
+
+<img src="../figures/neutral_uneven_input_estimated_vs_true_frequency_pool.png" width="4500" />
 
 Plot estimated allele frequency vs. true allele frequency in bins (this includes the false positives but not the false negatives)
 ---------------------------------------------------------------------------------------------------------------------------------
 
 ``` r
-plot_frequency_in_bins(joined_frequency_final, joined_summary)
+estimated_vs_true_frequency_pool_bin <- plot_frequency_in_bins(joined_frequency_final, joined_summary)
+ggsave("../figures/neutral_uneven_input_estimated_vs_true_frequency_pool_bin.png", estimated_vs_true_frequency_pool_bin, height = 12, width=15, units = "in")
 ```
 
-![](data_analysis_neutral_uneven_input_files/figure-markdown_github/unnamed-chunk-18-1.png)
+``` r
+include_graphics("../figures/neutral_uneven_input_estimated_vs_true_frequency_pool_bin.png")
+```
+
+<img src="../figures/neutral_uneven_input_estimated_vs_true_frequency_pool_bin.png" width="4500" />
 
 Plot absolute values of error vs. true allele frequency in bins (this includes the false positives but not the false negatives)
 -------------------------------------------------------------------------------------------------------------------------------
 
 ``` r
-plot_error_in_bins(joined_frequency_final, joined_summary)
+error_vs_true_frequency_pool_bin <- plot_error_in_bins(joined_frequency_final, joined_summary)
+ggsave("../figures/neutral_uneven_input_error_vs_true_frequency_pool_bin.png", error_vs_true_frequency_pool_bin, height = 12, width=15, units = "in")
 ```
 
-![](data_analysis_neutral_uneven_input_files/figure-markdown_github/unnamed-chunk-19-1.png)
+``` r
+include_graphics("../figures/neutral_uneven_input_error_vs_true_frequency_pool_bin.png")
+```
+
+<img src="../figures/neutral_uneven_input_error_vs_true_frequency_pool_bin.png" width="4500" />
