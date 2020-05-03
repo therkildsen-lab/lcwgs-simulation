@@ -1,9 +1,11 @@
 Simulation workflow for two-population simulation with mutations under selection at fixed positions
 ================
 
--   [Two populations with divergent selection](#two-populations-with-divergent-selection)
-    -   [Create a shell script to run SLiM with nohup](#create-a-shell-script-to-run-slim-with-nohup)
-    -   [Run the shell script for SLiM simulation on server](#run-the-shell-script-for-slim-simulation-on-server)
+-   [Two populations with divergent selection ( Ne~50,000 in each population)](#two-populations-with-divergent-selection-ne50000-in-each-population)
+    -   [Create a shell script to run the burnin step with SLiM](#create-a-shell-script-to-run-the-burnin-step-with-slim)
+    -   [Run the shell script for the burnin step with SLiM](#run-the-shell-script-for-the-burnin-step-with-slim)
+    -   [Create a shell script to run the selection step with SLiM](#create-a-shell-script-to-run-the-selection-step-with-slim)
+    -   [Run the shell script for the selection step with SLiM](#run-the-shell-script-for-the-selection-step-with-slim)
     -   [Create a shell script to run ART with nohup](#create-a-shell-script-to-run-art-with-nohup)
     -   [Run the shell script for ART simulation on server](#run-the-shell-script-for-art-simulation-on-server)
     -   [Merge, sort, and subsample bam files](#merge-sort-and-subsample-bam-files)
@@ -18,9 +20,11 @@ Simulation workflow for two-population simulation with mutations under selection
     -   [Run the shell script for MAF](#run-the-shell-script-for-maf)
     -   [Get Fst between the two populations](#get-fst-between-the-two-populations)
     -   [Run the shell script for Fst](#run-the-shell-script-for-fst)
--   [Two populations with divergent selection, with lower selection](#two-populations-with-divergent-selection-with-lower-selection)
-    -   [Create a shell script to run SLiM with nohup](#create-a-shell-script-to-run-slim-with-nohup-1)
-    -   [Run the shell script for SLiM simulation on server](#run-the-shell-script-for-slim-simulation-on-server-1)
+-   [Two populations with divergent selection, with smaller population size ( Ne~10,000 in each population)](#two-populations-with-divergent-selection-with-smaller-population-size-ne10000-in-each-population)
+    -   [Create a shell script to run the burnin step with SLiM](#create-a-shell-script-to-run-the-burnin-step-with-slim-1)
+    -   [Run the shell script for the burnin step with SLiM](#run-the-shell-script-for-the-burnin-step-with-slim-1)
+    -   [Create a shell script to run the selection step with SLiM](#create-a-shell-script-to-run-the-selection-step-with-slim-1)
+    -   [Run the shell script for the selection step with SLiM](#run-the-shell-script-for-the-selection-step-with-slim-1)
     -   [Run the shell script for ART simulation on server](#run-the-shell-script-for-art-simulation-on-server-1)
     -   [Run the shell script for merging, sorting, and subsampling](#run-the-shell-script-for-merging-sorting-and-subsampling-1)
     -   [Make bam lists](#make-bam-lists-1)
@@ -29,38 +33,16 @@ Simulation workflow for two-population simulation with mutations under selection
     -   [Run the shell script to get SNP lists](#run-the-shell-script-to-get-snp-lists)
     -   [Run the shell script for MAF](#run-the-shell-script-for-maf-1)
     -   [Run the shell script for Fst](#run-the-shell-script-for-fst-1)
--   [Two populations with divergent selection, with lower selection and lower recombination](#two-populations-with-divergent-selection-with-lower-selection-and-lower-recombination)
-    -   [Create a shell script to run SLiM with nohup](#create-a-shell-script-to-run-slim-with-nohup-2)
-    -   [Run the shell script for SLiM simulation on server](#run-the-shell-script-for-slim-simulation-on-server-2)
-    -   [Run the shell script for ART simulation on server](#run-the-shell-script-for-art-simulation-on-server-2)
-    -   [Run the shell script for merging, sorting, and subsampling](#run-the-shell-script-for-merging-sorting-and-subsampling-2)
-    -   [Make bam lists](#make-bam-lists-2)
-    -   [Index the ancestral fasta file](#index-the-ancestral-fasta-file-2)
-    -   [Run the shell script for SNP calling](#run-the-shell-script-for-snp-calling-2)
-    -   [Run the shell script to get SNP lists](#run-the-shell-script-to-get-snp-lists-1)
-    -   [Run the shell script for MAF](#run-the-shell-script-for-maf-2)
-    -   [Run the shell script for Fst](#run-the-shell-script-for-fst-2)
--   [Two populations with divergent selection, with lower selection and lower migration rate](#two-populations-with-divergent-selection-with-lower-selection-and-lower-migration-rate)
-    -   [Create a shell script to run SLiM with nohup](#create-a-shell-script-to-run-slim-with-nohup-3)
-    -   [Run the shell script for SLiM simulation on server](#run-the-shell-script-for-slim-simulation-on-server-3)
-    -   [Run the shell script for ART simulation on server](#run-the-shell-script-for-art-simulation-on-server-3)
-    -   [Run the shell script for merging, sorting, and subsampling](#run-the-shell-script-for-merging-sorting-and-subsampling-3)
-    -   [Make bam lists](#make-bam-lists-3)
-    -   [Index the ancestral fasta file](#index-the-ancestral-fasta-file-3)
-    -   [Run the shell script for SNP calling](#run-the-shell-script-for-snp-calling-3)
-    -   [Run the shell script to get SNP lists](#run-the-shell-script-to-get-snp-lists-2)
-    -   [Run the shell script for MAF](#run-the-shell-script-for-maf-3)
-    -   [Run the shell script for Fst](#run-the-shell-script-for-fst-3)
 
 ``` r
 library(tidyverse)
 ```
 
-Two populations with divergent selection
-========================================
+Two populations with divergent selection ( Ne~50,000 in each population)
+========================================================================
 
-Create a shell script to run SLiM with nohup
---------------------------------------------
+Create a shell script to run the burnin step with SLiM
+------------------------------------------------------
 
 ``` r
 shell_script <- "#!/bin/bash
@@ -79,25 +61,67 @@ fi
 # Run SLiM 
 /workdir/programs/SLiM_build/slim \\
   -d REP_ID=$REP_ID  \\
-  -d MUTATION_RATE=2e-7 \\
-  -d SELECTION_COEFF=0.25 \\
-  -d MIGRATION_RATE=0.05 \\
-  -d REC_RATE=1e-7 \\
+  -d MUTATION_RATE=100e-8 \\
+  -d REC_RATE=250e-8 \\
+  -d MIGRATION_RATE=0.01 \\
   -d CHR_LENGTH=30000000 \\
-  -d POP_SIZE=1000 \\
-  -d SAMPLE_SIZE=1000 \\
-  -d N_M2=6 \\
+  -d POP_SIZE=500 \\
   -d \"OUT_PATH='/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos/'\" \\
-  /workdir/lcwgs-simulation/slim_scripts/two_pop_sim_fixed_m2_pos.slim"
-write_lines(shell_script, "../shell_scripts/two_pop_sim_fixed_m2_pos.sh")
+  /workdir/lcwgs-simulation/slim_scripts/two_pop_sim_burnin.slim"
+write_lines(shell_script, "../shell_scripts/two_pop_sim_fixed_m2_pos_burnin.sh")
 ```
 
-Run the shell script for SLiM simulation on server
+Run the shell script for the burnin step with SLiM
 --------------------------------------------------
 
 ``` bash
 for k in 1; do
-  nohup bash /workdir/lcwgs-simulation/shell_scripts/two_pop_sim_fixed_m2_pos.sh $k > '/workdir/lcwgs-simulation/nohups/two_pop_sim_fixed_m2_pos_'$k'.nohup' &
+  nohup bash /workdir/lcwgs-simulation/shell_scripts/two_pop_sim_fixed_m2_pos_burnin.sh $k > '/workdir/lcwgs-simulation/nohups/two_pop_sim_fixed_m2_pos_burnin_'$k'.nohup' &
+done
+```
+
+Create a shell script to run the selection step with SLiM
+---------------------------------------------------------
+
+``` r
+shell_script <- "#!/bin/bash
+REP_ID=$1
+# Create output directory
+if [ ! -d /workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos/rep_$REP_ID ]; then
+  mkdir /workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos/rep_$REP_ID
+  cd /workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos/rep_$REP_ID
+  mkdir angsd
+  mkdir bam
+  mkdir fasta
+  mkdir fastq
+  mkdir sample_lists
+  mkdir slim
+fi
+# Run SLiM 
+/workdir/programs/SLiM_build/slim \\
+  -d REP_ID=$REP_ID  \\
+  -d MUTATION_RATE=100e-9 \\
+  -d REC_RATE=250e-9 \\
+  -d MIGRATION_RATE=0.001 \\
+  -d CHR_LENGTH=30000000 \\
+  -d POP_SIZE=5000 \\
+  -d SAMPLE_SIZE=1000 \\
+  -d SELECTION_COEFF=0.08 \\
+  -d N_M2=11 \\
+  -d M2_FREQUENCY=1 \\
+  -d \"ANCESTRAL_FASTA='/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos/rep_1/slim/ancestral.fasta'\" \\
+  -d \"BURNIN_FILE='/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos/rep_1/slim/burnin_full_output.txt'\" \\
+  -d \"OUT_PATH='/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos/'\" \\
+  /workdir/lcwgs-simulation/slim_scripts/two_pop_sim_selection.slim"
+write_lines(shell_script, "../shell_scripts/two_pop_sim_fixed_m2_pos_selection.sh")
+```
+
+Run the shell script for the selection step with SLiM
+-----------------------------------------------------
+
+``` bash
+for k in 1; do
+  nohup bash /workdir/lcwgs-simulation/shell_scripts/two_pop_sim_fixed_m2_pos_selection.sh $k > '/workdir/lcwgs-simulation/nohups/two_pop_sim_fixed_m2_pos_selection_'$k'.nohup' &
 done
 ```
 
@@ -478,124 +502,13 @@ nohup bash /workdir/lcwgs-simulation/shell_scripts/get_fst_two_pop_sim_fixed_m2_
 > /workdir/lcwgs-simulation/nohups/get_fst_two_pop_sim_fixed_m2_pos.nohup &
 ```
 
-Two populations with divergent selection, with lower selection
-==============================================================
+Two populations with divergent selection, with smaller population size ( Ne~10,000 in each population)
+======================================================================================================
 
-Create a shell script to run SLiM with nohup
---------------------------------------------
+The same population size is simulated, but I've scaled down mutation rate, recombination rate, migration rate. The selection coefficient is unchanged. (Ignore the directory name. I'm just using it for convenience.)
 
-``` r
-shell_script <- "#!/bin/bash
-REP_ID=$1
-OUT_DIR_BASE=$2
-BASE_DIR=$OUT_DIR_BASE'rep_'$REP_ID'/'
-# Create output directory
-if [ ! -d /workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s/rep_$REP_ID ]; then
-  mkdir /workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s/rep_$REP_ID
-  cd /workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s/rep_$REP_ID
-  mkdir angsd
-  mkdir bam
-  mkdir fasta
-  mkdir fastq
-  mkdir sample_lists
-  mkdir slim
-fi
-# Run SLiM 
-/workdir/programs/SLiM_build/slim \\
-  -d REP_ID=$REP_ID  \\
-  -d MUTATION_RATE=2e-7 \\
-  -d SELECTION_COEFF=0.10 \\
-  -d MIGRATION_RATE=0.05 \\
-  -d REC_RATE=1e-7 \\
-  -d CHR_LENGTH=30000000 \\
-  -d POP_SIZE=1000 \\
-  -d SAMPLE_SIZE=1000 \\
-  -d N_M2=6 \\
-  -d \"OUT_PATH='/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s/'\" \\
-  /workdir/lcwgs-simulation/slim_scripts/two_pop_sim_fixed_m2_pos.slim"
-write_lines(shell_script, "../shell_scripts/two_pop_sim_fixed_m2_pos_lower_s.sh")
-```
-
-Run the shell script for SLiM simulation on server
---------------------------------------------------
-
-``` bash
-for k in 1; do
-  nohup bash /workdir/lcwgs-simulation/shell_scripts/two_pop_sim_fixed_m2_pos_lower_s.sh $k > '/workdir/lcwgs-simulation/nohups/two_pop_sim_fixed_m2_pos_lower_s_'$k'.nohup' &
-done
-```
-
-Run the shell script for ART simulation on server
--------------------------------------------------
-
-``` bash
-for k in 1; do
-  nohup bash /workdir/lcwgs-simulation/shell_scripts/art_two_pop_sim_fixed_m2_pos.sh $k '/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s/' > '/workdir/lcwgs-simulation/nohups/art_two_pop_sim_fixed_m2_pos_lower_s_'$k'.nohup' &
-done
-```
-
-Run the shell script for merging, sorting, and subsampling
-----------------------------------------------------------
-
-``` bash
-for k in 1; do
-  nohup bash /workdir/lcwgs-simulation/shell_scripts/merge_sort_subsample_two_pop_sim_fixed_m2_pos.sh $k '/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s/' > '/workdir/lcwgs-simulation/nohups/merge_sort_subsample_two_pop_sim_fixed_m2_pos_lower_s_'$k'.nohup' &
-done
-```
-
-Make bam lists
---------------
-
-``` r
-make_bam_lists("/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s/rep_1/")
-```
-
-Index the ancestral fasta file
-------------------------------
-
-``` bash
-for REP_ID in 1; do
-  OUT_DIR='/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s/rep_'$REP_ID'/'
-  samtools faidx $OUT_DIR'slim/ancestral.fasta'
-done
-```
-
-Run the shell script for SNP calling
-------------------------------------
-
-``` bash
-nohup bash /workdir/lcwgs-simulation/shell_scripts/snp_calling_two_pop_sim_fixed_m2_pos.sh 1 '/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s/' \
-> /workdir/lcwgs-simulation/nohups/snp_calling_two_pop_sim_fixed_m2_pos_lower_s.nohup &
-```
-
-Run the shell script to get SNP lists
--------------------------------------
-
-``` bash
-bash /workdir/lcwgs-simulation/shell_scripts/get_snp_list_two_pop_sim_fixed_m2_pos.sh 1 '/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s/'
-```
-
-Run the shell script for MAF
-----------------------------
-
-``` bash
-nohup bash /workdir/lcwgs-simulation/shell_scripts/get_maf_two_pop_sim_fixed_m2_pos.sh 1 '/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s/' \
-> /workdir/lcwgs-simulation/nohups/get_maf_two_pop_sim_fixed_m2_pos_lower_s.nohup &
-```
-
-Run the shell script for Fst
-----------------------------
-
-``` bash
-nohup bash /workdir/lcwgs-simulation/shell_scripts/get_fst_two_pop_sim_fixed_m2_pos.sh 1 '/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s/' \
-> /workdir/lcwgs-simulation/nohups/get_fst_two_pop_sim_fixed_m2_pos_lower_s.nohup &
-```
-
-Two populations with divergent selection, with lower selection and lower recombination
-======================================================================================
-
-Create a shell script to run SLiM with nohup
---------------------------------------------
+Create a shell script to run the burnin step with SLiM
+------------------------------------------------------
 
 ``` r
 shell_script <- "#!/bin/bash
@@ -614,25 +527,67 @@ fi
 # Run SLiM 
 /workdir/programs/SLiM_build/slim \\
   -d REP_ID=$REP_ID  \\
-  -d MUTATION_RATE=2e-7 \\
-  -d SELECTION_COEFF=0.10 \\
-  -d MIGRATION_RATE=0.05 \\
-  -d REC_RATE=2e-8 \\
+  -d MUTATION_RATE=200e-9 \\
+  -d REC_RATE=500e-9 \\
+  -d MIGRATION_RATE=0.005 \\
   -d CHR_LENGTH=30000000 \\
-  -d POP_SIZE=1000 \\
-  -d SAMPLE_SIZE=1000 \\
-  -d N_M2=6 \\
+  -d POP_SIZE=500 \\
   -d \"OUT_PATH='/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_r/'\" \\
-  /workdir/lcwgs-simulation/slim_scripts/two_pop_sim_fixed_m2_pos.slim"
-write_lines(shell_script, "../shell_scripts/two_pop_sim_fixed_m2_pos_lower_s_lower_r.sh")
+  /workdir/lcwgs-simulation/slim_scripts/two_pop_sim_burnin.slim"
+write_lines(shell_script, "../shell_scripts/two_pop_sim_fixed_m2_pos_lower_s_lower_r_burnin.sh")
 ```
 
-Run the shell script for SLiM simulation on server
+Run the shell script for the burnin step with SLiM
 --------------------------------------------------
 
 ``` bash
 for k in 1; do
-  nohup bash /workdir/lcwgs-simulation/shell_scripts/two_pop_sim_fixed_m2_pos_lower_s_lower_r.sh $k > '/workdir/lcwgs-simulation/nohups/two_pop_sim_fixed_m2_pos_lower_s_lower_r_'$k'.nohup' &
+  nohup bash /workdir/lcwgs-simulation/shell_scripts/two_pop_sim_fixed_m2_pos_lower_s_lower_r_burnin.sh $k > '/workdir/lcwgs-simulation/nohups/two_pop_sim_fixed_m2_pos_lower_s_lower_r_burnin_'$k'.nohup' &
+done
+```
+
+Create a shell script to run the selection step with SLiM
+---------------------------------------------------------
+
+``` r
+shell_script <- "#!/bin/bash
+REP_ID=$1
+# Create output directory
+if [ ! -d /workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_$REP_ID ]; then
+  mkdir /workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_$REP_ID
+  cd /workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_$REP_ID
+  mkdir angsd
+  mkdir bam
+  mkdir fasta
+  mkdir fastq
+  mkdir sample_lists
+  mkdir slim
+fi
+# Run SLiM 
+/workdir/programs/SLiM_build/slim \\
+  -d REP_ID=$REP_ID  \\
+  -d MUTATION_RATE=200e-10 \\
+  -d REC_RATE=500e-10 \\
+  -d MIGRATION_RATE=0.0005 \\
+  -d CHR_LENGTH=30000000 \\
+  -d POP_SIZE=5000 \\
+  -d SAMPLE_SIZE=1000 \\
+  -d SELECTION_COEFF=0.08 \\
+  -d N_M2=11 \\
+  -d M2_FREQUENCY=1 \\
+  -d \"ANCESTRAL_FASTA='/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/slim/ancestral.fasta'\" \\
+  -d \"BURNIN_FILE='/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/slim/burnin_full_output.txt'\" \\
+  -d \"OUT_PATH='/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_r/'\" \\
+  /workdir/lcwgs-simulation/slim_scripts/two_pop_sim_selection.slim"
+write_lines(shell_script, "../shell_scripts/two_pop_sim_fixed_m2_pos_lower_s_lower_r_selection.sh")
+```
+
+Run the shell script for the selection step with SLiM
+-----------------------------------------------------
+
+``` bash
+for k in 1; do
+  nohup bash /workdir/lcwgs-simulation/shell_scripts/two_pop_sim_fixed_m2_pos_lower_s_lower_r_selection.sh $k > '/workdir/lcwgs-simulation/nohups/two_pop_sim_fixed_m2_pos_lower_s_lower_r_selection_'$k'.nohup' &
 done
 ```
 
@@ -700,115 +655,4 @@ Run the shell script for Fst
 ``` bash
 nohup bash /workdir/lcwgs-simulation/shell_scripts/get_fst_two_pop_sim_fixed_m2_pos.sh 1 '/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_r/' \
 > /workdir/lcwgs-simulation/nohups/get_fst_two_pop_sim_fixed_m2_pos_lower_s_lower_r.nohup &
-```
-
-Two populations with divergent selection, with lower selection and lower migration rate
-=======================================================================================
-
-Create a shell script to run SLiM with nohup
---------------------------------------------
-
-``` r
-shell_script <- "#!/bin/bash
-REP_ID=$1
-# Create output directory
-if [ ! -d /workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_m/rep_$REP_ID ]; then
-  mkdir /workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_m/rep_$REP_ID
-  cd /workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_m/rep_$REP_ID
-  mkdir angsd
-  mkdir bam
-  mkdir fasta
-  mkdir fastq
-  mkdir sample_lists
-  mkdir slim
-fi
-# Run SLiM 
-/workdir/programs/SLiM_build/slim \\
-  -d REP_ID=$REP_ID  \\
-  -d MUTATION_RATE=2e-7 \\
-  -d SELECTION_COEFF=0.05 \\
-  -d MIGRATION_RATE=0.01 \\
-  -d REC_RATE=1e-7 \\
-  -d CHR_LENGTH=30000000 \\
-  -d POP_SIZE=1000 \\
-  -d SAMPLE_SIZE=1000 \\
-  -d N_M2=6 \\
-  -d \"OUT_PATH='/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_m/'\" \\
-  /workdir/lcwgs-simulation/slim_scripts/two_pop_sim_fixed_m2_pos.slim"
-write_lines(shell_script, "../shell_scripts/two_pop_sim_fixed_m2_pos_lower_s_lower_m.sh")
-```
-
-Run the shell script for SLiM simulation on server
---------------------------------------------------
-
-``` bash
-for k in 1; do
-  nohup bash /workdir/lcwgs-simulation/shell_scripts/two_pop_sim_fixed_m2_pos_lower_s_lower_m.sh $k > '/workdir/lcwgs-simulation/nohups/two_pop_sim_fixed_m2_pos_lower_s_lower_m_'$k'.nohup' &
-done
-```
-
-Run the shell script for ART simulation on server
--------------------------------------------------
-
-``` bash
-for k in 1; do
-  nohup bash /workdir/lcwgs-simulation/shell_scripts/art_two_pop_sim_fixed_m2_pos.sh $k '/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_m/' > '/workdir/lcwgs-simulation/nohups/art_two_pop_sim_fixed_m2_pos_lower_s_lower_m_'$k'.nohup' &
-done
-```
-
-Run the shell script for merging, sorting, and subsampling
-----------------------------------------------------------
-
-``` bash
-for k in 1; do
-  nohup bash /workdir/lcwgs-simulation/shell_scripts/merge_sort_subsample_two_pop_sim_fixed_m2_pos.sh $k '/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_m/' > '/workdir/lcwgs-simulation/nohups/merge_sort_subsample_two_pop_sim_fixed_m2_pos_lower_s_lower_m_'$k'.nohup' &
-done
-```
-
-Make bam lists
---------------
-
-``` r
-make_bam_lists("/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_m/rep_1/")
-```
-
-Index the ancestral fasta file
-------------------------------
-
-``` bash
-for REP_ID in 1; do
-  OUT_DIR='/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_m/rep_'$REP_ID'/'
-  samtools faidx $OUT_DIR'slim/ancestral.fasta'
-done
-```
-
-Run the shell script for SNP calling
-------------------------------------
-
-``` bash
-nohup bash /workdir/lcwgs-simulation/shell_scripts/snp_calling_two_pop_sim_fixed_m2_pos.sh 1 '/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_m/' \
-> /workdir/lcwgs-simulation/nohups/snp_calling_two_pop_sim_fixed_m2_pos_lower_s_lower_m.nohup &
-```
-
-Run the shell script to get SNP lists
--------------------------------------
-
-``` bash
-bash /workdir/lcwgs-simulation/shell_scripts/get_snp_list_two_pop_sim_fixed_m2_pos.sh 1 '/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_m/'
-```
-
-Run the shell script for MAF
-----------------------------
-
-``` bash
-nohup bash /workdir/lcwgs-simulation/shell_scripts/get_maf_two_pop_sim_fixed_m2_pos.sh 1 '/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_m/' \
-> /workdir/lcwgs-simulation/nohups/get_maf_two_pop_sim_fixed_m2_pos_lower_s_lower_m.nohup &
-```
-
-Run the shell script for Fst
-----------------------------
-
-``` bash
-nohup bash /workdir/lcwgs-simulation/shell_scripts/get_fst_two_pop_sim_fixed_m2_pos.sh 1 '/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_m/' \
-> /workdir/lcwgs-simulation/nohups/get_fst_two_pop_sim_fixed_m2_pos_lower_s_lower_m.nohup &
 ```

@@ -1,0 +1,27 @@
+// Keywords: nucleotide-based, nucleotide sequence
+
+initialize() {
+	defineConstant("L", CHR_LENGTH);
+	initializeSLiMOptions(nucleotideBased=T);
+	setSeed(REP_ID);
+	initializeAncestralNucleotides(randomNucleotides(L));
+	initializeMutationTypeNuc("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0, mmJukesCantor(MUTATION_RATE/3));
+	initializeGenomicElement(g1, 0, L-1);
+	initializeRecombinationRate(REC_RATE);
+}
+1 {	
+	// Output acestral sequence in fasta format
+	header = ">rep_" + REP_ID;
+	sequence = sim.chromosome.ancestralNucleotides();
+	writeFile(OUT_PATH + "rep_" + REP_ID + "/slim/ancestral.fasta", header, append=F);
+	writeFile(OUT_PATH + "rep_" + REP_ID + "/slim/ancestral.fasta", sequence, append=T);
+	sim.addSubpop("p1", POP_SIZE);
+	sim.addSubpop("p2", POP_SIZE);
+	p1.setMigrationRates(p2, MIGRATION_RATE);
+	p2.setMigrationRates(p1, MIGRATION_RATE);
+}
+5000 late() {
+	// Output population-level allele frequencies
+	sim.outputFull(OUT_PATH + "rep_" + REP_ID + "/slim/burnin_full_output.txt");
+}
