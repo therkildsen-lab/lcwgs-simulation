@@ -362,11 +362,10 @@ include_graphics("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_fst_raw.pn
 ## Compute and plot the estimated windowed Fst (with no minimum individual filter and 1,000bp fixed windows)
 
 ```{r eval=F, warning=F, message=F, fig.height=8, fig.width=15}
-windowed_fst_plot <- fixed_windowed_fst(fst_n_ind_final, 1000) %>%
+windowed_fst_plot <- fixed_windowed_fst(fst_n_ind_final, 5000) %>%
   ggplot(aes(x=position, y=fst)) +
     geom_point(alpha=0.5, size=0.1) +
-    geom_point(data=mutations_final_m2, aes(x=position, y=0.75), color="red", size=0.2, shape=8) +
-    ylim(0, 0.75) +
+    geom_point(data=mutations_final_m2, aes(x=position, y=1.01), color="red", size=0.2, shape=8) +
     facet_grid(coverage~sample_size) +
     theme_cowplot()
 ggsave("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_windowed_fst_raw.png", windowed_fst_plot, height = 8, width=15, units = "in")
@@ -408,7 +407,7 @@ Note: having 25000 150pb RAD tags is sampling ~1/8 of the chromosome.
 mutate(maf_final, coverage="RAD") %>%
   ggplot(aes(x=position, y=fst)) +
     geom_point(alpha=0.5, size=0.2) +
-    geom_point(data=mutations_final_m2, aes(x=position, y=0.75), color="red", size=0.2, shape=8) +
+    geom_point(data=mutations_final_m2, aes(x=position, y=1.01), color="red", size=0.2, shape=8) +
     facet_grid(n_rad_tag~sample_size) +
     theme_cowplot()
 ```
