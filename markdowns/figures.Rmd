@@ -170,7 +170,7 @@ get_ancestral <- function(x){
 get_mutations <- function(x){
   ## Read in the mutation file outputted by SLiM
   mutations <- read_delim(paste0(x, "slim/mutations.txt"), delim = " ", col_names = F, col_types = cols()) %>%
-    transmute(population=X4, type=X6, position=X7+1, base=X13, frequency=X12/2000) %>%
+    transmute(population=X4, type=X6, position=X7+1, base=X13, frequency=X12/1000) %>%
     left_join(ancestral, by="position") %>%
     group_by(population, type, position, ancestral, base) %>%
     summarise(frequency=sum(frequency)) %>%
@@ -260,9 +260,9 @@ count_to_maf <- function(ancestral_allele, totA, totC, totG, totT){
   maf <- minor_allele_count/sum(totA, totC, totG, totT)
   return(maf)
 }
-allele_count_to_fst <- function(x){
+allele_count_to_fst <- function(x, n_rad_tag){
   set.seed(1)
-  rad_intervals <- sample(1:(30000000-150), 250) %>%
+  rad_intervals <- sample(1:(30000000-150), n_rad_tag) %>%
     tibble(start=., stop=.+150) %>%
     arrange(by=start)
   i <- 1
@@ -298,8 +298,8 @@ allele_count_to_fst <- function(x){
 #### Read in files from SLiM simulation
 
 ```{r eval=F}
-ancestral <- get_ancestral("../two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/")
-mutations_final <- get_mutations("../two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/")
+ancestral <- get_ancestral("../two_pop_sim_fixed_m2_pos/rep_1/")
+mutations_final <- get_mutations("../two_pop_sim_fixed_m2_pos/rep_1/")
 mutations_final_m1 <- filter(mutations_final, type=="m1")
 mutations_final_m2 <- filter(mutations_final, type=="m2")
 ```
@@ -307,20 +307,21 @@ mutations_final_m2 <- filter(mutations_final, type=="m2")
 #### Read in files for LC-WGS
 
 ```{r eval=F}
-fst_n_ind_final <- get_estimated_fst("../two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/")
+fst_n_ind_final <- get_estimated_fst("../two_pop_sim_fixed_m2_pos/rep_1/")
 fst_plot <- filter(fst_n_ind_final, coverage < 4, sample_size > 5, sample_size < 160) %>%
   fixed_windowed_fst(1000) %>%
   ggplot(aes(x=position/10^6, y=fst)) +
   geom_point(alpha=0.8, size=0.15) +
   geom_point(data=mutations_final_m2, aes(x=position/10^6, y=0.75), color="red", size=2, shape=16) +
   ylim(NA, 0.75) +
-  labs(y = expression(F[ST])) + 
+  labs(x = "position (in Mbp)", y = expression(F[ST])) + 
   facet_grid(coverage~sample_size) +
   theme_cowplot() +
-  theme(text = element_text(size=20),
-        axis.title.x = element_blank(),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank())
+  theme(text = element_text(size=20)
+        #, axis.title.x = element_blank(),
+        #axis.text.x = element_blank(),
+        #axis.ticks.x = element_blank()
+        )
 
 fst_plot_grob <- ggplotGrob(fst_plot)
 
@@ -335,29 +336,52 @@ fst_plot_new <- gtable_add_cols(fst_plot_grob, unit(fst_plot_grob$widths[[12]], 
                      7, 5, 7, 11, name = paste(runif(2))) %>%
   gtable_add_rows(unit(1/8, "line"), 7)
 
-ggsave("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_fixed_windowed_fst.png", fst_plot_new, width = 15, height = 7, units = "in", pointsize = 20)
+ggsave("../figures/two_pop_sim_fixed_m2_pos_windowed_fst.png", fst_plot_new, width = 15, height = 7, units = "in", pointsize = 20)
 ```
 
 ```{r eval=T, warning=F, message=F}
-include_graphics("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_fixed_windowed_fst.png")
+include_graphics("../figures/two_pop_sim_fixed_m2_pos_windowed_fst.png")
 ```
 
-#### Read in files for pooled seq
+#### Read in files for RAD seq
 
 ```{r eval=F}
-maf_final <- allele_count_to_fst("../two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/")
-fst_plot_poolseq <-mutate(maf_final, coverage="RAD") %>%
-  filter(sample_size > 5, sample_size < 160) %>%
+i <- 1
+for (n in c(1,2,4,8,16,32)*120){
+  maf <- allele_count_to_fst("../two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/", n_rad_tag = n) %>%
+  mutate(n_rad_tag = n)
+  if (i == 1){
+    maf_final <- maf
+  } else {
+    maf_final <- bind_rows(maf_final, maf)
+  }
+  i <- i + 1
+}
+fst_plot_radseq <- maf_final %>%
+  filter(sample_size > 5, sample_size < 160, n_rad_tag < 1000) %>%
+  mutate(n_rad_tag = n_rad_tag/30) %>%
   ggplot(aes(x=position/10^6, y=fst)) +
   geom_point(alpha=0.8, size=1) +
   geom_point(data=mutations_final_m2, aes(x=position/10^6, y=0.75), color="red", size=2, shape=16) +
-  facet_grid(coverage~sample_size) +
+  facet_grid(n_rad_tag~sample_size) +
   labs(x = "position (in Mbp)", y = expression(F[ST])) + 
   theme_cowplot() +
   theme(text = element_text(size=20))
-ggsave("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_fixed_poolseq_windowed_fst.png", fst_plot_poolseq, width = 15-0.315, height = 2.5, units = "in", pointsize = 20)
+fst_plot_grob <- ggplotGrob(fst_plot_radseq)
+
+fst_plot_new <- gtable_add_cols(fst_plot_grob, unit(fst_plot_grob$widths[[12]], 'cm'), 13)  %>%
+  gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
+                       textGrob("number of RAD tags per Mbp", rot = -90, gp = gpar(col = gray(1)))),
+                  8, 14, 14, 14, name = paste(runif(2))) %>%
+  gtable_add_cols(unit(1/8, "line"), 13) %>%
+  gtable_add_rows(unit(fst_plot_grob$heights[[7]], 'cm'), 6) %>%
+  gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
+                          textGrob("sample size", gp = gpar(col = gray(1)))),
+                     7, 5, 7, 11, name = paste(runif(2))) %>%
+  gtable_add_rows(unit(1/8, "line"), 7)
+ggsave("../figures/two_pop_sim_fixed_m2_pos_rad_seq_windowed_fst.png", fst_plot_new, width = 15, height = 7, units = "in", pointsize = 20)
 ```
 
 ```{r eval=T, warning=F, message=F}
-include_graphics("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_fixed_poolseq_windowed_fst.png")
+include_graphics("../figures/two_pop_sim_fixed_m2_pos_rad_seq_windowed_fst.png")
 ```
