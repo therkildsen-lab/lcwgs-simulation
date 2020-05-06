@@ -232,17 +232,17 @@ fst <- read_tsv("../../cod/greenland-cod/angsd/popminind2/ILU2011_UUM2010_bam_li
 ## LG03
 filter(fst, lg=="LG03") %>%
 ggplot(aes(x=position, y=fst)) +
-  geom_point(size=0.002, alpha=0.5) +
+  geom_point(size=0.02, alpha=0.5) +
   theme_cowplot()
 ## LG08
 filter(fst, lg=="LG08") %>%
 ggplot(aes(x=position, y=fst)) +
-  geom_point(size=0.002, alpha=0.5) +
+  geom_point(size=0.02, alpha=0.5) +
   theme_cowplot()
 ## LG19
 filter(fst, lg=="LG19") %>%
 ggplot(aes(x=position, y=fst)) +
-  geom_point(size=0.002, alpha=0.5) +
+  geom_point(size=0.02, alpha=0.5) +
   theme_cowplot()
 ## Mean Fst at LG19
 filter(fst, lg=="LG19") %>% summarise(mean_fst_neutral=sum(alpha)/sum(beta))
@@ -250,50 +250,93 @@ filter(fst, lg=="LG19") %>% summarise(mean_fst_neutral=sum(alpha)/sum(beta))
 
 ## Read in read depth and estimated Fst
 
-```{r eval=T, warning=F, message=F}
+```{r eval=F, warning=F, message=F}
 fst_n_ind_final <- get_estimated_fst("../two_pop_sim_fixed_m2_pos/rep_1/")
 ```
 
 ## Plot the estimated per-SNP Fst (with no minimum individual filter)
 
-```{r eval=T, warning=F, message=F, fig.height=8, fig.width=15}
-ggplot(fst_n_ind_final, aes(x=position, y=fst)) +
+```{r eval=F, warning=F, message=F, fig.height=8, fig.width=15}
+fst_plot <- ggplot(fst_n_ind_final, aes(x=position, y=fst)) +
   geom_point(alpha=0.1, size=0.1) +
   geom_point(data=mutations_final_m2, aes(x=position, y=1.01), color="red", size=0.2, shape=8) +
   facet_grid(coverage~sample_size) +
   theme_cowplot()
+ggsave("../figures/two_pop_sim_fixed_m2_pos_fst_raw.png", fst_plot, height = 8, width=15, units = "in")
+```
+
+```{r}
+include_graphics("../figures/two_pop_sim_fixed_m2_pos_fst_raw.png")
 ```
 
 ## Plot the estimated per-SNP Fst (with minimum individual filter)
 
-```{r eval=T, warning=F, message=F, fig.height=8, fig.width=15}
-filter(fst_n_ind_final, p1_n_ind>=min(sample_size*coverage, sample_size), p2_n_ind>=min(sample_size*coverage, sample_size)) %>%
+```{r eval=F, warning=F, message=F, fig.height=8, fig.width=15}
+filtered_fst_plot <- filter(fst_n_ind_final, p1_n_ind>=min(sample_size*coverage, sample_size), p2_n_ind>=min(sample_size*coverage, sample_size)) %>%
   ggplot(aes(x=position, y=fst)) +
     geom_point(alpha=0.1, size=0.1) +
     geom_point(data=mutations_final_m2, aes(x=position, y=1.01), color="red", size=0.2, shape=8) +
     facet_grid(coverage~sample_size) +
     theme_cowplot()
+ggsave("../figures/two_pop_sim_fixed_m2_pos_filtered_fst_raw.png", filtered_fst_plot, height = 8, width=15, units = "in")
+```
+
+```{r}
+include_graphics("../figures/two_pop_sim_fixed_m2_pos_filtered_fst_raw.png")
 ```
 
 ## Compute and plot the estimated windowed Fst (with no minimum individual filter and 1,000bp fixed windows)
 
-```{r eval=T, warning=F, message=F, fig.height=8, fig.width=15}
-fixed_windowed_fst(fst_n_ind_final, 1000) %>%
+```{r eval=F, warning=F, message=F, fig.height=8, fig.width=15}
+windowed_fst_plot <- fixed_windowed_fst(fst_n_ind_final, 1000) %>%
   ggplot(aes(x=position, y=fst)) +
     geom_point(alpha=0.5, size=0.1) +
     geom_point(data=mutations_final_m2, aes(x=position, y=1.01), color="red", size=0.2, shape=8) +
     facet_grid(coverage~sample_size) +
     theme_cowplot()
+ggsave("../figures/two_pop_sim_fixed_m2_pos_windowed_fst_raw.png", windowed_fst_plot, height = 8, width=15, units = "in")
 ```
 
-## Compute and plot the estimated windowed Fst (with no minimum individual filter and 10,000bp fixed windows)
+```{r}
+include_graphics("../figures/two_pop_sim_fixed_m2_pos_windowed_fst_raw.png")
+```
+
+# RAD seq simulation with lower selection and lower recombination
+
+To simulate RAD-seq, I assumed that the genotype calling is perfectly accurate (i.e. sequence depth is high). I then took random samples along the chromosome representing RAD tags.  
+
+## Get true sample allele count
+
+```{r eval=F, warning=F, message=F}
+get_sample_allele_count_per_pop("../two_pop_sim_fixed_m2_pos/rep_1/")
+```
+
+## Get sample true MAF and Fst from allele counts
+
+Each RAD tag is 150 bp. Note that `n_rad_tag` are numbers of RAD tags per Mbp. According to the "Breaking RAD" paper, the median RAD tag density that they've found in studies published by then is 4.08. A few studies had up to 20 tags per Mbp, three had up to 110 per Mbp, and one had 362 tags per Mbp.
+
+```{r eval=T, warning=F, message=F}
+i <- 1
+for (n in c(1,2,4,8,16,32)*120){
+  maf <- allele_count_to_fst("../two_pop_sim_fixed_m2_pos/rep_1/", n_rad_tag = n) %>%
+  mutate(n_rad_tag = n/30)
+  if (i == 1){
+    maf_final <- maf
+  } else {
+    maf_final <- bind_rows(maf_final, maf)
+  }
+  i <- i + 1
+}
+```
+
+## Plot per SNP Fst
 
 ```{r eval=T, warning=F, message=F, fig.height=8, fig.width=15}
-fixed_windowed_fst(fst_n_ind_final, 10000) %>%
+mutate(maf_final, coverage="RAD") %>%
   ggplot(aes(x=position, y=fst)) +
-    geom_point(alpha=0.5, size=0.1) +
+    geom_point(alpha=0.5, size=0.2) +
     geom_point(data=mutations_final_m2, aes(x=position, y=1.01), color="red", size=0.2, shape=8) +
-    facet_grid(coverage~sample_size) +
+    facet_grid(n_rad_tag~sample_size) +
     theme_cowplot()
 ```
 
@@ -387,23 +430,25 @@ get_sample_allele_count_per_pop("../two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep
 
 ## Get sample true MAF and Fst from allele counts
 
-Each RAD tag is 150 bp. Note that `n_rad_tag` are numbers of RAD tags per chromosome. For Atlantic cod, the genome size is ~20x of the size of this simulated chromosome. 
+Each RAD tag is 150 bp. Note that `n_rad_tag` are numbers of RAD tags per Mbp. According to the "Breaking RAD" paper, the median RAD tag density that they've found in studies published by then is 4.08. A few studies had up to 20 tags per Mbp, three had up to 110 per Mbp, and one had 362 tags per Mbp.
 
 ```{r eval=T, warning=F, message=F}
-maf_final_250 <- allele_count_to_fst("../two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/", n_rad_tag = 250) %>%
-  mutate(n_rad_tag = 250)
-maf_final_2500 <- allele_count_to_fst("../two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/", n_rad_tag = 2500) %>%
-  mutate(n_rad_tag = 2500)
-maf_final_25000 <- allele_count_to_fst("../two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/", n_rad_tag = 25000) %>%
-  mutate(n_rad_tag = 25000)
-maf_final <- bind_rows(maf_final_250, maf_final_2500, maf_final_25000)
+i <- 1
+for (n in c(1,2,4,8,16,32)*120){
+  maf <- allele_count_to_fst("../two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/", n_rad_tag = n) %>%
+  mutate(n_rad_tag = n/30)
+  if (i == 1){
+    maf_final <- maf
+  } else {
+    maf_final <- bind_rows(maf_final, maf)
+  }
+  i <- i + 1
+}
 ```
-
-Note: having 25000 150pb RAD tags is sampling ~1/8 of the chromosome.
 
 ## Plot per SNP Fst
 
-```{r eval=T, warning=F, message=F, fig.height=4.5, fig.width=15}
+```{r eval=T, warning=F, message=F, fig.height=8, fig.width=15}
 mutate(maf_final, coverage="RAD") %>%
   ggplot(aes(x=position, y=fst)) +
     geom_point(alpha=0.5, size=0.2) +
