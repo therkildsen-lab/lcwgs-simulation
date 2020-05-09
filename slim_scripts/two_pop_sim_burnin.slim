@@ -24,6 +24,6 @@ initialize() {
 5000 late() {
 	// Output population-level allele frequencies
 	sim.outputFull(OUT_PATH + "rep_" + REP_ID + "/slim/burnin_full_output.txt");
-	sim.outputMutations(c(sim.mutationsOfType(m1),sim.mutationsOfType(m2)), OUT_PATH + "rep_" + REP_ID + "/slim/burnin_mutations.txt");
+	sim.outputMutations(sim.mutationsOfType(m1), OUT_PATH + "rep_" + REP_ID + "/slim/burnin_mutations.txt");
 	sim.outputFixedMutations(OUT_PATH + "rep_" + REP_ID + "/slim/burnin_substitutions.txt");
 }
