@@ -212,7 +212,10 @@ The target mean neutral Fst is ~0.015 and the target peak Fst is ~ 0.6
 ```{r eval=T, warning=F, message=F, fig.height=2, fig.width=10}
 mutations_final_m1 <- filter(mutations_final, type=="m1")
 mutations_final_m2 <- filter(mutations_final, type=="m2")
-mean_neutral_fst_weighted <- sum(mutations_final_m1$h_t-mutations_final_m1$h_s)/sum(mutations_final_m1$h_t)
+## genome-wide mean fst
+sum(mutations_final$h_t-mutations_final$h_s)/sum(mutations_final$h_t)
+## neutral mean fst
+mean_neutral_fst_weighted <- sum(mutations_final_m1$h_t-mutations_final_m1$h_s)/sum(mutations_final_m1$h_t) # I need to check how to get genome-side average fst, this might be wrong
 mean_neutral_fst_weighted
 ggplot(mutations_final_m1, aes(x=position, y=fst, color=type)) +
   geom_point(size=0.02, alpha=0.5) +
@@ -254,6 +257,27 @@ filter(fst, lg=="LG19") %>% summarise(mean_fst_neutral=sum(alpha)/sum(beta))
 fst_n_ind_final <- get_estimated_fst("../two_pop_sim_fixed_m2_pos/rep_1/")
 ```
 
+## Plot genome-wide average Fst (with no minimum individual filter)
+
+```{r eval=F, warning=F, message=F, fig.height=4, fig.width=6}
+group_by(fst_n_ind_final, sample_size, coverage) %>%
+  count() %>%
+  pivot_wider(names_from = sample_size, values_from = n)
+average_fst_plot <- fst_n_ind_final %>%
+  group_by(coverage, sample_size) %>%
+  summarise(average_fst = sum(alpha)/sum(beta)) %>%
+  ggplot(aes(x=as.factor(sample_size), y=as.factor(coverage), fill=average_fst, label=round(average_fst, 4))) +
+  geom_tile() +
+  geom_text() +
+  scale_fill_viridis_c() +
+  theme_cowplot()
+ggsave("../figures/two_pop_sim_fixed_m2_pos_average_fst_raw.png", average_fst_plot, height = 4, width=6, units = "in")
+```
+
+```{r}
+include_graphics("../figures/two_pop_sim_fixed_m2_pos_average_fst_raw.png")
+```
+
 ## Plot the estimated per-SNP Fst (with no minimum individual filter)
 
 ```{r eval=F, warning=F, message=F, fig.height=8, fig.width=15}
@@ -269,10 +293,33 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_fst_raw.png", fst_plot, height = 8, 
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_fst_raw.png")
 ```
 
+## Plot genome-wide average Fst (with minimum individual filter)
+
+I am doing this to help Matt check whether filtering can introduce systematic changes in genome-wide average Fst estimation.
+
+```{r eval=F, warning=F, message=F, fig.height=4, fig.width=6}
+fst_n_ind_final_filtered <- group_by(fst_n_ind_final, coverage, sample_size) %>%
+  filter(p1_n_ind >= quantile(p1_n_ind)[4], p2_n_ind >= quantile(p2_n_ind)[4]) # filtering n_ind by the third quantile
+count(fst_n_ind_final_filtered) %>%
+  pivot_wider(names_from = sample_size, values_from = n)
+average_fst_plot <- fst_n_ind_final_filtered %>%
+  summarise(average_fst = sum(alpha)/sum(beta)) %>%
+  ggplot(aes(x=as.factor(sample_size), y=as.factor(coverage), fill=average_fst, label=round(average_fst, 4))) +
+  geom_tile() +
+  geom_text() +
+  scale_fill_viridis_c() +
+  theme_cowplot()
+ggsave("../figures/two_pop_sim_fixed_m2_pos_filtered_average_fst_raw.png", average_fst_plot, height = 4, width=6, units = "in")
+```
+
+```{r}
+include_graphics("../figures/two_pop_sim_fixed_m2_pos_filtered_average_fst_raw.png")
+```
+
 ## Plot the estimated per-SNP Fst (with minimum individual filter)
 
 ```{r eval=F, warning=F, message=F, fig.height=8, fig.width=15}
-filtered_fst_plot <- filter(fst_n_ind_final, p1_n_ind>=min(sample_size*coverage, sample_size), p2_n_ind>=min(sample_size*coverage, sample_size)) %>%
+filtered_fst_plot <- fst_n_ind_final_filtered %>%
   ggplot(aes(x=position, y=fst)) +
     geom_point(alpha=0.1, size=0.1) +
     geom_point(data=mutations_final_m2, aes(x=position, y=1.01), color="red", size=0.2, shape=8) +

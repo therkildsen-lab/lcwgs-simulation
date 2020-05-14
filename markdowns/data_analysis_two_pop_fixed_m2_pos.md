@@ -1,31 +1,54 @@
 Data analysis with simulation of divergent selection on two populations
 ================
 
--   [Define all relevant functions](#define-all-relevant-functions)
--   [Standard model ( Ne~50,000 in each population)](#standard-model-ne50000-in-each-population)
-    -   [Read in the ancestral states](#read-in-the-ancestral-states)
-    -   [Read mutation and substitution file](#read-mutation-and-substitution-file)
-    -   [Plot Fst](#plot-fst)
-    -   [Plot Fst from the Greenland cod project as a comparison](#plot-fst-from-the-greenland-cod-project-as-a-comparison)
-    -   [Read in read depth and estimated Fst](#read-in-read-depth-and-estimated-fst)
-    -   [Plot the estimated per-SNP Fst (with no minimum individual filter)](#plot-the-estimated-per-snp-fst-with-no-minimum-individual-filter)
-    -   [Plot the estimated per-SNP Fst (with minimum individual filter)](#plot-the-estimated-per-snp-fst-with-minimum-individual-filter)
-    -   [Compute and plot the estimated windowed Fst (with no minimum individual filter and 1,000bp fixed windows)](#compute-and-plot-the-estimated-windowed-fst-with-no-minimum-individual-filter-and-1000bp-fixed-windows)
--   [RAD seq simulation with lower selection and lower recombination](#rad-seq-simulation-with-lower-selection-and-lower-recombination)
-    -   [Get true sample allele count](#get-true-sample-allele-count)
-    -   [Get sample true MAF and Fst from allele counts](#get-sample-true-maf-and-fst-from-allele-counts)
-    -   [Plot per SNP Fst](#plot-per-snp-fst)
--   [Two populations with divergent selection, with smaller population size ( Ne~10,000 in each population)](#two-populations-with-divergent-selection-with-smaller-population-size-ne10000-in-each-population)
-    -   [Read in the ancestral states](#read-in-the-ancestral-states-1)
-    -   [Read mutation and substitution file](#read-mutation-and-substitution-file-1)
-    -   [Plot Fst](#plot-fst-1)
-    -   [Read in read depth and estimated Fst](#read-in-read-depth-and-estimated-fst-1)
-    -   [Plot the estimated per-SNP Fst (with no minimum individual filter)](#plot-the-estimated-per-snp-fst-with-no-minimum-individual-filter-1)
-    -   [Compute and plot the estimated windowed Fst (with no minimum individual filter and 1,000bp fixed windows)](#compute-and-plot-the-estimated-windowed-fst-with-no-minimum-individual-filter-and-1000bp-fixed-windows-1)
--   [RAD seq simulation with lower selection and lower recombination](#rad-seq-simulation-with-lower-selection-and-lower-recombination-1)
-    -   [Get true sample allele count](#get-true-sample-allele-count-1)
-    -   [Get sample true MAF and Fst from allele counts](#get-sample-true-maf-and-fst-from-allele-counts-1)
-    -   [Plot per SNP Fst](#plot-per-snp-fst-1)
+  - [Define all relevant functions](#define-all-relevant-functions)
+  - [Standard model ( Ne\~50,000 in each
+    population)](#standard-model-ne50000-in-each-population)
+      - [Read in the ancestral states](#read-in-the-ancestral-states)
+      - [Read mutation and substitution
+        file](#read-mutation-and-substitution-file)
+      - [Plot Fst](#plot-fst)
+      - [Plot Fst from the Greenland cod project as a
+        comparison](#plot-fst-from-the-greenland-cod-project-as-a-comparison)
+      - [Read in read depth and estimated
+        Fst](#read-in-read-depth-and-estimated-fst)
+      - [Plot genome-wide average Fst (with no minimum individual
+        filter)](#plot-genome-wide-average-fst-with-no-minimum-individual-filter)
+      - [Plot the estimated per-SNP Fst (with no minimum individual
+        filter)](#plot-the-estimated-per-snp-fst-with-no-minimum-individual-filter)
+      - [Plot genome-wide average Fst (with minimum individual
+        filter)](#plot-genome-wide-average-fst-with-minimum-individual-filter)
+      - [Plot the estimated per-SNP Fst (with minimum individual
+        filter)](#plot-the-estimated-per-snp-fst-with-minimum-individual-filter)
+      - [Compute and plot the estimated windowed Fst (with no minimum
+        individual filter and 1,000bp fixed
+        windows)](#compute-and-plot-the-estimated-windowed-fst-with-no-minimum-individual-filter-and-1000bp-fixed-windows)
+  - [RAD seq simulation with lower selection and lower
+    recombination](#rad-seq-simulation-with-lower-selection-and-lower-recombination)
+      - [Get true sample allele count](#get-true-sample-allele-count)
+      - [Get sample true MAF and Fst from allele
+        counts](#get-sample-true-maf-and-fst-from-allele-counts)
+      - [Plot per SNP Fst](#plot-per-snp-fst)
+  - [Two populations with divergent selection, with smaller population
+    size ( Ne\~10,000 in each
+    population)](#two-populations-with-divergent-selection-with-smaller-population-size-ne10000-in-each-population)
+      - [Read in the ancestral states](#read-in-the-ancestral-states-1)
+      - [Read mutation and substitution
+        file](#read-mutation-and-substitution-file-1)
+      - [Plot Fst](#plot-fst-1)
+      - [Read in read depth and estimated
+        Fst](#read-in-read-depth-and-estimated-fst-1)
+      - [Plot the estimated per-SNP Fst (with no minimum individual
+        filter)](#plot-the-estimated-per-snp-fst-with-no-minimum-individual-filter-1)
+      - [Compute and plot the estimated windowed Fst (with no minimum
+        individual filter and 1,000bp fixed
+        windows)](#compute-and-plot-the-estimated-windowed-fst-with-no-minimum-individual-filter-and-1000bp-fixed-windows-1)
+  - [RAD seq simulation with lower selection and lower
+    recombination](#rad-seq-simulation-with-lower-selection-and-lower-recombination-1)
+      - [Get true sample allele count](#get-true-sample-allele-count-1)
+      - [Get sample true MAF and Fst from allele
+        counts](#get-sample-true-maf-and-fst-from-allele-counts-1)
+      - [Plot per SNP Fst](#plot-per-snp-fst-1)
 
 ``` r
 library(tidyverse)
@@ -34,8 +57,7 @@ library(knitr)
 library(data.table)
 ```
 
-Define all relevant functions
-=============================
+# Define all relevant functions
 
 ``` r
 get_ancestral <- function(x){
@@ -201,20 +223,17 @@ allele_count_to_fst <- function(x, n_rad_tag){
 }
 ```
 
-Standard model ( Ne~50,000 in each population)
-==============================================
+# Standard model ( Ne\~50,000 in each population)
 
-Read in the ancestral states
-----------------------------
+## Read in the ancestral states
 
 ``` r
 ancestral <- get_ancestral("../two_pop_sim_fixed_m2_pos/rep_1/")
 ```
 
-Read mutation and substitution file
------------------------------------
+## Read mutation and substitution file
 
-The target theta is ~ 0.004
+The target theta is \~ 0.004
 
 ``` r
 mutations_final <- get_mutations("../two_pop_sim_fixed_m2_pos/rep_1/")
@@ -233,15 +252,22 @@ tibble(theta = c("tajima", "watterson"), p1=c(real_theta_t_p1, real_theta_w_p1),
     ## 1 tajima    0.00361 0.00363
     ## 2 watterson 0.00401 0.00401
 
-Plot Fst
---------
+## Plot Fst
 
-The target mean neutral Fst is ~0.015 and the target peak Fst is ~ 0.6
+The target mean neutral Fst is \~0.015 and the target peak Fst is \~ 0.6
 
 ``` r
 mutations_final_m1 <- filter(mutations_final, type=="m1")
 mutations_final_m2 <- filter(mutations_final, type=="m2")
-mean_neutral_fst_weighted <- sum(mutations_final_m1$h_t-mutations_final_m1$h_s)/sum(mutations_final_m1$h_t)
+## genome-wide mean fst
+sum(mutations_final$h_t-mutations_final$h_s)/sum(mutations_final$h_t)
+```
+
+    ## [1] 0.01582671
+
+``` r
+## neutral mean fst
+mean_neutral_fst_weighted <- sum(mutations_final_m1$h_t-mutations_final_m1$h_s)/sum(mutations_final_m1$h_t) # I need to check how to get genome-side average fst, this might be wrong
 mean_neutral_fst_weighted
 ```
 
@@ -254,7 +280,7 @@ ggplot(mutations_final_m1, aes(x=position, y=fst, color=type)) +
   theme_cowplot()
 ```
 
-![](data_analysis_two_pop_fixed_m2_pos_files/figure-markdown_github/unnamed-chunk-5-1.png)
+![](data_analysis_two_pop_fixed_m2_pos_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
 
 ``` r
 arrange(mutations_final, desc(fst)) %>%
@@ -287,8 +313,7 @@ arrange(mutations_final_m2, desc(fst))
     ## 7 m2     5000001 G         0.665  0.0067          0.336  0.446  0.229  0.486 
     ## 8 m2    27500001 C         0.0268 0               0.0134 0.0264 0.0261 0.0136
 
-Plot Fst from the Greenland cod project as a comparison
--------------------------------------------------------
+## Plot Fst from the Greenland cod project as a comparison
 
 ``` r
 fst <- read_tsv("../../cod/greenland-cod/angsd/popminind2/ILU2011_UUM2010_bam_list_realigned_mindp161_maxdp768_minind97_minq20_popminind2.fst", col_names = F) %>%
@@ -300,7 +325,7 @@ ggplot(aes(x=position, y=fst)) +
   theme_cowplot()
 ```
 
-![](data_analysis_two_pop_fixed_m2_pos_files/figure-markdown_github/unnamed-chunk-6-1.png)
+![](data_analysis_two_pop_fixed_m2_pos_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
 
 ``` r
 ## LG08
@@ -310,7 +335,7 @@ ggplot(aes(x=position, y=fst)) +
   theme_cowplot()
 ```
 
-![](data_analysis_two_pop_fixed_m2_pos_files/figure-markdown_github/unnamed-chunk-6-2.png)
+![](data_analysis_two_pop_fixed_m2_pos_files/figure-gfm/unnamed-chunk-6-2.png)<!-- -->
 
 ``` r
 ## LG19
@@ -320,7 +345,7 @@ ggplot(aes(x=position, y=fst)) +
   theme_cowplot()
 ```
 
-![](data_analysis_two_pop_fixed_m2_pos_files/figure-markdown_github/unnamed-chunk-6-3.png)
+![](data_analysis_two_pop_fixed_m2_pos_files/figure-gfm/unnamed-chunk-6-3.png)<!-- -->
 
 ``` r
 ## Mean Fst at LG19
@@ -332,15 +357,36 @@ filter(fst, lg=="LG19") %>% summarise(mean_fst_neutral=sum(alpha)/sum(beta))
     ##              <dbl>
     ## 1           0.0136
 
-Read in read depth and estimated Fst
-------------------------------------
+## Read in read depth and estimated Fst
 
 ``` r
 fst_n_ind_final <- get_estimated_fst("../two_pop_sim_fixed_m2_pos/rep_1/")
 ```
 
-Plot the estimated per-SNP Fst (with no minimum individual filter)
-------------------------------------------------------------------
+## Plot genome-wide average Fst (with no minimum individual filter)
+
+``` r
+group_by(fst_n_ind_final, sample_size, coverage) %>%
+  count() %>%
+  pivot_wider(names_from = sample_size, values_from = n)
+average_fst_plot <- fst_n_ind_final %>%
+  group_by(coverage, sample_size) %>%
+  summarise(average_fst = sum(alpha)/sum(beta)) %>%
+  ggplot(aes(x=as.factor(sample_size), y=as.factor(coverage), fill=average_fst, label=round(average_fst, 4))) +
+  geom_tile() +
+  geom_text() +
+  scale_fill_viridis_c() +
+  theme_cowplot()
+ggsave("../figures/two_pop_sim_fixed_m2_pos_average_fst_raw.png", average_fst_plot, height = 4, width=6, units = "in")
+```
+
+``` r
+include_graphics("../figures/two_pop_sim_fixed_m2_pos_average_fst_raw.png")
+```
+
+![](../figures/two_pop_sim_fixed_m2_pos_average_fst_raw.png)<!-- -->
+
+## Plot the estimated per-SNP Fst (with no minimum individual filter)
 
 ``` r
 fst_plot <- ggplot(fst_n_ind_final, aes(x=position, y=fst)) +
@@ -355,13 +401,38 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_fst_raw.png", fst_plot, height = 8, 
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_fst_raw.png")
 ```
 
-<img src="../figures/two_pop_sim_fixed_m2_pos_fst_raw.png" width="4500" />
+![](../figures/two_pop_sim_fixed_m2_pos_fst_raw.png)<!-- -->
 
-Plot the estimated per-SNP Fst (with minimum individual filter)
----------------------------------------------------------------
+## Plot genome-wide average Fst (with minimum individual filter)
+
+I am doing this to help Matt check whether filtering can introduce
+systematic changes in genome-wide average Fst estimation.
 
 ``` r
-filtered_fst_plot <- filter(fst_n_ind_final, p1_n_ind>=min(sample_size*coverage, sample_size), p2_n_ind>=min(sample_size*coverage, sample_size)) %>%
+fst_n_ind_final_filtered <- group_by(fst_n_ind_final, coverage, sample_size) %>%
+  filter(p1_n_ind >= quantile(p1_n_ind)[4], p2_n_ind >= quantile(p2_n_ind)[4]) # filtering n_ind by the third quantile
+count(fst_n_ind_final_filtered) %>%
+  pivot_wider(names_from = sample_size, values_from = n)
+average_fst_plot <- fst_n_ind_final_filtered %>%
+  summarise(average_fst = sum(alpha)/sum(beta)) %>%
+  ggplot(aes(x=as.factor(sample_size), y=as.factor(coverage), fill=average_fst, label=round(average_fst, 4))) +
+  geom_tile() +
+  geom_text() +
+  scale_fill_viridis_c() +
+  theme_cowplot()
+ggsave("../figures/two_pop_sim_fixed_m2_pos_filtered_average_fst_raw.png", average_fst_plot, height = 4, width=6, units = "in")
+```
+
+``` r
+include_graphics("../figures/two_pop_sim_fixed_m2_pos_filtered_average_fst_raw.png")
+```
+
+![](../figures/two_pop_sim_fixed_m2_pos_filtered_average_fst_raw.png)<!-- -->
+
+## Plot the estimated per-SNP Fst (with minimum individual filter)
+
+``` r
+filtered_fst_plot <- fst_n_ind_final_filtered %>%
   ggplot(aes(x=position, y=fst)) +
     geom_point(alpha=0.1, size=0.1) +
     geom_point(data=mutations_final_m2, aes(x=position, y=1.01), color="red", size=0.2, shape=8) +
@@ -374,10 +445,9 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_filtered_fst_raw.png", filtered_fst_
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_filtered_fst_raw.png")
 ```
 
-<img src="../figures/two_pop_sim_fixed_m2_pos_filtered_fst_raw.png" width="4500" />
+![](../figures/two_pop_sim_fixed_m2_pos_filtered_fst_raw.png)<!-- -->
 
-Compute and plot the estimated windowed Fst (with no minimum individual filter and 1,000bp fixed windows)
----------------------------------------------------------------------------------------------------------
+## Compute and plot the estimated windowed Fst (with no minimum individual filter and 1,000bp fixed windows)
 
 ``` r
 windowed_fst_plot <- fixed_windowed_fst(fst_n_ind_final, 1000) %>%
@@ -393,24 +463,27 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_windowed_fst_raw.png", windowed_fst_
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_windowed_fst_raw.png")
 ```
 
-<img src="../figures/two_pop_sim_fixed_m2_pos_windowed_fst_raw.png" width="4500" />
+![](../figures/two_pop_sim_fixed_m2_pos_windowed_fst_raw.png)<!-- -->
 
-RAD seq simulation with lower selection and lower recombination
-===============================================================
+# RAD seq simulation with lower selection and lower recombination
 
-To simulate RAD-seq, I assumed that the genotype calling is perfectly accurate (i.e. sequence depth is high). I then took random samples along the chromosome representing RAD tags.
+To simulate RAD-seq, I assumed that the genotype calling is perfectly
+accurate (i.e. sequence depth is high). I then took random samples along
+the chromosome representing RAD tags.
 
-Get true sample allele count
-----------------------------
+## Get true sample allele count
 
 ``` r
 get_sample_allele_count_per_pop("../two_pop_sim_fixed_m2_pos/rep_1/")
 ```
 
-Get sample true MAF and Fst from allele counts
-----------------------------------------------
+## Get sample true MAF and Fst from allele counts
 
-Each RAD tag is 150 bp. Note that `n_rad_tag` are numbers of RAD tags per Mbp. According to the "Breaking RAD" paper, the median RAD tag density that they've found in studies published by then is 4.08. A few studies had up to 20 tags per Mbp, three had up to 110 per Mbp, and one had 362 tags per Mbp.
+Each RAD tag is 150 bp. Note that `n_rad_tag` are numbers of RAD tags
+per Mbp. According to the “Breaking RAD” paper, the median RAD tag
+density that they’ve found in studies published by then is 4.08. A few
+studies had up to 20 tags per Mbp, three had up to 110 per Mbp, and one
+had 362 tags per Mbp.
 
 ``` r
 i <- 1
@@ -426,8 +499,7 @@ for (n in c(1,2,4,8,16,32)*120){
 }
 ```
 
-Plot per SNP Fst
-----------------
+## Plot per SNP Fst
 
 ``` r
 mutate(maf_final, coverage="RAD") %>%
@@ -438,22 +510,22 @@ mutate(maf_final, coverage="RAD") %>%
     theme_cowplot()
 ```
 
-![](data_analysis_two_pop_fixed_m2_pos_files/figure-markdown_github/unnamed-chunk-16-1.png)
+![](data_analysis_two_pop_fixed_m2_pos_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->
 
-Two populations with divergent selection, with smaller population size ( Ne~10,000 in each population)
-======================================================================================================
+# Two populations with divergent selection, with smaller population size ( Ne\~10,000 in each population)
 
-The same population size is simulated, but I've scaled down mutation rate, recombination rate, migration rate. The selection coefficient is unchanged. (Ignore the directory name. I'm just using it for convenience.)
+The same population size is simulated, but I’ve scaled down mutation
+rate, recombination rate, migration rate. The selection coefficient is
+unchanged. (Ignore the directory name. I’m just using it for
+convenience.)
 
-Read in the ancestral states
-----------------------------
+## Read in the ancestral states
 
 ``` r
 ancestral <- get_ancestral("../two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/")
 ```
 
-Read mutation and substitution file
------------------------------------
+## Read mutation and substitution file
 
 ``` r
 mutations_final <- get_mutations("../two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/")
@@ -472,8 +544,7 @@ tibble(theta = c("tajima", "watterson"), p1=c(real_theta_t_p1, real_theta_w_p1),
     ## 1 tajima    0.000704 0.000728
     ## 2 watterson 0.000776 0.000776
 
-Plot Fst
---------
+## Plot Fst
 
 ``` r
 mutations_final_m1 <- filter(mutations_final, type=="m1")
@@ -491,7 +562,7 @@ ggplot(mutations_final_m1, aes(x=position, y=fst, color=type)) +
   theme_cowplot()
 ```
 
-![](data_analysis_two_pop_fixed_m2_pos_files/figure-markdown_github/unnamed-chunk-19-1.png)
+![](data_analysis_two_pop_fixed_m2_pos_files/figure-gfm/unnamed-chunk-23-1.png)<!-- -->
 
 ``` r
 arrange(mutations_final, desc(fst)) %>%
@@ -524,15 +595,13 @@ arrange(mutations_final_m2, desc(fst))
     ## 7 m2    25000001 G         0.582 0.003           0.292 0.414 0.246  0.404
     ## 8 m2    12500001 A         0.299 0.0008          0.150 0.255 0.211  0.175
 
-Read in read depth and estimated Fst
-------------------------------------
+## Read in read depth and estimated Fst
 
 ``` r
 fst_n_ind_final <- get_estimated_fst("../two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/")
 ```
 
-Plot the estimated per-SNP Fst (with no minimum individual filter)
-------------------------------------------------------------------
+## Plot the estimated per-SNP Fst (with no minimum individual filter)
 
 ``` r
 fst_plot <- ggplot(fst_n_ind_final, aes(x=position, y=fst)) +
@@ -547,10 +616,9 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_fst_raw.png", fst_pl
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_fst_raw.png")
 ```
 
-<img src="../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_fst_raw.png" width="4500" />
+![](../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_fst_raw.png)<!-- -->
 
-Compute and plot the estimated windowed Fst (with no minimum individual filter and 1,000bp fixed windows)
----------------------------------------------------------------------------------------------------------
+## Compute and plot the estimated windowed Fst (with no minimum individual filter and 1,000bp fixed windows)
 
 ``` r
 windowed_fst_plot <- fixed_windowed_fst(fst_n_ind_final, 5000) %>%
@@ -566,24 +634,27 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_windowed_fst_raw.png
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_windowed_fst_raw.png")
 ```
 
-<img src="../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_windowed_fst_raw.png" width="4500" />
+![](../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_windowed_fst_raw.png)<!-- -->
 
-RAD seq simulation with lower selection and lower recombination
-===============================================================
+# RAD seq simulation with lower selection and lower recombination
 
-To simulate RAD-seq, I assumed that the genotype calling is perfectly accurate (i.e. sequence depth is high). I then took random samples along the chromosome representing RAD tags.
+To simulate RAD-seq, I assumed that the genotype calling is perfectly
+accurate (i.e. sequence depth is high). I then took random samples along
+the chromosome representing RAD tags.
 
-Get true sample allele count
-----------------------------
+## Get true sample allele count
 
 ``` r
 get_sample_allele_count_per_pop("../two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/")
 ```
 
-Get sample true MAF and Fst from allele counts
-----------------------------------------------
+## Get sample true MAF and Fst from allele counts
 
-Each RAD tag is 150 bp. Note that `n_rad_tag` are numbers of RAD tags per Mbp. According to the "Breaking RAD" paper, the median RAD tag density that they've found in studies published by then is 4.08. A few studies had up to 20 tags per Mbp, three had up to 110 per Mbp, and one had 362 tags per Mbp.
+Each RAD tag is 150 bp. Note that `n_rad_tag` are numbers of RAD tags
+per Mbp. According to the “Breaking RAD” paper, the median RAD tag
+density that they’ve found in studies published by then is 4.08. A few
+studies had up to 20 tags per Mbp, three had up to 110 per Mbp, and one
+had 362 tags per Mbp.
 
 ``` r
 i <- 1
@@ -599,8 +670,7 @@ for (n in c(1,2,4,8,16,32)*120){
 }
 ```
 
-Plot per SNP Fst
-----------------
+## Plot per SNP Fst
 
 ``` r
 mutate(maf_final, coverage="RAD") %>%
@@ -611,4 +681,4 @@ mutate(maf_final, coverage="RAD") %>%
     theme_cowplot()
 ```
 
-![](data_analysis_two_pop_fixed_m2_pos_files/figure-markdown_github/unnamed-chunk-27-1.png)
+![](data_analysis_two_pop_fixed_m2_pos_files/figure-gfm/unnamed-chunk-31-1.png)<!-- -->
