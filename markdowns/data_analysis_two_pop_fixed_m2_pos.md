@@ -254,24 +254,32 @@ tibble(theta = c("tajima", "watterson"), p1=c(real_theta_t_p1, real_theta_w_p1),
 
 ## Plot Fst
 
-The target mean neutral Fst is \~0.015 and the target peak Fst is \~ 0.6
+The target mean neutral Fst is \~ 0.015 and the target peak Fst is \~
+0.6 (based on cod data). The expected neutral Fst is `1/(1+16Nm)` =
+0.01234, but because of the selection stage, I expect Fst to be slightly
+higher than this theoretical expectation.
 
 ``` r
 mutations_final_m1 <- filter(mutations_final, type=="m1")
 mutations_final_m2 <- filter(mutations_final, type=="m2")
 ## genome-wide mean fst
-sum(mutations_final$h_t-mutations_final$h_s)/sum(mutations_final$h_t)
+summarise(mutations_final, average_fst = 1-mean(h_s)/mean(h_t))
 ```
 
-    ## [1] 0.01582671
+    ## # A tibble: 1 x 1
+    ##   average_fst
+    ##         <dbl>
+    ## 1      0.0158
 
 ``` r
-## neutral mean fst
-mean_neutral_fst_weighted <- sum(mutations_final_m1$h_t-mutations_final_m1$h_s)/sum(mutations_final_m1$h_t) # I need to check how to get genome-side average fst, this might be wrong
-mean_neutral_fst_weighted
+## "neutral" mean fst (mean fst at both end of the genome that is not strongly affected by linkage with selected regions)
+filter(mutations_final, position <= 1000000 | position >= 29000000) %>% summarise(average_fst = 1-mean(h_s)/mean(h_t))
 ```
 
-    ## [1] 0.01580629
+    ## # A tibble: 1 x 1
+    ##   average_fst
+    ##         <dbl>
+    ## 1      0.0136
 
 ``` r
 ggplot(mutations_final_m1, aes(x=position, y=fst, color=type)) +
@@ -386,6 +394,17 @@ include_graphics("../figures/two_pop_sim_fixed_m2_pos_average_fst_raw.png")
 
 ![](../figures/two_pop_sim_fixed_m2_pos_average_fst_raw.png)<!-- -->
 
+  - Although Fst is quite consistently estimated, these estimations are
+    much higher than the true value (\~0.013). This may cause problems
+    when estimated Fst is used to infer demography, such as migration
+    rate between populations. The relative value of these genome-wide
+    Fst, however, may still be trusted.
+
+  - Also, at smaller sample size, Fst tends to be even more
+    overestimated. This is consistent with empircal data. But
+    couterintuitively, higher coverage makes the problem worse in such
+    cases. We’ll need to look into this further.
+
 ## Plot the estimated per-SNP Fst (with no minimum individual filter)
 
 ``` r
@@ -406,7 +425,10 @@ include_graphics("../figures/two_pop_sim_fixed_m2_pos_fst_raw.png")
 ## Plot genome-wide average Fst (with minimum individual filter)
 
 I am doing this to help Matt check whether filtering can introduce
-systematic changes in genome-wide average Fst estimation.
+systematic changes in genome-wide average Fst estimation. There doesn’t
+appear to be any systematic bias caused by filtering in here. However,
+mapping is not simulated here, and differential mapping at high Fst
+regions may cause systematic biases.
 
 ``` r
 fst_n_ind_final_filtered <- group_by(fst_n_ind_final, coverage, sample_size) %>%
