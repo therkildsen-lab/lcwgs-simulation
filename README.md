@@ -29,4 +29,4 @@
 
 ## miscellaneous
 
-[figures for presentations](https://github.com/therkildsen-lab/lcwgs-simulation/blob/master/markdowns/figures.md)
+[figures for presentations and the paper](https://github.com/therkildsen-lab/lcwgs-simulation/blob/master/markdowns/figures.md)
