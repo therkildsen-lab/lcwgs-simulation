@@ -30,7 +30,12 @@ joined_frequency_final_uneven <- read_tsv("../neutral_sim_uneven_input/rep_1/ang
   transmute(frequency=frequency, frequency_bin = frequency_bin, estimated_frequency=estimated_frequency, error=estimated_frequency-frequency, coverage=coverage, sample_size=sample_size, design="lcwgs_uneven")
 ## pool-seq with uneven contribution
 joined_frequency_final_pooled_uneven <- read_tsv("../neutral_sim_uneven_input/rep_1/angsd/joined_frequency_final_poolseq.tsv") %>%
-  transmute(frequency=frequency, frequency_bin = cut(frequency, breaks = 0:5/5), estimated_frequency=maf, error=estimated_frequency-frequency, coverage=coverage, sample_size=sample_size, design="poolseq_uneven") 
+  transmute(frequency=frequency, frequency_bin = cut(frequency, breaks = 0:5/5), estimated_frequency=maf, error=estimated_frequency-frequency, coverage=coverage, sample_size=sample_size, design="poolseq_uneven")
+```
+
+#### For presentations
+
+```{r eval=F, warning=F, message=F}
 ## combine these
 joined_frequency_final_combined <- bind_rows(joined_frequency_final_even, joined_frequency_final_uneven, joined_frequency_final_pooled_uneven) %>%
   filter(coverage < 4, sample_size > 5, sample_size < 160)
@@ -85,7 +90,69 @@ ggsave("../figures/error_plot_combined.png", error_plot_combined_new, width = 45
 include_graphics("../figures/error_plot_combined.png")
 ```
 
+#### For the paper
+
+```{r eval=F, warning=F, message=F, fig.width=30, fig.height=20}
+## combine these
+joined_frequency_final_combined <- bind_rows(joined_frequency_final_even, joined_frequency_final_uneven, joined_frequency_final_pooled_uneven) 
+
+## get summary stats (number of SNPs, RMSE, R-squared)
+joined_summary_table <- group_by(joined_frequency_final_combined, coverage, sample_size, design) %>%
+  summarise(r_squared=round(summary(lm(estimated_frequency~frequency))$r.squared,3), 
+            n=n(), 
+            root_mean_error_squared=round(sqrt(mean(error^2)), 3))
+  
+joined_frequency_final_combined_test <- joined_frequency_final_combined[sample(1:nrow(joined_frequency_final_combined), 10000),]
+## make the plot
+error_plot_combined <- joined_frequency_final_combined %>%
+  ggplot(aes(x=frequency_bin, y=abs(error), fill=design)) +
+  geom_boxplot(outlier.shape = NA, color="black") +
+  geom_text(data = joined_summary_table, x = 1.7, aes(label=root_mean_error_squared, color = design, y = 1-as.numeric(as.factor(design))/8), fontface = "bold", size=4.8, show.legend = F) +
+  #geom_text(data = joined_summary_table, x = 2.8, aes(label=r_squared, color = design, y = 1-as.numeric(as.factor(design))/14), fontface = "bold", size=5, show.legend = F) +
+  geom_text(data = joined_summary_table, x = 4.1, aes(label=n, color = design, y = 1-as.numeric(as.factor(design))/8), fontface = "bold", size=4.8, show.legend = F) +
+  annotate("text", x = 1.7, y = 1, label="RMSE", size=4.8) +
+  #annotate("text", x = 2.8, y=1.01, label="R^2", parse=T, size=5) +
+  annotate("text", x = 4.1, y = 1, label="SNP count", size=4.8) +
+  facet_grid(coverage~sample_size) +
+  scale_x_discrete(labels=seq(0.1, 0.9, 0.2))  +
+  scale_fill_viridis_d(labels=c("LC-WGS with even coverage", "LC-WGS with uneven coverage", "Pool-seq with uneven coverage"), begin = 0, end = 0.75) +
+  scale_color_viridis_d(labels=c("LC-WGS with even coverage", "LC-WGS with uneven coverage", "Pool-seq with uneven coverage"), begin = 0, end = 0.75) +
+  xlab("true frequency of derived allele") +
+  ylab("absolute error") +
+  ylim(c(0,1.05)) +
+  theme_cowplot() +
+  theme(strip.text = element_text(size=20),
+        axis.text.x = element_text(angle=0),
+        panel.border = element_rect(colour = "black", fill=NA, size=1),
+        legend.position = "top",
+        legend.title = element_text(size = 20),
+        legend.text = element_text(size = 15),
+        legend.key.size = unit(1, 'cm'))
+
+error_plot_combined_grob <- ggplotGrob(error_plot_combined)
+
+error_plot_combined_new <- gtable_add_cols(error_plot_combined_grob, unit(error_plot_combined_grob$widths[[16]], 'cm'), 16)  %>%
+  gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
+                       textGrob("coverage", rot = -90, gp = gpar(col = gray(1)))),
+                  10, 17, 20, 17, name = paste(runif(2))) %>%
+  gtable_add_cols(unit(1/8, "line"), 16) %>%
+  gtable_add_rows(unit(error_plot_combined_grob$heights[[9]], 'cm'), 8) %>%
+  gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
+                          textGrob("sample size", gp = gpar(col = gray(1)))),
+                     9, 5, 9, 15, name = paste(runif(2))) %>%
+  gtable_add_rows(unit(1/8, "line"), 9)
+
+ggsave("../figures/error_plot_combined_for_paper.png", error_plot_combined_new, width = 42, height = 35, units = "cm", pointsize = 20)
+```
+
+```{r eval=T, warning=F, message=F}
+include_graphics("../figures/error_plot_combined_for_paper.png")
+```
+
+
 ## PCA
+
+#### Lower migration rate
 
 ```{r eval=F, warning=F, message=F}
 i=1
@@ -121,6 +188,7 @@ pca_table_final_per_pop <- group_by(pca_table_final, population, coverage, sampl
   ungroup() %>%
   group_by(coverage, sample_size) %>%
   mutate(PC1_mean=rescale(PC1_mean, c(-1,1)), PC2_mean=rescale(PC2_mean, c(-1,1)), PC3_mean=rescale(PC3_mean, c(-1,1)))
+
 ## Plot PCA
 pca_plot <- filter(pca_table_final, coverage < 0.5) %>% 
   ggplot(aes(x=PC1, y=PC2, color=population)) +
@@ -155,6 +223,83 @@ ggsave("../figures/spatial_pop_lower_m_cov_mat_pca.png", pca_plot_new, width = 2
 include_graphics("../figures/spatial_pop_lower_m_cov_mat_pca.png")
 ```
 
+#### Higher migration rate
+
+```{r eval=F, warning=F, message=F}
+i=1
+for (coverage in c(0.125,0.25,0.5,1,2,4)){
+  for (sample_size in c(5,10,20,40,80)){
+    pop_label <- read_lines(paste0("../spatial_pop_sim/rep_1/sample_lists/bam_list_",sample_size,"_",coverage,"x.txt")) %>%
+      str_extract('p[1-9]')
+    ## Read covariance matrix
+    cov_matrix <- read_tsv(paste0("../spatial_pop_sim/rep_1/angsd/bam_list_",sample_size,"_",coverage,"x.covMat"), col_names = F) %>%
+      as.matrix() %>%
+      .[,-(sample_size*9+1)]
+    cov_matrix[is.na(cov_matrix)]<- median(cov_matrix, na.rm = T)
+    ## Perform eigen decomposition
+    e <- eigen(cov_matrix)
+    e_value<-e$values
+    x_variance<-e_value[1]/sum(e_value)*100
+    y_variance<-e_value[2]/sum(e_value)*100
+    e_vector <- as.data.frame(e$vectors)[,1:5]
+    pca_table <- bind_cols(pop_label=pop_label, e_vector) %>%
+      transmute(population=pop_label, PC1=rescale(V1, c(-1, 1)), PC2=rescale(V2, c(-1, 1)), PC3=rescale(V3, c(-1, 1)), PC4=rescale(V3, c(-1, 1)), PC5=rescale(V5, c(-1, 1)), coverage=coverage, sample_size=sample_size)
+    ## Bind PCA tables and DAPC tables for all sample size and coverage combinations
+    if (i==1){
+      pca_table_final <- pca_table
+    } else {
+      pca_table_final <- bind_rows(pca_table_final,pca_table)
+    }
+    i=i+1
+  }
+}
+## Get mean PC values per population
+pca_table_final_per_pop <- group_by(pca_table_final, population, coverage, sample_size) %>%
+  summarise(PC1_mean=mean(PC1), PC2_mean=mean(PC2), PC3_mean=mean(PC3), PC1_sd=sd(PC1), PC2_sd=sd(PC2), PC3_sd=sd(PC3)) %>%
+  ungroup() %>%
+  group_by(coverage, sample_size) %>%
+  mutate(PC1_mean=rescale(PC1_mean, c(-1,1)), PC2_mean=rescale(PC2_mean, c(-1,1)), PC3_mean=rescale(PC3_mean, c(-1,1)))
+
+## Plot PCA
+pca_plot <- pca_table_final %>% 
+  ggplot(aes(x=PC1, y=PC2, color=population)) +
+  geom_point() +
+  facet_grid(coverage~sample_size, scales="free") +
+  scale_color_viridis_d() +
+  theme_cowplot() +
+  theme(text = element_text(size=20),
+        panel.grid = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        panel.border = element_rect(colour = "black", fill=NA, size=1),
+        legend.position="none")
+
+pca_plot_grob <- ggplotGrob(pca_plot)
+
+pca_plot_new <- gtable_add_cols(pca_plot_grob, unit(pca_plot_grob$widths[[14]], 'cm'), 15)  %>%
+  gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
+                       textGrob("coverage", rot = -90, gp = gpar(col = gray(1)))),
+                  8, 16, 18, 16, name = paste(runif(2))) %>%
+  gtable_add_cols(unit(1/8, "line"), 15) %>%
+  gtable_add_rows(unit(pca_plot_grob$heights[[7]], 'cm'), 6) %>%
+  gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
+                          textGrob("sample size", gp = gpar(col = gray(1)))),
+                     7, 5, 7, 13, name = paste(runif(2))) %>%
+  gtable_add_rows(unit(1/8, "line"), 7)
+
+ggsave("../figures/spatial_pop_cov_mat_pca.png", pca_plot_new, width = 28, height = 18.5, units = "cm", pointsize = 20)
+```
+
+```{r eval=T, warning=F, message=F}
+include_graphics("../figures/spatial_pop_cov_mat_pca.png")
+```
+
+Subsequently, I combined these two figures with schematics of their true population structures using PowerPoint. The result looks like this:
+
+```{r eval=T, warning=F, message=F}
+include_graphics("../figures/spatial_pca_combined.png")
+```
+
 ## Fst
 
 #### Define some functions
@@ -170,7 +315,7 @@ get_ancestral <- function(x){
 get_mutations <- function(x){
   ## Read in the mutation file outputted by SLiM
   mutations <- read_delim(paste0(x, "slim/mutations.txt"), delim = " ", col_names = F, col_types = cols()) %>%
-    transmute(population=X4, type=X6, position=X7+1, base=X13, frequency=X12/1000) %>%
+    transmute(population=X4, type=X6, position=X7+1, base=X13, frequency=X12/10000) %>%
     left_join(ancestral, by="position") %>%
     group_by(population, type, position, ancestral, base) %>%
     summarise(frequency=sum(frequency)) %>%
@@ -302,12 +447,48 @@ ancestral <- get_ancestral("../two_pop_sim_fixed_m2_pos/rep_1/")
 mutations_final <- get_mutations("../two_pop_sim_fixed_m2_pos/rep_1/")
 mutations_final_m1 <- filter(mutations_final, type=="m1")
 mutations_final_m2 <- filter(mutations_final, type=="m2")
+true_fst_plot <- ggplot(mutations_final_m1, aes(x=position/10^6, y=fst)) +
+  geom_point(size=0.02, alpha=0.5) +
+  geom_point(data=mutations_final_m2, color="red") +
+  labs(x = "position (in Mbp)", y = expression(F[ST])) + 
+  xlim(c(0, 30)) +
+  ylim(c(0, 1)) +
+  theme_cowplot() +
+  theme(text = element_text(size=20),
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
+ggsave("../figures/true_fst_plot.png", true_fst_plot, width = 42, height = 5, units = "cm", pointsize = 20)
 ```
 
+```{r eval=T, warning=F, message=F}
+include_graphics("../figures/true_fst_plot.png")
+```
+
+  
 #### Read in files for LC-WGS
 
 ```{r eval=F}
 fst_n_ind_final <- get_estimated_fst("../two_pop_sim_fixed_m2_pos/rep_1/")
+```
+
+#### Read in files for RAD seq
+
+```{r eval=F}
+i <- 1
+for (n in c(1,2,4,8,16,32)*120){
+  maf <- allele_count_to_fst("../two_pop_sim_fixed_m2_pos/rep_1/", n_rad_tag = n) %>%
+  mutate(n_rad_tag = n)
+  if (i == 1){
+    maf_final <- maf
+  } else {
+    maf_final <- bind_rows(maf_final, maf)
+  }
+  i <- i + 1
+}
+```
+
+#### For presentations
+
+```{r eval=F}
 fst_plot <- filter(fst_n_ind_final, coverage < 4, sample_size > 5, sample_size < 160) %>%
   fixed_windowed_fst(1000) %>%
   ggplot(aes(x=position/10^6, y=fst)) +
@@ -343,20 +524,7 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_windowed_fst.png", fst_plot_new, wid
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_windowed_fst.png")
 ```
 
-#### Read in files for RAD seq
-
-```{r eval=F}
-i <- 1
-for (n in c(1,2,4,8,16,32)*120){
-  maf <- allele_count_to_fst("../two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/", n_rad_tag = n) %>%
-  mutate(n_rad_tag = n)
-  if (i == 1){
-    maf_final <- maf
-  } else {
-    maf_final <- bind_rows(maf_final, maf)
-  }
-  i <- i + 1
-}
+```{eval=F}
 fst_plot_radseq <- maf_final %>%
   filter(sample_size > 5, sample_size < 160, n_rad_tag < 1000) %>%
   mutate(n_rad_tag = n_rad_tag/30) %>%
@@ -384,4 +552,75 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_rad_seq_windowed_fst.png", fst_plot_
 
 ```{r eval=T, warning=F, message=F}
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_rad_seq_windowed_fst.png")
+```
+
+
+#### For papers
+
+```{r eval=F}
+fst_plot <- fst_n_ind_final %>%
+  fixed_windowed_fst(1000) %>%
+  ggplot(aes(x=position/10^6, y=fst)) +
+  geom_point(alpha=0.8, size=0.15) +
+  geom_point(data=mutations_final_m2, aes(x=position/10^6, y=1.01), color="red", size=2, shape=16) +
+  ylim(NA, 1.05) +
+  labs(x = "position (in Mbp)", y = expression(F[ST])) + 
+  facet_grid(coverage~sample_size) +
+  theme_cowplot() +
+  theme(text = element_text(size=20),
+        panel.border = element_rect(colour = "black", fill=NA, size=1)
+        #, axis.title.x = element_blank(),
+        #axis.text.x = element_blank(),
+        #axis.ticks.x = element_blank()
+        )
+
+fst_plot_grob <- ggplotGrob(fst_plot)
+
+fst_plot_new <- gtable_add_cols(fst_plot_grob, unit(fst_plot_grob$widths[[16]], 'cm'), 16)  %>%
+  gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
+                       textGrob("coverage", rot = -90, gp = gpar(col = gray(1)))),
+                  8, 17, 18, 17, name = paste(runif(2))) %>%
+  gtable_add_cols(unit(1/8, "line"), 13) %>%
+  gtable_add_rows(unit(fst_plot_grob$heights[[7]], 'cm'), 6) %>%
+  gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
+                          textGrob("sample size", gp = gpar(col = gray(1)))),
+                     7, 5, 7, 16, name = paste(runif(2))) %>%
+  gtable_add_rows(unit(1/8, "line"), 7)
+
+ggsave("../figures/two_pop_sim_fixed_m2_pos_windowed_fst_for_paper.png", fst_plot_new, width = 42, height = 21, units = "cm", pointsize = 20)
+```
+
+```{r eval=T, warning=F, message=F}
+include_graphics("../figures/two_pop_sim_fixed_m2_pos_windowed_fst_for_paper.png")
+```
+
+```{r eval=F}
+fst_plot_radseq <- maf_final %>%
+  mutate(n_rad_tag = n_rad_tag/30) %>%
+  ggplot(aes(x=position/10^6, y=fst)) +
+  geom_point(alpha=0.8, size=0.5) +
+  geom_point(data=mutations_final_m2, aes(x=position/10^6, y=1.01), color="red", size=2, shape=16) +
+  ylim(c(NA, 1.05)) +
+  facet_grid(n_rad_tag~sample_size) +
+  labs(x = "position (in Mbp)", y = expression(F[ST])) + 
+  theme_cowplot() +
+  theme(text = element_text(size=20),
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
+fst_plot_grob <- ggplotGrob(fst_plot_radseq)
+
+fst_plot_new <- gtable_add_cols(fst_plot_grob, unit(fst_plot_grob$widths[[16]], 'cm'), 16)  %>%
+  gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
+                       textGrob("number of RAD tags per Mbp", rot = -90, gp = gpar(col = gray(1)))),
+                  8, 17, 18, 17, name = paste(runif(2))) %>%
+  gtable_add_cols(unit(1/8, "line"), 13) %>%
+  gtable_add_rows(unit(fst_plot_grob$heights[[7]], 'cm'), 6) %>%
+  gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
+                          textGrob("sample size", gp = gpar(col = gray(1)))),
+                     7, 5, 7, 16, name = paste(runif(2))) %>%
+  gtable_add_rows(unit(1/8, "line"), 7)
+ggsave("../figures/two_pop_sim_fixed_m2_pos_rad_seq_fst_for_paper.png", fst_plot_new, width = 42, height = 21, units = "cm", pointsize = 20)
+```
+
+```{r eval=T, warning=F, message=F}
+include_graphics("../figures/two_pop_sim_fixed_m2_pos_rad_seq_fst_for_paper.png")
 ```
