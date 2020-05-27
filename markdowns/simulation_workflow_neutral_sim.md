@@ -1,29 +1,52 @@
 Simulation workflow for neutral simulation
 ================
 
--   [Neutral simulation](#neutral-simulation)
-    -   [Create a shell script to run SLiM with nohup](#create-a-shell-script-to-run-slim-with-nohup)
-    -   [Run the shell script for SLiM simulation on server](#run-the-shell-script-for-slim-simulation-on-server)
-    -   [Create a shell script to run ART with nohup](#create-a-shell-script-to-run-art-with-nohup)
-    -   [Run the shell script for ART simulation on server](#run-the-shell-script-for-art-simulation-on-server)
-    -   [Merge, sort, and subsample bam files](#merge-sort-and-subsample-bam-files)
-    -   [Run the shell script for merging, sorting, and subsampling](#run-the-shell-script-for-merging-sorting-and-subsampling)
-    -   [Make bam lists](#make-bam-lists)
-    -   [Index the ancestral fasta file](#index-the-ancestral-fasta-file)
-    -   [Get shell script for SNP calling](#get-shell-script-for-snp-calling)
-    -   [Run the shell script for SNP calling](#run-the-shell-script-for-snp-calling)
-    -   [Get shell script for estimating thetas and Tajima's D](#get-shell-script-for-estimating-thetas-and-tajimas-d)
-    -   [Run the shell script to estimate theta and Tajima's D](#run-the-shell-script-to-estimate-theta-and-tajimas-d)
+  - [Neutral simulation](#neutral-simulation)
+      - [Create a shell script to run SLiM with
+        nohup](#create-a-shell-script-to-run-slim-with-nohup)
+      - [Run the shell script for SLiM simulation on
+        server](#run-the-shell-script-for-slim-simulation-on-server)
+      - [Create a shell script to run ART with
+        nohup](#create-a-shell-script-to-run-art-with-nohup)
+      - [Run the shell script for ART simulation on
+        server](#run-the-shell-script-for-art-simulation-on-server)
+      - [Merge, sort, and subsample bam
+        files](#merge-sort-and-subsample-bam-files)
+      - [Run the shell script for merging, sorting, and
+        subsampling](#run-the-shell-script-for-merging-sorting-and-subsampling)
+      - [Make bam lists](#make-bam-lists)
+      - [Index the ancestral fasta
+        file](#index-the-ancestral-fasta-file)
+  - [Run ANGSD using the Samtool genotype likelihood model
+    (`-GL 1`)](#run-angsd-using-the-samtool-genotype-likelihood-model--gl-1)
+      - [Get shell script for SNP
+        calling](#get-shell-script-for-snp-calling)
+      - [Run the shell script for SNP
+        calling](#run-the-shell-script-for-snp-calling)
+      - [Get shell script for estimating thetas and Tajima’s
+        D](#get-shell-script-for-estimating-thetas-and-tajimas-d)
+      - [Run the shell script to estimate theta and Tajima’s
+        D](#run-the-shell-script-to-estimate-theta-and-tajimas-d)
+  - [Experimentation with GATK’s GL model instead of the Samtool
+    model](#experimentation-with-gatks-gl-model-instead-of-the-samtool-model)
+  - [Run ANGSD using the GATK genotype likelihood model
+    (`-GL 2`)](#run-angsd-using-the-gatk-genotype-likelihood-model--gl-2)
+      - [Get shell script for SNP
+        calling](#get-shell-script-for-snp-calling-1)
+      - [Run the shell script for SNP
+        calling](#run-the-shell-script-for-snp-calling-1)
+      - [Get shell script for estimating thetas and Tajima’s
+        D](#get-shell-script-for-estimating-thetas-and-tajimas-d-1)
+      - [Run the shell script to estimate theta and Tajima’s
+        D](#run-the-shell-script-to-estimate-theta-and-tajimas-d-1)
 
 ``` r
 library(tidyverse)
 ```
 
-Neutral simulation
-==================
+# Neutral simulation
 
-Create a shell script to run SLiM with nohup
---------------------------------------------
+## Create a shell script to run SLiM with nohup
 
 ``` r
 shell_script <- "#!/bin/bash
@@ -52,8 +75,7 @@ fi
 write_lines(shell_script, "../shell_scripts/neutral_sim.sh")
 ```
 
-Run the shell script for SLiM simulation on server
---------------------------------------------------
+## Run the shell script for SLiM simulation on server
 
 ``` bash
 for k in 1; do
@@ -61,8 +83,7 @@ for k in 1; do
 done
 ```
 
-Create a shell script to run ART with nohup
--------------------------------------------
+## Create a shell script to run ART with nohup
 
 ``` r
 shell_script <-"#!/bin/bash
@@ -113,8 +134,7 @@ done"
 write_lines(shell_script, "../shell_scripts/art_neutral_sim.sh")
 ```
 
-Run the shell script for ART simulation on server
--------------------------------------------------
+## Run the shell script for ART simulation on server
 
 ``` bash
 for k in 1; do
@@ -122,8 +142,7 @@ for k in 1; do
 done
 ```
 
-Merge, sort, and subsample bam files
-------------------------------------
+## Merge, sort, and subsample bam files
 
 ``` r
 shell_script <-"#!/bin/bash
@@ -186,8 +205,7 @@ done"
 write_lines(shell_script, "../shell_scripts/merge_sort_subsample_neutral_sim.sh")
 ```
 
-Run the shell script for merging, sorting, and subsampling
-----------------------------------------------------------
+## Run the shell script for merging, sorting, and subsampling
 
 ``` bash
 for k in 1; do
@@ -195,8 +213,7 @@ for k in 1; do
 done
 ```
 
-Make bam lists
---------------
+## Make bam lists
 
 ``` r
 for (coverage in c(0.25,0.5,1,2,4,8)){
@@ -212,8 +229,7 @@ for (coverage in c(0.25,0.5,1,2,4,8)){
 }
 ```
 
-Index the ancestral fasta file
-------------------------------
+## Index the ancestral fasta file
 
 ``` bash
 for REP_ID in 1; do
@@ -222,8 +238,9 @@ for REP_ID in 1; do
 done
 ```
 
-Get shell script for SNP calling
---------------------------------
+# Run ANGSD using the Samtool genotype likelihood model (`-GL 1`)
+
+## Get shell script for SNP calling
 
 ``` r
 ## Note that I used -doMajorMinor 5, using the ancestral sequence to determine major and minor alleles
@@ -253,18 +270,20 @@ done"
 write_lines(shell_script, "../shell_scripts/snp_calling_neutral_sim.sh")
 ```
 
-Note: To deal with triallelic loci, I tried `-doMaf 2`, but it turned out that `-doMaf 2` does not bin all alleles other than the ancestral allele. It takes a weighted average approach instead, and makes the result more difficult to process. So we shoud still use`-doMaf 2`, with a `-rmTriallelic 1e-6` filter to remove triallelic loci.
+Note: To deal with triallelic loci, I tried `-doMaf 2`, but it turned
+out that `-doMaf 2` does not bin all alleles other than the ancestral
+allele. It takes a weighted average approach instead, and makes the
+result more difficult to process. So we shoud still use`-doMaf 2`, with
+a `-rmTriallelic 1e-6` filter to remove triallelic loci.
 
-Run the shell script for SNP calling
-------------------------------------
+## Run the shell script for SNP calling
 
 ``` bash
 nohup bash /workdir/lcwgs-simulation/shell_scripts/snp_calling_neutral_sim.sh \
 > '/workdir/lcwgs-simulation/nohups/snp_calling_neutral_sim_1.nohup' &
 ```
 
-Get shell script for estimating thetas and Tajima's D
------------------------------------------------------
+## Get shell script for estimating thetas and Tajima’s D
 
 ``` r
 shell_script <- "#!/bin/bash
@@ -382,11 +401,335 @@ done"
 write_lines(shell_script, "../shell_scripts/estimate_theta_neutral_sim.sh")
 ```
 
-Run the shell script to estimate theta and Tajima's D
------------------------------------------------------
+## Run the shell script to estimate theta and Tajima’s D
 
 ``` bash
 nohup bash /workdir/lcwgs-simulation/shell_scripts/estimate_theta_neutral_sim.sh \
   1 \
   > '/workdir/lcwgs-simulation/nohups/estimate_theta_neutral_sim_1.nohup' &
+```
+
+# Experimentation with GATK’s GL model instead of the Samtool model
+
+Watterson’s theta is consistently underestimated, so I will give GATK’s
+GL model a try (`-GL 2`). I will first try this with 40 samples and 1x
+coverage.
+
+``` bash
+mkdir /workdir/lcwgs-simulation/neutral_sim/rep_1/angsd_gatk
+## Estimate GL and MAF using -GL 2
+BASE_DIR=/workdir/lcwgs-simulation/neutral_sim/rep_1/
+for COVERAGE in 1; do
+  for SAMPLE_SIZE in 40; do
+    nohup /workdir/programs/angsd0.931/angsd/angsd \
+    -b $BASE_DIR'sample_lists/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.txt' \
+    -anc $BASE_DIR'slim/ancestral.fasta' \
+    -out $BASE_DIR'angsd_gatk/gatk_ml_test' \
+    -GL 2 -doGlf 2 -doMaf 1 -doMajorMinor 5 \
+    -doCounts 1 -doDepth 1 -dumpCounts 3 \
+    -P 8 -SNP_pval 1e-6 -rmTriallelic 1e-6 \
+    -setMinDepth 2 -minInd 1 -minMaf 0.0005 -minQ 20 \
+    > /workdir/lcwgs-simulation/nohups/gatk_ml_test_snp_calling.nohup &
+  done
+done
+
+## Get saf file
+for SAMPLE_SIZE in 40; do
+  for COVERAGE in 1; do
+    nohup /workdir/programs/angsd0.931/angsd/angsd \
+      -bam $BASE_DIR'sample_lists/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.txt' \
+      -out $BASE_DIR'angsd_gatk/gatk_ml_test' \
+      -doSaf 1 \
+      -anc $BASE_DIR'slim/ancestral.fasta' \
+      -GL 2 \
+      -P 16 \
+      -doCounts 1 \
+      -setMinDepth 2 \
+      > /workdir/lcwgs-simulation/nohups/gatk_ml_test_saf.nohup &
+  done
+done
+
+## Get SFS from saf 
+/workdir/programs/angsd0.931/angsd/misc/realSFS \
+  $BASE_DIR'angsd_gatk/gatk_ml_test.saf.idx' \
+  -P 16 \
+  > $BASE_DIR'angsd_gatk/gatk_ml_test.sfs' &
+
+## Estimate theta
+for SAMPLE_SIZE in 40; do
+  for COVERAGE in 1; do
+    nohup /workdir/programs/angsd0.931/angsd/angsd \
+      -bam $BASE_DIR'sample_lists/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.txt' \
+      -out $BASE_DIR'angsd_gatk/gatk_ml_test' \
+      -doThetas 1 \
+      -doSaf 1 \
+      -pest $BASE_DIR'angsd_gatk/gatk_ml_test.sfs' \
+      -anc $BASE_DIR'slim/ancestral.fasta' \
+      -GL 2 \
+      -P 16 \
+      -doCounts 1 \
+      -setMinDepth 2 \
+      > /workdir/lcwgs-simulation/nohups/gatk_ml_test_theta.nohup &
+  done
+done
+
+## Do per-chromosome average theta
+/workdir/programs/angsd0.931/angsd/misc/thetaStat do_stat \
+  $BASE_DIR'angsd_gatk/gatk_ml_test.thetas.idx' \
+  -outnames $BASE_DIR'angsd_gatk/gatk_ml_test.average_thetas.idx' &
+```
+
+``` r
+## SFS comparison
+gatk_sfs <- read_lines("../neutral_sim/rep_1/angsd_gatk/gatk_ml_test.sfs") %>%
+  str_split(pattern = " ") %>%
+  .[[1]] %>%
+  .[1:81] %>%
+  as.numeric() %>%
+  bind_cols(frequency=0:80/80, count=., method=rep("GATK",81))
+samtools_sfs <- read_lines("../neutral_sim/rep_1/angsd/bam_list_40_1x.sfs") %>%
+  str_split(pattern = " ") %>%
+  .[[1]] %>%
+  .[1:81] %>%
+  as.numeric() %>%
+  bind_cols(frequency=0:80/80, count=., method=rep("Samtools",81))
+bind_rows(gatk_sfs, samtools_sfs) %>%
+  filter(frequency>0, frequency<1) %>%
+  ggplot() +
+  geom_col(aes(x=frequency, y=count)) +
+  facet_grid(method~.) +
+  cowplot::theme_cowplot()
+```
+
+![](simulation_workflow_neutral_sim_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
+
+``` r
+## chromosome-average theta comparison
+gatk_theta <- read_tsv("../neutral_sim/rep_1/angsd_gatk/gatk_ml_test.average_thetas.idx.pestPG") %>%
+  transmute(t_w = tW/nSites, t_p = tP/nSites, method = "GATK")
+```
+
+    ## Parsed with column specification:
+    ## cols(
+    ##   `#(indexStart,indexStop)(firstPos_withData,lastPos_withData)(WinStart,WinStop)` = col_character(),
+    ##   Chr = col_character(),
+    ##   WinCenter = col_double(),
+    ##   tW = col_double(),
+    ##   tP = col_double(),
+    ##   tF = col_double(),
+    ##   tH = col_double(),
+    ##   tL = col_double(),
+    ##   Tajima = col_double(),
+    ##   fuf = col_double(),
+    ##   fud = col_double(),
+    ##   fayh = col_double(),
+    ##   zeng = col_double(),
+    ##   nSites = col_double()
+    ## )
+
+``` r
+samtools_theta <- read_tsv("../neutral_sim/rep_1/angsd/bam_list_40_1x.average_thetas.idx.pestPG") %>%
+  transmute(t_w = tW/nSites, t_p = tP/nSites, method = "Samtools")
+```
+
+    ## Parsed with column specification:
+    ## cols(
+    ##   `#(indexStart,indexStop)(firstPos_withData,lastPos_withData)(WinStart,WinStop)` = col_character(),
+    ##   Chr = col_character(),
+    ##   WinCenter = col_double(),
+    ##   tW = col_double(),
+    ##   tP = col_double(),
+    ##   tF = col_double(),
+    ##   tH = col_double(),
+    ##   tL = col_double(),
+    ##   Tajima = col_double(),
+    ##   fuf = col_double(),
+    ##   fud = col_double(),
+    ##   fayh = col_double(),
+    ##   zeng = col_double(),
+    ##   nSites = col_double()
+    ## )
+
+``` r
+bind_rows(gatk_theta, samtools_theta) %>%
+  knitr::kable()
+```
+
+|      t\_w |      t\_p | method   |
+| --------: | --------: | :------- |
+| 0.0034298 | 0.0039302 | GATK     |
+| 0.0027496 | 0.0037529 | Samtools |
+
+The GATK model does a better job. I will therefore run the entire
+process (starting from SNP calling) using the GATK model below.
+
+# Run ANGSD using the GATK genotype likelihood model (`-GL 2`)
+
+## Get shell script for SNP calling
+
+``` r
+## Note that I used -doMajorMinor 5, using the ancestral sequence to determine major and minor alleles
+shell_script <-"#!/bin/bash
+BASE_DIR=${1:-/workdir/lcwgs-simulation/neutral_sim/rep_1/}
+N_CORE_MAX=28
+
+## SNP calling
+COUNT=0
+for COVERAGE in {0.25,0.5,1,2,4,8}; do
+  for SAMPLE_SIZE in {5,10,20,40,80,160}; do
+    /workdir/programs/angsd0.931/angsd/angsd \\
+    -b $BASE_DIR'sample_lists/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.txt' \\
+    -anc $BASE_DIR'slim/ancestral.fasta' \\
+    -out $BASE_DIR'angsd_gatk/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x' \\
+    -GL 2 -doGlf 2 -doMaf 1 -doMajorMinor 5 \\
+    -doCounts 1 -doDepth 1 -dumpCounts 3 \\
+    -P 1 -SNP_pval 1e-6 -rmTriallelic 1e-6 \\
+    -setMinDepth 2 -minInd 1 -minMaf 0.0005 -minQ 20 &
+    COUNT=$(( COUNT + 1 ))
+    if [ $COUNT == $N_CORE_MAX ]; then
+      wait
+      COUNT=0
+    fi
+  done
+done"
+write_lines(shell_script, "../shell_scripts/snp_calling_gatk_neutral_sim.sh")
+```
+
+Note: To deal with triallelic loci, I tried `-doMaf 2`, but it turned
+out that `-doMaf 2` does not bin all alleles other than the ancestral
+allele. It takes a weighted average approach instead, and makes the
+result more difficult to process. So we shoud still use`-doMaf 2`, with
+a `-rmTriallelic 1e-6` filter to remove triallelic loci.
+
+## Run the shell script for SNP calling
+
+``` bash
+nohup bash /workdir/lcwgs-simulation/shell_scripts/snp_calling_gatk_neutral_sim.sh \
+> '/workdir/lcwgs-simulation/nohups/snp_calling_gatk_neutral_sim_1.nohup' &
+```
+
+## Get shell script for estimating thetas and Tajima’s D
+
+``` r
+shell_script <- "#!/bin/bash
+REP_ID=$1
+DIR=${2:-/workdir/lcwgs-simulation/neutral_sim/}
+
+BASE_DIR=$DIR'rep_'$REP_ID'/'
+N_CORE_MAX=12
+
+## Get saf file
+COUNT=0
+for SAMPLE_SIZE in {5,10,20,40,80,160}; do
+  for COVERAGE in {0.25,0.5,1,2,4,8}; do
+    /workdir/programs/angsd0.931/angsd/angsd \\
+      -bam $BASE_DIR'sample_lists/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.txt' \\
+      -out $BASE_DIR'angsd_gatk/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x' \\
+      -doSaf 1 \\
+      -anc $BASE_DIR'slim/ancestral.fasta' \\
+      -GL 2 \\
+      -P 2 \\
+      -doCounts 1 \\
+      -setMinDepth 2 &
+    COUNT=$(( COUNT + 1 ))
+    if [ $COUNT == $N_CORE_MAX ]; then
+      wait
+      COUNT=0
+    fi
+  done
+done
+wait
+## Get SFS from saf (this need to be broken up into two separate runs due to memory limiations)
+COUNT=0
+for SAMPLE_SIZE in {5,10,20,40,80,160}; do
+  for COVERAGE in {0.25,0.5,1,2,4,8}; do
+    /workdir/programs/angsd0.931/angsd/misc/realSFS \\
+      $BASE_DIR'angsd_gatk/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.saf.idx' \\
+      -P 2 \\
+      > $BASE_DIR'angsd_gatk/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.sfs' &
+    COUNT=$(( COUNT + 1 ))
+    if [ $COUNT == $N_CORE_MAX ]; then
+      wait
+      COUNT=0
+    fi
+  done
+done
+wait
+## Estimate theta
+COUNT=0
+for SAMPLE_SIZE in {5,10,20,40,80,160}; do
+  for COVERAGE in {0.25,0.5,1,2,4,8}; do
+    /workdir/programs/angsd0.931/angsd/angsd \\
+      -bam $BASE_DIR'sample_lists/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.txt' \\
+      -out $BASE_DIR'angsd_gatk/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x' \\
+      -doThetas 1 \\
+      -doSaf 1 \\
+      -pest $BASE_DIR'angsd_gatk/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.sfs' \\
+      -anc $BASE_DIR'slim/ancestral.fasta' \\
+      -GL 2 \\
+      -P 2 \\
+      -doCounts 1 \\
+      -setMinDepth 2 &
+    COUNT=$(( COUNT + 1 ))
+    if [ $COUNT == $N_CORE_MAX ]; then
+      wait
+      COUNT=0
+    fi
+  done
+done
+wait
+## Print per-SNP theta
+COUNT=0
+for SAMPLE_SIZE in {5,10,20,40,80,160}; do
+  for COVERAGE in {0.25,0.5,1,2,4,8}; do
+    /workdir/programs/angsd0.931/angsd/misc/thetaStat print \\
+      $BASE_DIR'angsd_gatk/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.thetas.idx' \\
+      > $BASE_DIR'angsd_gatk/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.thetas.tsv' &
+    COUNT=$(( COUNT + 1 ))
+    if [ $COUNT == $N_CORE_MAX ]; then
+      wait
+      COUNT=0
+    fi
+  done
+done
+wait
+## Do fixed window theta
+COUNT=0
+for SAMPLE_SIZE in {5,10,20,40,80,160}; do
+  for COVERAGE in {0.25,0.5,1,2,4,8}; do
+    /workdir/programs/angsd0.931/angsd/misc/thetaStat do_stat \\
+      $BASE_DIR'angsd_gatk/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.thetas.idx' \\
+      -win 10000 -step 10000 \\
+      -outnames $BASE_DIR'angsd_gatk/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.thetas.idx' &
+    COUNT=$(( COUNT + 1 ))
+    if [ $COUNT == $N_CORE_MAX ]; then
+      wait
+      COUNT=0
+    fi
+  done
+done
+wait
+## Do per-chromosome average theta
+COUNT=0
+for SAMPLE_SIZE in {5,10,20,40,80,160}; do
+  for COVERAGE in {0.25,0.5,1,2,4,8}; do
+    /workdir/programs/angsd0.931/angsd/misc/thetaStat do_stat \\
+      $BASE_DIR'angsd_gatk/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.thetas.idx' \\
+      -outnames $BASE_DIR'angsd_gatk/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.average_thetas.idx' &
+    COUNT=$(( COUNT + 1 ))
+    if [ $COUNT == $N_CORE_MAX ]; then
+      wait
+      COUNT=0
+    fi
+  done
+done"
+write_lines(shell_script, "../shell_scripts/estimate_theta_gatk_neutral_sim.sh")
+```
+
+## Run the shell script to estimate theta and Tajima’s D
+
+``` bash
+nohup bash /workdir/lcwgs-simulation/shell_scripts/estimate_theta_gatk_neutral_sim.sh \
+  1 \
+  > '/workdir/lcwgs-simulation/nohups/estimate_theta_gatk_neutral_sim_1.nohup' &
 ```
