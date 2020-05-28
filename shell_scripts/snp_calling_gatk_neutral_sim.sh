@@ -4,8 +4,8 @@ N_CORE_MAX=28
 
 ## SNP calling
 COUNT=0
-for COVERAGE in {0.25,0.5,1,2,4,8}; do
-  for SAMPLE_SIZE in {5,10,20,40,80,160}; do
+for SAMPLE_SIZE in {5,10,20,40,80,160}; do
+  for COVERAGE in {0.25,0.5,1,2,4,8}; do
     /workdir/programs/angsd0.931/angsd/angsd \
     -b $BASE_DIR'sample_lists/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.txt' \
     -anc $BASE_DIR'slim/ancestral.fasta' \

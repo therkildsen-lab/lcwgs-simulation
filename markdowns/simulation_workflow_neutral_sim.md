@@ -29,6 +29,9 @@ Simulation workflow for neutral simulation
         D](#run-the-shell-script-to-estimate-theta-and-tajimas-d)
   - [Experimentation with GATK’s GL model instead of the Samtool
     model](#experimentation-with-gatks-gl-model-instead-of-the-samtool-model)
+      - [With minimal filtering](#with-minimal-filtering)
+      - [With `-setMinDepth 40`](#with--setmindepth-40)
+      - [Result comparison](#result-comparison)
   - [Run ANGSD using the GATK genotype likelihood model
     (`-GL 2`)](#run-angsd-using-the-gatk-genotype-likelihood-model--gl-2)
       - [Get shell script for SNP
@@ -415,23 +418,12 @@ Watterson’s theta is consistently underestimated, so I will give GATK’s
 GL model a try (`-GL 2`). I will first try this with 40 samples and 1x
 coverage.
 
+## With minimal filtering
+
 ``` bash
 mkdir /workdir/lcwgs-simulation/neutral_sim/rep_1/angsd_gatk
 ## Estimate GL and MAF using -GL 2
 BASE_DIR=/workdir/lcwgs-simulation/neutral_sim/rep_1/
-for COVERAGE in 1; do
-  for SAMPLE_SIZE in 40; do
-    nohup /workdir/programs/angsd0.931/angsd/angsd \
-    -b $BASE_DIR'sample_lists/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.txt' \
-    -anc $BASE_DIR'slim/ancestral.fasta' \
-    -out $BASE_DIR'angsd_gatk/gatk_ml_test' \
-    -GL 2 -doGlf 2 -doMaf 1 -doMajorMinor 5 \
-    -doCounts 1 -doDepth 1 -dumpCounts 3 \
-    -P 8 -SNP_pval 1e-6 -rmTriallelic 1e-6 \
-    -setMinDepth 2 -minInd 1 -minMaf 0.0005 -minQ 20 \
-    > /workdir/lcwgs-simulation/nohups/gatk_ml_test_snp_calling.nohup &
-  done
-done
 
 ## Get saf file
 for SAMPLE_SIZE in 40; do
@@ -479,6 +471,55 @@ done
   -outnames $BASE_DIR'angsd_gatk/gatk_ml_test.average_thetas.idx' &
 ```
 
+## With `-setMinDepth 40`
+
+``` bash
+BASE_DIR=/workdir/lcwgs-simulation/neutral_sim/rep_1/
+for SAMPLE_SIZE in 40; do
+  for COVERAGE in 1; do
+    nohup /workdir/programs/angsd0.931/angsd/angsd \
+      -bam $BASE_DIR'sample_lists/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.txt' \
+      -out $BASE_DIR'angsd_gatk/gatk_ml_test_mindepth_40' \
+      -doSaf 1 \
+      -anc $BASE_DIR'slim/ancestral.fasta' \
+      -GL 2 \
+      -P 16 \
+      -doCounts 1 \
+      -setMinDepth 40 \
+      > /workdir/lcwgs-simulation/nohups/test_saf.nohup &
+  done
+done
+
+/workdir/programs/angsd0.931/angsd/misc/realSFS \
+  $BASE_DIR'angsd_gatk/gatk_ml_test_mindepth_40.saf.idx' \
+  -P 16 \
+  -tole 1e-07 \
+  > $BASE_DIR'angsd_gatk/gatk_ml_test_mindepth_40.sfs' &
+
+for SAMPLE_SIZE in 40; do
+  for COVERAGE in 1; do
+    nohup /workdir/programs/angsd0.931/angsd/angsd \
+      -bam $BASE_DIR'sample_lists/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.txt' \
+      -out $BASE_DIR'angsd_gatk/gatk_ml_test_mindepth_40' \
+      -doThetas 1 \
+      -doSaf 1 \
+      -pest $BASE_DIR'angsd_gatk/gatk_ml_test_mindepth_40.sfs' \
+      -anc $BASE_DIR'slim/ancestral.fasta' \
+      -GL 2 \
+      -P 16 \
+      -doCounts 1 \
+      -setMinDepth 40 \
+      > /workdir/lcwgs-simulation/nohups/gatk_ml_test_theta_mindepth_40.nohup &
+  done
+done
+
+/workdir/programs/angsd0.931/angsd/misc/thetaStat do_stat \
+  $BASE_DIR'angsd_gatk/gatk_ml_test_mindepth_40.thetas.idx' \
+  -outnames $BASE_DIR'angsd_gatk/gatk_ml_test_mindepth_40.average_thetas.idx' &
+```
+
+## Result comparison
+
 ``` r
 ## SFS comparison
 gatk_sfs <- read_lines("../neutral_sim/rep_1/angsd_gatk/gatk_ml_test.sfs") %>%
@@ -486,14 +527,20 @@ gatk_sfs <- read_lines("../neutral_sim/rep_1/angsd_gatk/gatk_ml_test.sfs") %>%
   .[[1]] %>%
   .[1:81] %>%
   as.numeric() %>%
-  bind_cols(frequency=0:80/80, count=., method=rep("GATK",81))
+  bind_cols(frequency=0:80/80, count=., method=rep("GATK (MinDepth=2)",81))
+gatk_sfs_mindepth_40 <- read_lines("../neutral_sim/rep_1/angsd_gatk/gatk_ml_test_mindepth_40.sfs") %>%
+  str_split(pattern = " ") %>%
+  .[[1]] %>%
+  .[1:81] %>%
+  as.numeric() %>%
+  bind_cols(frequency=0:80/80, count=., method=rep("GATK (MinDepth=40)",81))
 samtools_sfs <- read_lines("../neutral_sim/rep_1/angsd/bam_list_40_1x.sfs") %>%
   str_split(pattern = " ") %>%
   .[[1]] %>%
   .[1:81] %>%
   as.numeric() %>%
-  bind_cols(frequency=0:80/80, count=., method=rep("Samtools",81))
-bind_rows(gatk_sfs, samtools_sfs) %>%
+  bind_cols(frequency=0:80/80, count=., method=rep("Samtools (MinDepth=2)",81))
+bind_rows(gatk_sfs, gatk_sfs_mindepth_40, samtools_sfs) %>%
   filter(frequency>0, frequency<1) %>%
   ggplot() +
   geom_col(aes(x=frequency, y=count)) +
@@ -501,67 +548,30 @@ bind_rows(gatk_sfs, samtools_sfs) %>%
   cowplot::theme_cowplot()
 ```
 
-![](simulation_workflow_neutral_sim_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
+![](simulation_workflow_neutral_sim_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
 
 ``` r
 ## chromosome-average theta comparison
 gatk_theta <- read_tsv("../neutral_sim/rep_1/angsd_gatk/gatk_ml_test.average_thetas.idx.pestPG") %>%
-  transmute(t_w = tW/nSites, t_p = tP/nSites, method = "GATK")
-```
-
-    ## Parsed with column specification:
-    ## cols(
-    ##   `#(indexStart,indexStop)(firstPos_withData,lastPos_withData)(WinStart,WinStop)` = col_character(),
-    ##   Chr = col_character(),
-    ##   WinCenter = col_double(),
-    ##   tW = col_double(),
-    ##   tP = col_double(),
-    ##   tF = col_double(),
-    ##   tH = col_double(),
-    ##   tL = col_double(),
-    ##   Tajima = col_double(),
-    ##   fuf = col_double(),
-    ##   fud = col_double(),
-    ##   fayh = col_double(),
-    ##   zeng = col_double(),
-    ##   nSites = col_double()
-    ## )
-
-``` r
+  transmute(t_w = tW/nSites, t_p = tP/nSites, method = "GATK (MinDepth=2)")
+gatk_theta_mindepth_40 <- read_tsv("../neutral_sim/rep_1/angsd_gatk/gatk_ml_test_mindepth_40.average_thetas.idx.pestPG") %>%
+  transmute(t_w = tW/nSites, t_p = tP/nSites, method = "GATK (MinDepth=40)")
 samtools_theta <- read_tsv("../neutral_sim/rep_1/angsd/bam_list_40_1x.average_thetas.idx.pestPG") %>%
-  transmute(t_w = tW/nSites, t_p = tP/nSites, method = "Samtools")
-```
-
-    ## Parsed with column specification:
-    ## cols(
-    ##   `#(indexStart,indexStop)(firstPos_withData,lastPos_withData)(WinStart,WinStop)` = col_character(),
-    ##   Chr = col_character(),
-    ##   WinCenter = col_double(),
-    ##   tW = col_double(),
-    ##   tP = col_double(),
-    ##   tF = col_double(),
-    ##   tH = col_double(),
-    ##   tL = col_double(),
-    ##   Tajima = col_double(),
-    ##   fuf = col_double(),
-    ##   fud = col_double(),
-    ##   fayh = col_double(),
-    ##   zeng = col_double(),
-    ##   nSites = col_double()
-    ## )
-
-``` r
-bind_rows(gatk_theta, samtools_theta) %>%
+  transmute(t_w = tW/nSites, t_p = tP/nSites, method = "Samtools (MinDepth=2)")
+bind_rows(gatk_theta, gatk_theta_mindepth_40, samtools_theta) %>%
   knitr::kable()
 ```
 
-|      t\_w |      t\_p | method   |
-| --------: | --------: | :------- |
-| 0.0034298 | 0.0039302 | GATK     |
-| 0.0027496 | 0.0037529 | Samtools |
+|      t\_w |      t\_p | method                |
+| --------: | --------: | :-------------------- |
+| 0.0034298 | 0.0039302 | GATK (MinDepth=2)     |
+| 0.0039491 | 0.0039437 | GATK (MinDepth=40)    |
+| 0.0027496 | 0.0037529 | Samtools (MinDepth=2) |
 
-The GATK model does a better job. I will therefore run the entire
-process (starting from SNP calling) using the GATK model below.
+The GATK model does a better job. The depth filtering also makes a big
+difference. I will therefore run the entire process (starting from SNP
+calling) using the GATK model below. For the SFS part, I will use a more
+stringent depth filter.
 
 # Run ANGSD using the GATK genotype likelihood model (`-GL 2`)
 
@@ -575,8 +585,8 @@ N_CORE_MAX=28
 
 ## SNP calling
 COUNT=0
-for COVERAGE in {0.25,0.5,1,2,4,8}; do
-  for SAMPLE_SIZE in {5,10,20,40,80,160}; do
+for SAMPLE_SIZE in {5,10,20,40,80,160}; do
+  for COVERAGE in {0.25,0.5,1,2,4,8}; do
     /workdir/programs/angsd0.931/angsd/angsd \\
     -b $BASE_DIR'sample_lists/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.txt' \\
     -anc $BASE_DIR'slim/ancestral.fasta' \\
@@ -610,6 +620,9 @@ nohup bash /workdir/lcwgs-simulation/shell_scripts/snp_calling_gatk_neutral_sim.
 
 ## Get shell script for estimating thetas and Tajima’s D
 
+A more stringent mininum depth filter, which equals to `sample_size *
+coverage`, is used in this step.
+
 ``` r
 shell_script <- "#!/bin/bash
 REP_ID=$1
@@ -630,7 +643,7 @@ for SAMPLE_SIZE in {5,10,20,40,80,160}; do
       -GL 2 \\
       -P 2 \\
       -doCounts 1 \\
-      -setMinDepth 2 &
+      -setMinDepth `awk \"BEGIN {print $SAMPLE_SIZE*$COVERAGE}\"` &
     COUNT=$(( COUNT + 1 ))
     if [ $COUNT == $N_CORE_MAX ]; then
       wait
@@ -669,7 +682,7 @@ for SAMPLE_SIZE in {5,10,20,40,80,160}; do
       -GL 2 \\
       -P 2 \\
       -doCounts 1 \\
-      -setMinDepth 2 &
+      -setMinDepth `awk \"BEGIN {print $SAMPLE_SIZE*$COVERAGE}\"` &
     COUNT=$(( COUNT + 1 ))
     if [ $COUNT == $N_CORE_MAX ]; then
       wait
