@@ -28,11 +28,13 @@ done
 wait
 ## Get SFS from saf (this need to be broken up into two separate runs due to memory limiations)
 COUNT=0
-for SAMPLE_SIZE in {5,10,20,40,80,160}; do
-  for COVERAGE in {0.25,0.5,1,2,4,8}; do
+for COVERAGE in {0.25,0.5,1,2,4,8}; do
+  for SAMPLE_SIZE in {5,10,20,40,80,160}; do
     /workdir/programs/angsd0.931/angsd/misc/realSFS \
       $BASE_DIR'angsd_gatk/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.saf.idx' \
       -P 2 \
+      -tole 1e-08 \
+      -maxIter 1000 \
       > $BASE_DIR'angsd_gatk/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.sfs' &
     COUNT=$(( COUNT + 1 ))
     if [ $COUNT == $N_CORE_MAX ]; then
