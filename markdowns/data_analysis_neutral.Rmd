@@ -51,8 +51,8 @@ plot_error_in_bins <- function(joined_frequency_table, joined_summary_table){
   joined_frequency_table %>%
     ggplot(aes(x=frequency_bin, y=abs(error))) +
     geom_boxplot(outlier.shape = NA) +
-    geom_text(data = joined_summary_table, x = 8, y = 0.9, aes(label=root_mean_error_squared), color = 'black',  parse = TRUE) +
-    geom_text(data = joined_summary_table, x = 8, y = 0.77, aes(label=n), color = 'black',  parse = TRUE) +
+    geom_text(data = joined_summary_table, x = 8, y = 0.77, aes(label=root_mean_error_squared), color = 'black',  parse = TRUE) +
+    geom_text(data = joined_summary_table, x = 8, y = 0.64, aes(label=n), color = 'black',  parse = TRUE) +
     facet_grid(coverage~sample_size) +
     scale_x_discrete(labels=seq(0.05, 0.95, 0.1))  +
     theme_cowplot() +
@@ -113,7 +113,7 @@ The following steps are necessary because there are complications such as back m
 
 ```{r eval=T, warning=F, message=F}
 ## Join mutations and substitutions in a temp table
-mutations_final_temp <-  mutations %>%
+mutations_final_temp_1 <-  mutations %>%
   spread(key = base, value=frequency) %>%
   full_join(substitutions, by=c("position", "type", "ancestral")) %>%
   arrange(position) %>%
@@ -121,15 +121,21 @@ mutations_final_temp <-  mutations %>%
   mutate_all(~replace(., is.na(.), 0)) %>%
   mutate(frequency=1-`A` -`C` -`G` -`T`)
 ## More wrangling
-mutations_final <- mutations_final_temp[1:7] %>%
+mutations_final_temp_2 <- mutations_final_temp_1[1:7] %>%
   gather(key=base, value=frequency, 4:7) %>%
-  bind_rows(mutations_final_temp[c(1:3, 8:9)]) %>%
+  bind_rows(mutations_final_temp_1[c(1:3, 8:9)]) %>%
   mutate(frequency=ifelse(base==ancestral, 0, frequency)) %>%
   group_by(type, position, ancestral) %>%
   filter(frequency!=0) %>%
   summarise(frequency=sum(frequency), base=paste0(base, collapse = "")) %>%
-  ungroup() %>%
+  ungroup() 
+mutations_final <- mutations_final_temp_2 %>%
   filter(frequency!=1)
+substitutions_pos <- mutations_final_temp_2 %>%
+  filter(frequency==1) %>%
+  .$position %>%
+  c(., substitutions$position) %>%
+  unique()
 ```
 
 ## Plot the true site frequency spectrum
@@ -158,7 +164,9 @@ for (coverage in c(0.25,0.5,1,2,4,8)){
     ## join estimated maf with true snps and only keep the snps that exist in estimated maf
     joined_frequency <- right_join(mutations_final, maf, by="position") %>%
       select(-ancestral) %>%
-      mutate(coverage=coverage, sample_size=sample_size, frequency=ifelse(is.na(frequency), 1, frequency))
+      mutate(coverage=coverage, sample_size=sample_size, 
+             frequency=ifelse(is.na(frequency) & !(position %in% substitutions_pos), 0, frequency),
+             frequency=ifelse(is.na(frequency) & position %in% substitutions_pos, 1, frequency))
     ## find false negatives
     false_negatives <- anti_join(mutations_final, maf, by="position") %>%
       mutate(coverage=coverage, sample_size=sample_size)
@@ -192,7 +200,7 @@ write_tsv(sfs_final, "../neutral_sim/rep_1/angsd/sfs_final.tsv")
 
 ```{r eval=T, warning=F, message=F}
 joined_frequency_final <- read_tsv("../neutral_sim/rep_1/angsd/joined_frequency_final.tsv") %>%
-  mutate(frequency_bin = cut(frequency, breaks = 0:10/10), error=estimated_frequency-frequency)
+  mutate(frequency_bin = cut(frequency, breaks = 0:10/10, include.lowest = T), error=estimated_frequency-frequency)
 false_negatives_final <- read_tsv("../neutral_sim/rep_1/angsd/false_negatives_final.tsv")
 false_positives_final <- read_tsv("../neutral_sim/rep_1/angsd/false_positives_final.tsv")
 sfs_final <- read_tsv("../neutral_sim/rep_1/angsd/sfs_final.tsv")
@@ -426,7 +434,9 @@ for (coverage in c(0.25,0.5,1,2,4,8)){
     ## join estimated maf with true snps and only keep the snps that exist in estimated maf
     joined_frequency <- right_join(mutations_final, allele_count, by="position") %>%
       select(-ancestral) %>%
-      mutate(coverage=coverage, sample_size=sample_size, frequency=ifelse(is.na(frequency), 1, frequency))
+      mutate(coverage=coverage, sample_size=sample_size, 
+             frequency=ifelse(is.na(frequency) & !(position %in% substitutions_pos), 0, frequency),
+             frequency=ifelse(is.na(frequency) & position %in% substitutions_pos, 1, frequency))
     ## compile the final files for plotting
     if (i==1){
       joined_frequency_final <- joined_frequency
@@ -441,7 +451,7 @@ write_tsv(joined_frequency_final, "../neutral_sim/rep_1/angsd/joined_frequency_f
 
 ```{r eval=T, warning=F, message=F}
 joined_frequency_final <- read_tsv("../neutral_sim/rep_1/angsd/joined_frequency_final_poolseq.tsv") %>%
-  mutate(estimated_frequency=maf, frequency_bin = cut(frequency, breaks = 0:10/10), error=estimated_frequency-frequency) 
+  mutate(estimated_frequency=maf, frequency_bin = cut(frequency, breaks = 0:10/10, include.lowest = T), error=estimated_frequency-frequency) 
 joined_summary <- summarise_by_design(joined_frequency_final)
 ```
 

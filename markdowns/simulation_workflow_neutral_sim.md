@@ -294,7 +294,7 @@ REP_ID=$1
 DIR=${2:-/workdir/lcwgs-simulation/neutral_sim/}
 
 BASE_DIR=$DIR'rep_'$REP_ID'/'
-N_CORE_MAX=12
+N_CORE_MAX=2
 
 ## Get saf file
 COUNT=0
@@ -306,7 +306,7 @@ for SAMPLE_SIZE in {5,10,20,40,80,160}; do
       -doSaf 1 \\
       -anc $BASE_DIR'slim/ancestral.fasta' \\
       -GL 1 \\
-      -P 2 \\
+      -P 8 \\
       -doCounts 1 \\
       -setMinDepth 2 &
     COUNT=$(( COUNT + 1 ))
@@ -323,7 +323,9 @@ for SAMPLE_SIZE in {5,10,20,40,80,160}; do
   for COVERAGE in {0.25,0.5,1,2,4,8}; do
     /workdir/programs/angsd0.931/angsd/misc/realSFS \\
       $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.saf.idx' \\
-      -P 2 \\
+      -P 8 \\
+      -tole 1e-08 \\
+      -maxIter 1000 \\
       > $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.sfs' &
     COUNT=$(( COUNT + 1 ))
     if [ $COUNT == $N_CORE_MAX ]; then
@@ -345,7 +347,7 @@ for SAMPLE_SIZE in {5,10,20,40,80,160}; do
       -pest $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.sfs' \\
       -anc $BASE_DIR'slim/ancestral.fasta' \\
       -GL 1 \\
-      -P 2 \\
+      -P 8 \\
       -doCounts 1 \\
       -setMinDepth 2 &
     COUNT=$(( COUNT + 1 ))
@@ -357,6 +359,7 @@ for SAMPLE_SIZE in {5,10,20,40,80,160}; do
 done
 wait
 ## Print per-SNP theta
+N_CORE_MAX=16
 COUNT=0
 for SAMPLE_SIZE in {5,10,20,40,80,160}; do
   for COVERAGE in {0.25,0.5,1,2,4,8}; do
@@ -566,7 +569,7 @@ bind_rows(gatk_theta, gatk_theta_mindepth_40, samtools_theta) %>%
 | --------: | --------: | :-------------------- |
 | 0.0034298 | 0.0039302 | GATK (MinDepth=2)     |
 | 0.0039491 | 0.0039437 | GATK (MinDepth=40)    |
-| 0.0027496 | 0.0037529 | Samtools (MinDepth=2) |
+| 0.0027483 | 0.0037527 | Samtools (MinDepth=2) |
 
 The GATK model does a better job. The depth filtering also makes a big
 difference. I will therefore run the entire process (starting from SNP

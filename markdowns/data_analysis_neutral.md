@@ -1,32 +1,61 @@
 Data analysis with neutral simulation
 ================
 
--   [Define some functions](#define-some-functions)
--   [Data wrangling with SLiM output](#data-wrangling-with-slim-output)
-    -   [Read in the ancestral states](#read-in-the-ancestral-states)
-    -   [Read mutation and substitution file](#read-mutation-and-substitution-file)
-    -   [Data wrangling with the mutation file](#data-wrangling-with-the-mutation-file)
-    -   [Plot the true site frequency spectrum](#plot-the-true-site-frequency-spectrum)
--   [ANGSD results](#angsd-results)
-    -   [Read maf estimation and join mutation and maf files](#read-maf-estimation-and-join-mutation-and-maf-files)
-    -   [Plot the estimated site frequency spectrum](#plot-the-estimated-site-frequency-spectrum)
-    -   [Plot the estimated allele frequency distribution](#plot-the-estimated-allele-frequency-distribution)
-    -   [Plot estimated allele frequency vs. true allele frequency (this includes the false positives but not the false negatives)](#plot-estimated-allele-frequency-vs.-true-allele-frequency-this-includes-the-false-positives-but-not-the-false-negatives)
-    -   [Plot estimated allele frequency vs. true allele frequency in bins (this includes the false positives but not the false negatives)](#plot-estimated-allele-frequency-vs.-true-allele-frequency-in-bins-this-includes-the-false-positives-but-not-the-false-negatives)
-    -   [Plot error vs. true allele frequency in bins](#plot-error-vs.-true-allele-frequency-in-bins)
-    -   [Check the SNPs with highest error](#check-the-snps-with-highest-error)
-    -   [True frequency distribution of false negatives](#true-frequency-distribution-of-false-negatives)
-    -   [Esimated frequency distribution of false positives](#esimated-frequency-distribution-of-false-positives)
-    -   [Read windowed thetas estimated by `realSFS`](#read-windowed-thetas-estimated-by-realsfs)
-    -   [real theta values with the entire population](#real-theta-values-with-the-entire-population)
-    -   [thetas estimated from the estimated allele frequencies (not from `realSFS`)](#thetas-estimated-from-the-estimated-allele-frequencies-not-from-realsfs)
-    -   [thetas estimated from `realSFS`](#thetas-estimated-from-realsfs)
-    -   [Plot Watterson's estimator and Tajima's estimator of theta and Tajima's D in 10,000bp fixed windows](#plot-wattersons-estimator-and-tajimas-estimator-of-theta-and-tajimas-d-in-10000bp-fixed-windows)
--   [Compare individual barcoding with Pool-seq](#compare-individual-barcoding-with-pool-seq)
-    -   [Get minor allele frequencies estimated from Pool-seq](#get-minor-allele-frequencies-estimated-from-pool-seq)
-    -   [Plot estimated allele frequency vs. true allele frequency (this includes the false positives but not the false negatives)](#plot-estimated-allele-frequency-vs.-true-allele-frequency-this-includes-the-false-positives-but-not-the-false-negatives-1)
-    -   [Plot estimated allele frequency vs. true allele frequency in bins (this includes the false positives but not the false negatives)](#plot-estimated-allele-frequency-vs.-true-allele-frequency-in-bins-this-includes-the-false-positives-but-not-the-false-negatives-1)
-    -   [Plot absolute values of error vs. true allele frequency in bins (this includes the false positives but not the false negatives)](#plot-absolute-values-of-error-vs.-true-allele-frequency-in-bins-this-includes-the-false-positives-but-not-the-false-negatives)
+  - [Define some functions](#define-some-functions)
+  - [Data wrangling with SLiM output](#data-wrangling-with-slim-output)
+      - [Read in the ancestral states](#read-in-the-ancestral-states)
+      - [Read mutation and substitution
+        file](#read-mutation-and-substitution-file)
+      - [Data wrangling with the mutation
+        file](#data-wrangling-with-the-mutation-file)
+      - [Plot the true site frequency
+        spectrum](#plot-the-true-site-frequency-spectrum)
+  - [ANGSD results](#angsd-results)
+      - [Read maf estimation and join mutation and maf
+        files](#read-maf-estimation-and-join-mutation-and-maf-files)
+      - [Plot the estimated site frequency
+        spectrum](#plot-the-estimated-site-frequency-spectrum)
+      - [Plot the estimated allele frequency
+        distribution](#plot-the-estimated-allele-frequency-distribution)
+      - [Plot estimated allele frequency vs. true allele frequency (this
+        includes the false positives but not the false
+        negatives)](#plot-estimated-allele-frequency-vs.-true-allele-frequency-this-includes-the-false-positives-but-not-the-false-negatives)
+      - [Plot estimated allele frequency vs. true allele frequency in
+        bins (this includes the false positives but not the false
+        negatives)](#plot-estimated-allele-frequency-vs.-true-allele-frequency-in-bins-this-includes-the-false-positives-but-not-the-false-negatives)
+      - [Plot error vs. true allele frequency in
+        bins](#plot-error-vs.-true-allele-frequency-in-bins)
+      - [Check the SNPs with highest
+        error](#check-the-snps-with-highest-error)
+      - [True frequency distribution of false
+        negatives](#true-frequency-distribution-of-false-negatives)
+      - [Esimated frequency distribution of false
+        positives](#esimated-frequency-distribution-of-false-positives)
+      - [Read windowed thetas estimated by
+        `realSFS`](#read-windowed-thetas-estimated-by-realsfs)
+      - [real theta values with the entire
+        population](#real-theta-values-with-the-entire-population)
+      - [thetas estimated from the estimated allele frequencies (not
+        from
+        `realSFS`)](#thetas-estimated-from-the-estimated-allele-frequencies-not-from-realsfs)
+      - [thetas estimated from
+        `realSFS`](#thetas-estimated-from-realsfs)
+      - [Plot Watterson’s estimator and Tajima’s estimator of theta and
+        Tajima’s D in 10,000bp fixed
+        windows](#plot-wattersons-estimator-and-tajimas-estimator-of-theta-and-tajimas-d-in-10000bp-fixed-windows)
+  - [Compare individual barcoding with
+    Pool-seq](#compare-individual-barcoding-with-pool-seq)
+      - [Get minor allele frequencies estimated from
+        Pool-seq](#get-minor-allele-frequencies-estimated-from-pool-seq)
+      - [Plot estimated allele frequency vs. true allele frequency (this
+        includes the false positives but not the false
+        negatives)](#plot-estimated-allele-frequency-vs.-true-allele-frequency-this-includes-the-false-positives-but-not-the-false-negatives-1)
+      - [Plot estimated allele frequency vs. true allele frequency in
+        bins (this includes the false positives but not the false
+        negatives)](#plot-estimated-allele-frequency-vs.-true-allele-frequency-in-bins-this-includes-the-false-positives-but-not-the-false-negatives-1)
+      - [Plot absolute values of error vs. true allele frequency in bins
+        (this includes the false positives but not the false
+        negatives)](#plot-absolute-values-of-error-vs.-true-allele-frequency-in-bins-this-includes-the-false-positives-but-not-the-false-negatives)
 
 ``` r
 library(tidyverse)
@@ -34,8 +63,7 @@ library(cowplot)
 library(knitr)
 ```
 
-Define some functions
-=====================
+# Define some functions
 
 ``` r
 summarise_by_design <- function(joined_frequency_table){
@@ -71,8 +99,8 @@ plot_error_in_bins <- function(joined_frequency_table, joined_summary_table){
   joined_frequency_table %>%
     ggplot(aes(x=frequency_bin, y=abs(error))) +
     geom_boxplot(outlier.shape = NA) +
-    geom_text(data = joined_summary_table, x = 8, y = 0.9, aes(label=root_mean_error_squared), color = 'black',  parse = TRUE) +
-    geom_text(data = joined_summary_table, x = 8, y = 0.77, aes(label=n), color = 'black',  parse = TRUE) +
+    geom_text(data = joined_summary_table, x = 8, y = 0.77, aes(label=root_mean_error_squared), color = 'black',  parse = TRUE) +
+    geom_text(data = joined_summary_table, x = 8, y = 0.64, aes(label=n), color = 'black',  parse = TRUE) +
     facet_grid(coverage~sample_size) +
     scale_x_discrete(labels=seq(0.05, 0.95, 0.1))  +
     theme_cowplot() +
@@ -93,11 +121,9 @@ count_to_maf <- function(ancestral_allele, totA, totC, totG, totT){
 }
 ```
 
-Data wrangling with SLiM output
-===============================
+# Data wrangling with SLiM output
 
-Read in the ancestral states
-----------------------------
+## Read in the ancestral states
 
 ``` r
 ancestral <- read_csv("../neutral_sim/rep_1/slim/ancestral.fasta")[[1]] %>%
@@ -106,8 +132,7 @@ ancestral <- read_csv("../neutral_sim/rep_1/slim/ancestral.fasta")[[1]] %>%
   bind_cols(ancestral=., position=1:30000000)
 ```
 
-Read mutation and substitution file
------------------------------------
+## Read mutation and substitution file
 
 ``` r
 ## Read in the mutation file outputted by SLiM
@@ -130,14 +155,14 @@ substitutions <- read_delim("../neutral_sim/rep_1/slim/substitutions.txt", delim
   arrange(position)
 ```
 
-Data wrangling with the mutation file
--------------------------------------
+## Data wrangling with the mutation file
 
-The following steps are necessary because there are complications such as back mutations and triallelic loci in the mutation file
+The following steps are necessary because there are complications such
+as back mutations and triallelic loci in the mutation file
 
 ``` r
 ## Join mutations and substitutions in a temp table
-mutations_final_temp <-  mutations %>%
+mutations_final_temp_1 <-  mutations %>%
   spread(key = base, value=frequency) %>%
   full_join(substitutions, by=c("position", "type", "ancestral")) %>%
   arrange(position) %>%
@@ -145,19 +170,24 @@ mutations_final_temp <-  mutations %>%
   mutate_all(~replace(., is.na(.), 0)) %>%
   mutate(frequency=1-`A` -`C` -`G` -`T`)
 ## More wrangling
-mutations_final <- mutations_final_temp[1:7] %>%
+mutations_final_temp_2 <- mutations_final_temp_1[1:7] %>%
   gather(key=base, value=frequency, 4:7) %>%
-  bind_rows(mutations_final_temp[c(1:3, 8:9)]) %>%
+  bind_rows(mutations_final_temp_1[c(1:3, 8:9)]) %>%
   mutate(frequency=ifelse(base==ancestral, 0, frequency)) %>%
   group_by(type, position, ancestral) %>%
   filter(frequency!=0) %>%
   summarise(frequency=sum(frequency), base=paste0(base, collapse = "")) %>%
-  ungroup() %>%
+  ungroup() 
+mutations_final <- mutations_final_temp_2 %>%
   filter(frequency!=1)
+substitutions_pos <- mutations_final_temp_2 %>%
+  filter(frequency==1) %>%
+  .$position %>%
+  c(., substitutions$position) %>%
+  unique()
 ```
 
-Plot the true site frequency spectrum
--------------------------------------
+## Plot the true site frequency spectrum
 
 ``` r
 n_mutations <- dim(mutations_final)[1]
@@ -167,13 +197,11 @@ ggplot(mutations_final, aes(x=frequency)) +
   theme_cowplot()
 ```
 
-![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-6-1.png)
+![](data_analysis_neutral_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
 
-ANGSD results
-=============
+# ANGSD results
 
-Read maf estimation and join mutation and maf files
----------------------------------------------------
+## Read maf estimation and join mutation and maf files
 
 ``` r
 i=1
@@ -187,7 +215,9 @@ for (coverage in c(0.25,0.5,1,2,4,8)){
     ## join estimated maf with true snps and only keep the snps that exist in estimated maf
     joined_frequency <- right_join(mutations_final, maf, by="position") %>%
       select(-ancestral) %>%
-      mutate(coverage=coverage, sample_size=sample_size, frequency=ifelse(is.na(frequency), 1, frequency))
+      mutate(coverage=coverage, sample_size=sample_size, 
+             frequency=ifelse(is.na(frequency) & !(position %in% substitutions_pos), 0, frequency),
+             frequency=ifelse(is.na(frequency) & position %in% substitutions_pos, 1, frequency))
     ## find false negatives
     false_negatives <- anti_join(mutations_final, maf, by="position") %>%
       mutate(coverage=coverage, sample_size=sample_size)
@@ -221,14 +251,13 @@ write_tsv(sfs_final, "../neutral_sim/rep_1/angsd/sfs_final.tsv")
 
 ``` r
 joined_frequency_final <- read_tsv("../neutral_sim/rep_1/angsd/joined_frequency_final.tsv") %>%
-  mutate(frequency_bin = cut(frequency, breaks = 0:10/10), error=estimated_frequency-frequency)
+  mutate(frequency_bin = cut(frequency, breaks = 0:10/10, include.lowest = T), error=estimated_frequency-frequency)
 false_negatives_final <- read_tsv("../neutral_sim/rep_1/angsd/false_negatives_final.tsv")
 false_positives_final <- read_tsv("../neutral_sim/rep_1/angsd/false_positives_final.tsv")
 sfs_final <- read_tsv("../neutral_sim/rep_1/angsd/sfs_final.tsv")
 ```
 
-Plot the estimated site frequency spectrum
-------------------------------------------
+## Plot the estimated site frequency spectrum
 
 These are obtained from `realSFS`.
 
@@ -247,7 +276,7 @@ filter(sfs_final, frequency>0, frequency<1) %>%
   theme_cowplot()
 ```
 
-![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-9-1.png)
+![](data_analysis_neutral_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
 
 ``` r
 filter(sfs_final, frequency>0, frequency<1) %>%
@@ -258,10 +287,9 @@ filter(sfs_final, frequency>0, frequency<1) %>%
   theme_cowplot()
 ```
 
-![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-9-2.png)
+![](data_analysis_neutral_files/figure-gfm/unnamed-chunk-9-2.png)<!-- -->
 
-Plot the estimated allele frequency distribution
-------------------------------------------------
+## Plot the estimated allele frequency distribution
 
 These are the histogram of estimated allele frequencies
 
@@ -276,10 +304,9 @@ joined_frequency_final %>%
   theme_cowplot()
 ```
 
-![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-10-1.png)
+![](data_analysis_neutral_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
 
-Plot estimated allele frequency vs. true allele frequency (this includes the false positives but not the false negatives)
--------------------------------------------------------------------------------------------------------------------------
+## Plot estimated allele frequency vs. true allele frequency (this includes the false positives but not the false negatives)
 
 ``` r
 estimated_vs_true_frequency <- plot_frequency(joined_frequency_final, joined_summary)
@@ -290,10 +317,9 @@ ggsave("../figures/neutral_estimated_vs_true_frequency.png", estimated_vs_true_f
 include_graphics("../figures/neutral_estimated_vs_true_frequency.png")
 ```
 
-<img src="../figures/neutral_estimated_vs_true_frequency.png" width="4500" />
+![](../figures/neutral_estimated_vs_true_frequency.png)<!-- -->
 
-Plot estimated allele frequency vs. true allele frequency in bins (this includes the false positives but not the false negatives)
----------------------------------------------------------------------------------------------------------------------------------
+## Plot estimated allele frequency vs. true allele frequency in bins (this includes the false positives but not the false negatives)
 
 ``` r
 estimated_vs_true_frequency_bin <- plot_frequency_in_bins(joined_frequency_final, joined_summary)
@@ -304,10 +330,9 @@ ggsave("../figures/neutral_estimated_vs_true_frequency_bin.png", estimated_vs_tr
 include_graphics("../figures/neutral_estimated_vs_true_frequency_bin.png")
 ```
 
-<img src="../figures/neutral_estimated_vs_true_frequency_bin.png" width="4500" />
+![](../figures/neutral_estimated_vs_true_frequency_bin.png)<!-- -->
 
-Plot error vs. true allele frequency in bins
---------------------------------------------
+## Plot error vs. true allele frequency in bins
 
 ``` r
 error_vs_true_frequency_bin <- plot_error_in_bins(joined_frequency_final, joined_summary)
@@ -318,10 +343,9 @@ ggsave("../figures/neutral_error_vs_true_frequency_bin.png", error_vs_true_frequ
 include_graphics("../figures/neutral_error_vs_true_frequency_bin.png")
 ```
 
-<img src="../figures/neutral_error_vs_true_frequency_bin.png" width="4500" />
+![](../figures/neutral_error_vs_true_frequency_bin.png)<!-- -->
 
-Check the SNPs with highest error
----------------------------------
+## Check the SNPs with highest error
 
 ``` r
 filter(joined_frequency_final, coverage==8, sample_size==160) %>%
@@ -356,8 +380,7 @@ filter(joined_frequency_final, coverage==8, sample_size==160) %>%
     ## # … with 4 more variables: coverage <dbl>, sample_size <dbl>,
     ## #   frequency_bin <fct>, error <dbl>
 
-True frequency distribution of false negatives
-----------------------------------------------
+## True frequency distribution of false negatives
 
 ``` r
 false_negatives_final_count <- count(false_negatives_final, coverage, sample_size)
@@ -368,10 +391,9 @@ ggplot(false_negatives_final, aes(x=frequency)) +
   theme_cowplot()
 ```
 
-![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-18-1.png)
+![](data_analysis_neutral_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
 
-Esimated frequency distribution of false positives
---------------------------------------------------
+## Esimated frequency distribution of false positives
 
 ``` r
 false_positives_final_count <- count(false_positives_final, coverage, sample_size)
@@ -382,10 +404,9 @@ ggplot(false_positives_final, aes(x=estimated_frequency)) +
   theme_cowplot()
 ```
 
-![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-19-1.png)
+![](data_analysis_neutral_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
 
-Read windowed thetas estimated by `realSFS`
--------------------------------------------
+## Read windowed thetas estimated by `realSFS`
 
 ``` r
 i=1
@@ -412,8 +433,7 @@ for (coverage in c(0.25,0.5,1,2,4,8)){
 }
 ```
 
-real theta values with the entire population
---------------------------------------------
+## real theta values with the entire population
 
 ``` r
 real_theta_t <- sum(2*mutations_final$frequency*(1-mutations_final$frequency))/30000000
@@ -423,14 +443,13 @@ tibble(real_theta_t=round(real_theta_t, 5), real_theta_w=round(real_theta_w, 5))
   kable()
 ```
 
-|  real\_theta\_t|  real\_theta\_w|
-|---------------:|---------------:|
-|         0.00394|         0.00433|
+| real\_theta\_t | real\_theta\_w |
+| -------------: | -------------: |
+|        0.00394 |        0.00433 |
 
-thetas estimated from the estimated allele frequencies (not from `realSFS`)
----------------------------------------------------------------------------
+## thetas estimated from the estimated allele frequencies (not from `realSFS`)
 
-Tajima's estimator
+Tajima’s estimator
 
 ``` r
 group_by(joined_frequency_final, coverage, sample_size) %>%
@@ -440,16 +459,16 @@ group_by(joined_frequency_final, coverage, sample_size) %>%
   kable()
 ```
 
-|  coverage|        5|       10|       20|       40|       80|      160|
-|---------:|--------:|--------:|--------:|--------:|--------:|--------:|
-|      0.25|  0.00013|  0.00055|  0.00149|  0.00245|  0.00301|  0.00343|
-|      0.50|  0.00055|  0.00148|  0.00243|  0.00301|  0.00343|  0.00366|
-|      1.00|  0.00146|  0.00242|  0.00301|  0.00342|  0.00365|  0.00377|
-|      2.00|  0.00239|  0.00301|  0.00341|  0.00365|  0.00376|  0.00382|
-|      4.00|  0.00299|  0.00341|  0.00364|  0.00377|  0.00382|  0.00385|
-|      8.00|  0.00335|  0.00363|  0.00376|  0.00383|  0.00386|  0.00387|
+| coverage |       5 |      10 |      20 |      40 |      80 |     160 |
+| -------: | ------: | ------: | ------: | ------: | ------: | ------: |
+|     0.25 | 0.00013 | 0.00055 | 0.00149 | 0.00245 | 0.00301 | 0.00343 |
+|     0.50 | 0.00055 | 0.00148 | 0.00243 | 0.00301 | 0.00343 | 0.00366 |
+|     1.00 | 0.00146 | 0.00242 | 0.00301 | 0.00342 | 0.00365 | 0.00377 |
+|     2.00 | 0.00239 | 0.00301 | 0.00341 | 0.00365 | 0.00376 | 0.00382 |
+|     4.00 | 0.00299 | 0.00341 | 0.00364 | 0.00377 | 0.00382 | 0.00385 |
+|     8.00 | 0.00335 | 0.00363 | 0.00376 | 0.00383 | 0.00386 | 0.00387 |
 
-Watterson's estimator
+Watterson’s estimator
 
 ``` r
 group_by(joined_frequency_final, coverage, sample_size) %>%
@@ -458,19 +477,18 @@ group_by(joined_frequency_final, coverage, sample_size) %>%
   kable()
 ```
 
-|  coverage|        5|       10|       20|       40|       80|      160|
-|---------:|--------:|--------:|--------:|--------:|--------:|--------:|
-|      0.25|  0.00014|  0.00044|  0.00098|  0.00143|  0.00166|  0.00190|
-|      0.50|  0.00058|  0.00122|  0.00171|  0.00194|  0.00218|  0.00235|
-|      1.00|  0.00162|  0.00213|  0.00235|  0.00254|  0.00269|  0.00277|
-|      2.00|  0.00284|  0.00296|  0.00306|  0.00315|  0.00320|  0.00323|
-|      4.00|  0.00393|  0.00383|  0.00378|  0.00376|  0.00374|  0.00372|
-|      8.00|  0.00483|  0.00454|  0.00439|  0.00429|  0.00422|  0.00415|
+| coverage |       5 |      10 |      20 |      40 |      80 |     160 |
+| -------: | ------: | ------: | ------: | ------: | ------: | ------: |
+|     0.25 | 0.00014 | 0.00044 | 0.00098 | 0.00143 | 0.00166 | 0.00190 |
+|     0.50 | 0.00058 | 0.00122 | 0.00171 | 0.00194 | 0.00218 | 0.00235 |
+|     1.00 | 0.00162 | 0.00213 | 0.00235 | 0.00254 | 0.00269 | 0.00277 |
+|     2.00 | 0.00284 | 0.00296 | 0.00306 | 0.00315 | 0.00320 | 0.00323 |
+|     4.00 | 0.00393 | 0.00383 | 0.00378 | 0.00376 | 0.00374 | 0.00372 |
+|     8.00 | 0.00483 | 0.00454 | 0.00439 | 0.00429 | 0.00422 | 0.00415 |
 
-thetas estimated from `realSFS`
--------------------------------
+## thetas estimated from `realSFS`
 
-Tajima's estimator
+Tajima’s estimator
 
 ``` r
 select(average_thetas_final, theta_t, coverage, sample_size) %>%
@@ -478,16 +496,16 @@ select(average_thetas_final, theta_t, coverage, sample_size) %>%
   kable()
 ```
 
-|  coverage|          5|         10|         20|         40|         80|        160|
-|---------:|----------:|----------:|----------:|----------:|----------:|----------:|
-|      0.25|  0.0030088|  0.0031173|  0.0032274|  0.0034026|  0.0035929|  0.0037340|
-|      0.50|  0.0031236|  0.0032582|  0.0034238|  0.0036063|  0.0037399|  0.0038178|
-|      1.00|  0.0032917|  0.0034688|  0.0036279|  0.0037529|  0.0038254|  0.0038660|
-|      2.00|  0.0035273|  0.0036772|  0.0037772|  0.0038415|  0.0038763|  0.0038965|
-|      4.00|  0.0037369|  0.0038194|  0.0038671|  0.0038948|  0.0039081|  0.0039119|
-|      8.00|  0.0038659|  0.0039005|  0.0039167|  0.0039249|  0.0039249|  0.0039203|
+| coverage |         5 |        10 |        20 |        40 |        80 |       160 |
+| -------: | --------: | --------: | --------: | --------: | --------: | --------: |
+|     0.25 | 0.0034168 | 0.0031124 | 0.0032314 | 0.0034008 | 0.0035915 | 0.0037341 |
+|     0.50 | 0.0031246 | 0.0032566 | 0.0034224 | 0.0036059 | 0.0037399 | 0.0038179 |
+|     1.00 | 0.0032922 | 0.0034674 | 0.0036276 | 0.0037527 | 0.0038253 | 0.0038660 |
+|     2.00 | 0.0035273 | 0.0036772 | 0.0037772 | 0.0038415 | 0.0038762 | 0.0038965 |
+|     4.00 | 0.0037369 | 0.0038194 | 0.0038670 | 0.0038948 | 0.0039081 | 0.0039118 |
+|     8.00 | 0.0038659 | 0.0039005 | 0.0039167 | 0.0039249 | 0.0039249 | 0.0039203 |
 
-Watterson's estimator
+Watterson’s estimator
 
 ``` r
 select(average_thetas_final, theta_w, coverage, sample_size) %>%
@@ -495,17 +513,16 @@ select(average_thetas_final, theta_w, coverage, sample_size) %>%
   kable()
 ```
 
-|  coverage|          5|         10|         20|         40|         80|        160|
-|---------:|----------:|----------:|----------:|----------:|----------:|----------:|
-|      0.25|  0.0022136|  0.0026979|  0.0020827|  0.0019467|  0.0020228|  0.0021034|
-|      0.50|  0.0024797|  0.0023719|  0.0022627|  0.0022889|  0.0023783|  0.0024655|
-|      1.00|  0.0027266|  0.0027040|  0.0026855|  0.0027496|  0.0028259|  0.0028785|
-|      2.00|  0.0032023|  0.0032218|  0.0032648|  0.0033000|  0.0033316|  0.0033438|
-|      4.00|  0.0035851|  0.0036249|  0.0036617|  0.0036731|  0.0036847|  0.0036793|
-|      8.00|  0.0038146|  0.0038444|  0.0038651|  0.0038656|  0.0038690|  0.0038578|
+| coverage |         5 |        10 |        20 |        40 |        80 |       160 |
+| -------: | --------: | --------: | --------: | --------: | --------: | --------: |
+|     0.25 | 0.0042660 | 0.0020508 | 0.0019516 | 0.0018931 | 0.0019744 | 0.0020936 |
+|     0.50 | 0.0024890 | 0.0022838 | 0.0022244 | 0.0022713 | 0.0023722 | 0.0024618 |
+|     1.00 | 0.0027675 | 0.0026765 | 0.0026811 | 0.0027483 | 0.0028212 | 0.0028751 |
+|     2.00 | 0.0032025 | 0.0032222 | 0.0032658 | 0.0033009 | 0.0033326 | 0.0033450 |
+|     4.00 | 0.0035851 | 0.0036249 | 0.0036617 | 0.0036731 | 0.0036847 | 0.0036793 |
+|     8.00 | 0.0038146 | 0.0038444 | 0.0038651 | 0.0038656 | 0.0038690 | 0.0038578 |
 
-Plot Watterson's estimator and Tajima's estimator of theta and Tajima's D in 10,000bp fixed windows
----------------------------------------------------------------------------------------------------
+## Plot Watterson’s estimator and Tajima’s estimator of theta and Tajima’s D in 10,000bp fixed windows
 
 ``` r
 filter(thetas_final, summary_stats !="tajima_d") %>%
@@ -516,7 +533,7 @@ filter(thetas_final, summary_stats !="tajima_d") %>%
   theme_cowplot()
 ```
 
-![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-26-1.png)
+![](data_analysis_neutral_files/figure-gfm/unnamed-chunk-26-1.png)<!-- -->
 
 ``` r
 filter(thetas_final, summary_stats =="tajima_d") %>%
@@ -528,21 +545,29 @@ filter(thetas_final, summary_stats =="tajima_d") %>%
   theme_cowplot()
 ```
 
-![](data_analysis_neutral_files/figure-markdown_github/unnamed-chunk-26-2.png)
+![](data_analysis_neutral_files/figure-gfm/unnamed-chunk-26-2.png)<!-- -->
 
-I will annonate each figure with the chromosome average statistics later on.
+I will annonate each figure with the chromosome average statistics later
+on.
 
-Compare individual barcoding with Pool-seq
-==========================================
+# Compare individual barcoding with Pool-seq
 
-I assumed equal sequencing output from all individuals in this step. This is highly unlikely when no individual barcode is given, but it represents the best case scenario for Pool-seq.
+I assumed equal sequencing output from all individuals in this step.
+This is highly unlikely when no individual barcode is given, but it
+represents the best case scenario for Pool-seq.
 
-A better way to do this is to merge all the 20x bam files from all individuals, and subsample from this huge merged bam file. This can be costly computationally, but can still be feasible if we want to go with it.
+A better way to do this is to merge all the 20x bam files from all
+individuals, and subsample from this huge merged bam file. This can be
+costly computationally, but can still be feasible if we want to go with
+it.
 
-I used the same set of SNPs obtained from ANGSD and calculated allele frequency based on total allele count across the population. This is to make the results from the two methods more comparable. In reality, however, the SNP calling result will be different if no individual barcode is provided.
+I used the same set of SNPs obtained from ANGSD and calculated allele
+frequency based on total allele count across the population. This is to
+make the results from the two methods more comparable. In reality,
+however, the SNP calling result will be different if no individual
+barcode is provided.
 
-Get minor allele frequencies estimated from Pool-seq
-----------------------------------------------------
+## Get minor allele frequencies estimated from Pool-seq
 
 ``` r
 i=1
@@ -559,7 +584,9 @@ for (coverage in c(0.25,0.5,1,2,4,8)){
     ## join estimated maf with true snps and only keep the snps that exist in estimated maf
     joined_frequency <- right_join(mutations_final, allele_count, by="position") %>%
       select(-ancestral) %>%
-      mutate(coverage=coverage, sample_size=sample_size, frequency=ifelse(is.na(frequency), 1, frequency))
+      mutate(coverage=coverage, sample_size=sample_size, 
+             frequency=ifelse(is.na(frequency) & !(position %in% substitutions_pos), 0, frequency),
+             frequency=ifelse(is.na(frequency) & position %in% substitutions_pos, 1, frequency))
     ## compile the final files for plotting
     if (i==1){
       joined_frequency_final <- joined_frequency
@@ -574,12 +601,11 @@ write_tsv(joined_frequency_final, "../neutral_sim/rep_1/angsd/joined_frequency_f
 
 ``` r
 joined_frequency_final <- read_tsv("../neutral_sim/rep_1/angsd/joined_frequency_final_poolseq.tsv") %>%
-  mutate(estimated_frequency=maf, frequency_bin = cut(frequency, breaks = 0:10/10), error=estimated_frequency-frequency) 
+  mutate(estimated_frequency=maf, frequency_bin = cut(frequency, breaks = 0:10/10, include.lowest = T), error=estimated_frequency-frequency) 
 joined_summary <- summarise_by_design(joined_frequency_final)
 ```
 
-Plot estimated allele frequency vs. true allele frequency (this includes the false positives but not the false negatives)
--------------------------------------------------------------------------------------------------------------------------
+## Plot estimated allele frequency vs. true allele frequency (this includes the false positives but not the false negatives)
 
 ``` r
 estimated_vs_true_frequency_pool <- plot_frequency(joined_frequency_final, joined_summary)
@@ -590,10 +616,9 @@ ggsave("../figures/neutral_estimated_vs_true_frequency_pool.png", estimated_vs_t
 include_graphics("../figures/neutral_estimated_vs_true_frequency_pool.png")
 ```
 
-<img src="../figures/neutral_estimated_vs_true_frequency_pool.png" width="4500" />
+![](../figures/neutral_estimated_vs_true_frequency_pool.png)<!-- -->
 
-Plot estimated allele frequency vs. true allele frequency in bins (this includes the false positives but not the false negatives)
----------------------------------------------------------------------------------------------------------------------------------
+## Plot estimated allele frequency vs. true allele frequency in bins (this includes the false positives but not the false negatives)
 
 ``` r
 estimated_vs_true_frequency_pool_bin <- plot_frequency_in_bins(joined_frequency_final, joined_summary)
@@ -604,10 +629,9 @@ ggsave("../figures/neutral_estimated_vs_true_frequency_pool_bin.png", estimated_
 include_graphics("../figures/neutral_estimated_vs_true_frequency_pool_bin.png")
 ```
 
-<img src="../figures/neutral_estimated_vs_true_frequency_pool_bin.png" width="4500" />
+![](../figures/neutral_estimated_vs_true_frequency_pool_bin.png)<!-- -->
 
-Plot absolute values of error vs. true allele frequency in bins (this includes the false positives but not the false negatives)
--------------------------------------------------------------------------------------------------------------------------------
+## Plot absolute values of error vs. true allele frequency in bins (this includes the false positives but not the false negatives)
 
 ``` r
 error_vs_true_frequency_pool_bin <- plot_error_in_bins(joined_frequency_final, joined_summary)
@@ -618,4 +642,4 @@ ggsave("../figures/neutral_error_vs_true_frequency_pool_bin.png", error_vs_true_
 include_graphics("../figures/neutral_error_vs_true_frequency_pool_bin.png")
 ```
 
-<img src="../figures/neutral_error_vs_true_frequency_pool_bin.png" width="4500" />
+![](../figures/neutral_error_vs_true_frequency_pool_bin.png)<!-- -->

@@ -3,19 +3,19 @@ REP_ID=$1
 DIR=${2:-/workdir/lcwgs-simulation/neutral_sim/}
 
 BASE_DIR=$DIR'rep_'$REP_ID'/'
-N_CORE_MAX=12
+N_CORE_MAX=2
 
 ## Get saf file
 COUNT=0
-for COVERAGE in {0.25,0.5,1,2,4,8}; do
-  for SAMPLE_SIZE in {5,10,20,40,80,160}; do
+for SAMPLE_SIZE in {5,10,20,40,80,160}; do
+  for COVERAGE in {0.25,0.5,1,2,4,8}; do
     /workdir/programs/angsd0.931/angsd/angsd \
       -bam $BASE_DIR'sample_lists/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.txt' \
       -out $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x' \
       -doSaf 1 \
       -anc $BASE_DIR'slim/ancestral.fasta' \
       -GL 1 \
-      -P 2 \
+      -P 8 \
       -doCounts 1 \
       -setMinDepth 2 &
     COUNT=$(( COUNT + 1 ))
@@ -28,11 +28,13 @@ done
 wait
 ## Get SFS from saf (this need to be broken up into two separate runs due to memory limiations)
 COUNT=0
-for COVERAGE in {0.25,0.5,1,2,4,8}; do
-  for SAMPLE_SIZE in {5,10,20,40,80,160}; do
+for SAMPLE_SIZE in {5,10,20,40,80,160}; do
+  for COVERAGE in {0.25,0.5,1,2,4,8}; do
     /workdir/programs/angsd0.931/angsd/misc/realSFS \
       $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.saf.idx' \
-      -P 2 \
+      -P 8 \
+      -tole 1e-08 \
+      -maxIter 1000 \
       > $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.sfs' &
     COUNT=$(( COUNT + 1 ))
     if [ $COUNT == $N_CORE_MAX ]; then
@@ -44,8 +46,8 @@ done
 wait
 ## Estimate theta
 COUNT=0
-for COVERAGE in {0.25,0.5,1,2,4,8}; do
-  for SAMPLE_SIZE in {5,10,20,40,80,160}; do
+for SAMPLE_SIZE in {5,10,20,40,80,160}; do
+  for COVERAGE in {0.25,0.5,1,2,4,8}; do
     /workdir/programs/angsd0.931/angsd/angsd \
       -bam $BASE_DIR'sample_lists/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.txt' \
       -out $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x' \
@@ -54,7 +56,7 @@ for COVERAGE in {0.25,0.5,1,2,4,8}; do
       -pest $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.sfs' \
       -anc $BASE_DIR'slim/ancestral.fasta' \
       -GL 1 \
-      -P 2 \
+      -P 8 \
       -doCounts 1 \
       -setMinDepth 2 &
     COUNT=$(( COUNT + 1 ))
@@ -66,9 +68,10 @@ for COVERAGE in {0.25,0.5,1,2,4,8}; do
 done
 wait
 ## Print per-SNP theta
+N_CORE_MAX=16
 COUNT=0
-for COVERAGE in {0.25,0.5,1,2,4,8}; do
-  for SAMPLE_SIZE in {5,10,20,40,80,160}; do
+for SAMPLE_SIZE in {5,10,20,40,80,160}; do
+  for COVERAGE in {0.25,0.5,1,2,4,8}; do
     /workdir/programs/angsd0.931/angsd/misc/thetaStat print \
       $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.thetas.idx' \
       > $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.thetas.tsv' &
@@ -82,8 +85,8 @@ done
 wait
 ## Do fixed window theta
 COUNT=0
-for COVERAGE in {0.25,0.5,1,2,4,8}; do
-  for SAMPLE_SIZE in {5,10,20,40,80,160}; do
+for SAMPLE_SIZE in {5,10,20,40,80,160}; do
+  for COVERAGE in {0.25,0.5,1,2,4,8}; do
     /workdir/programs/angsd0.931/angsd/misc/thetaStat do_stat \
       $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.thetas.idx' \
       -win 10000 -step 10000 \
@@ -98,8 +101,8 @@ done
 wait
 ## Do per-chromosome average theta
 COUNT=0
-for COVERAGE in {0.25,0.5,1,2,4,8}; do
-  for SAMPLE_SIZE in {5,10,20,40,80,160}; do
+for SAMPLE_SIZE in {5,10,20,40,80,160}; do
+  for COVERAGE in {0.25,0.5,1,2,4,8}; do
     /workdir/programs/angsd0.931/angsd/misc/thetaStat do_stat \
       $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.thetas.idx' \
       -outnames $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.average_thetas.idx' &
