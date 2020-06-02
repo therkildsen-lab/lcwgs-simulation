@@ -1,25 +1,46 @@
-Data analysis with neutral simulation, with uneven input across individuals
+Data analysis with neutral simulation, with uneven input across
+individuals
 ================
 
--   [Define some functions](#define-some-functions)
--   [Data wrangling with SLiM output](#data-wrangling-with-slim-output)
-    -   [Read in the ancestral states](#read-in-the-ancestral-states)
-    -   [Read mutation and substitution file](#read-mutation-and-substitution-file)
-    -   [Data wrangling with the mutation file](#data-wrangling-with-the-mutation-file)
--   [ANGSD results](#angsd-results)
-    -   [Read maf estimation and join mutation and maf files](#read-maf-estimation-and-join-mutation-and-maf-files)
-    -   [Plot the estimated allele frequency distribution](#plot-the-estimated-allele-frequency-distribution)
-    -   [Plot estimated allele frequency vs. true allele frequency (this includes the false positives but not the false negatives)](#plot-estimated-allele-frequency-vs.-true-allele-frequency-this-includes-the-false-positives-but-not-the-false-negatives)
-    -   [Plot estimated allele frequency vs. true allele frequency in bins (this includes the false positives but not the false negatives)](#plot-estimated-allele-frequency-vs.-true-allele-frequency-in-bins-this-includes-the-false-positives-but-not-the-false-negatives)
-    -   [Plot error vs. true allele frequency in bins](#plot-error-vs.-true-allele-frequency-in-bins)
-    -   [Check the SNPs with highest error](#check-the-snps-with-highest-error)
-    -   [True frequency distribution of false negatives](#true-frequency-distribution-of-false-negatives)
-    -   [Esimated frequency distribution of false positives](#esimated-frequency-distribution-of-false-positives)
--   [Compare individual barcoding with Pool-seq](#compare-individual-barcoding-with-pool-seq)
-    -   [Get minor allele frequencies estimated from Pool-seq](#get-minor-allele-frequencies-estimated-from-pool-seq)
-    -   [Plot estimated allele frequency vs. true allele frequency (this includes the false positives but not the false negatives)](#plot-estimated-allele-frequency-vs.-true-allele-frequency-this-includes-the-false-positives-but-not-the-false-negatives-1)
-    -   [Plot estimated allele frequency vs. true allele frequency in bins (this includes the false positives but not the false negatives)](#plot-estimated-allele-frequency-vs.-true-allele-frequency-in-bins-this-includes-the-false-positives-but-not-the-false-negatives-1)
-    -   [Plot absolute values of error vs. true allele frequency in bins (this includes the false positives but not the false negatives)](#plot-absolute-values-of-error-vs.-true-allele-frequency-in-bins-this-includes-the-false-positives-but-not-the-false-negatives)
+  - [Define some functions](#define-some-functions)
+  - [Data wrangling with SLiM output](#data-wrangling-with-slim-output)
+      - [Read in the ancestral states](#read-in-the-ancestral-states)
+      - [Read mutation and substitution
+        file](#read-mutation-and-substitution-file)
+      - [Data wrangling with the mutation
+        file](#data-wrangling-with-the-mutation-file)
+  - [ANGSD results](#angsd-results)
+      - [Read maf estimation and join mutation and maf
+        files](#read-maf-estimation-and-join-mutation-and-maf-files)
+      - [Plot the estimated allele frequency
+        distribution](#plot-the-estimated-allele-frequency-distribution)
+      - [Plot estimated allele frequency vs. true allele frequency (this
+        includes the false positives but not the false
+        negatives)](#plot-estimated-allele-frequency-vs.-true-allele-frequency-this-includes-the-false-positives-but-not-the-false-negatives)
+      - [Plot estimated allele frequency vs. true allele frequency in
+        bins (this includes the false positives but not the false
+        negatives)](#plot-estimated-allele-frequency-vs.-true-allele-frequency-in-bins-this-includes-the-false-positives-but-not-the-false-negatives)
+      - [Plot error vs. true allele frequency in
+        bins](#plot-error-vs.-true-allele-frequency-in-bins)
+      - [Check the SNPs with highest
+        error](#check-the-snps-with-highest-error)
+      - [True frequency distribution of false
+        negatives](#true-frequency-distribution-of-false-negatives)
+      - [Esimated frequency distribution of false
+        positives](#esimated-frequency-distribution-of-false-positives)
+  - [Compare individual barcoding with
+    Pool-seq](#compare-individual-barcoding-with-pool-seq)
+      - [Get minor allele frequencies estimated from
+        Pool-seq](#get-minor-allele-frequencies-estimated-from-pool-seq)
+      - [Plot estimated allele frequency vs. true allele frequency (this
+        includes the false positives but not the false
+        negatives)](#plot-estimated-allele-frequency-vs.-true-allele-frequency-this-includes-the-false-positives-but-not-the-false-negatives-1)
+      - [Plot estimated allele frequency vs. true allele frequency in
+        bins (this includes the false positives but not the false
+        negatives)](#plot-estimated-allele-frequency-vs.-true-allele-frequency-in-bins-this-includes-the-false-positives-but-not-the-false-negatives-1)
+      - [Plot absolute values of error vs. true allele frequency in bins
+        (this includes the false positives but not the false
+        negatives)](#plot-absolute-values-of-error-vs.-true-allele-frequency-in-bins-this-includes-the-false-positives-but-not-the-false-negatives)
 
 ``` r
 library(tidyverse)
@@ -27,8 +48,7 @@ library(cowplot)
 library(knitr)
 ```
 
-Define some functions
-=====================
+# Define some functions
 
 ``` r
 summarise_by_design <- function(joined_frequency_table){
@@ -64,8 +84,8 @@ plot_error_in_bins <- function(joined_frequency_table, joined_summary_table){
   joined_frequency_table %>%
     ggplot(aes(x=frequency_bin, y=abs(error))) +
     geom_boxplot(outlier.shape = NA) +
-    geom_text(data = joined_summary_table, x = 8, y = 0.9, aes(label=root_mean_error_squared), color = 'black',  parse = TRUE) +
-    geom_text(data = joined_summary_table, x = 8, y = 0.77, aes(label=n), color = 'black',  parse = TRUE) +
+    geom_text(data = joined_summary_table, x = 8, y = 0.77, aes(label=root_mean_error_squared), color = 'black',  parse = TRUE) +
+    geom_text(data = joined_summary_table, x = 8, y = 0.64, aes(label=n), color = 'black',  parse = TRUE) +
     facet_grid(coverage~sample_size) +
     scale_x_discrete(labels=seq(0.05, 0.95, 0.1))  +
     theme_cowplot() +
@@ -86,11 +106,9 @@ count_to_maf <- function(ancestral_allele, totA, totC, totG, totT){
 }
 ```
 
-Data wrangling with SLiM output
-===============================
+# Data wrangling with SLiM output
 
-Read in the ancestral states
-----------------------------
+## Read in the ancestral states
 
 ``` r
 ancestral <- read_csv("../neutral_sim_uneven_input/rep_1/slim/ancestral.fasta")[[1]] %>%
@@ -99,8 +117,7 @@ ancestral <- read_csv("../neutral_sim_uneven_input/rep_1/slim/ancestral.fasta")[
   bind_cols(ancestral=., position=1:30000000)
 ```
 
-Read mutation and substitution file
------------------------------------
+## Read mutation and substitution file
 
 ``` r
 ## Read in the mutation file outputted by SLiM
@@ -123,14 +140,14 @@ substitutions <- read_delim("../neutral_sim_uneven_input/rep_1/slim/substitution
   arrange(position)
 ```
 
-Data wrangling with the mutation file
--------------------------------------
+## Data wrangling with the mutation file
 
-The following steps are necessary because there are complications such as back mutations and triallelic loci in the mutation file
+The following steps are necessary because there are complications such
+as back mutations and triallelic loci in the mutation file
 
 ``` r
 ## Join mutations and substitutions in a temp table
-mutations_final_temp <-  mutations %>%
+mutations_final_temp_1 <-  mutations %>%
   spread(key = base, value=frequency) %>%
   full_join(substitutions, by=c("position", "type", "ancestral")) %>%
   arrange(position) %>%
@@ -138,22 +155,26 @@ mutations_final_temp <-  mutations %>%
   mutate_all(~replace(., is.na(.), 0)) %>%
   mutate(frequency=1-`A` -`C` -`G` -`T`)
 ## More wrangling
-mutations_final <- mutations_final_temp[1:7] %>%
+mutations_final_temp_2 <- mutations_final_temp_1[1:7] %>%
   gather(key=base, value=frequency, 4:7) %>%
-  bind_rows(mutations_final_temp[c(1:3, 8:9)]) %>%
+  bind_rows(mutations_final_temp_1[c(1:3, 8:9)]) %>%
   mutate(frequency=ifelse(base==ancestral, 0, frequency)) %>%
   group_by(type, position, ancestral) %>%
   filter(frequency!=0) %>%
   summarise(frequency=sum(frequency), base=paste0(base, collapse = "")) %>%
-  ungroup() %>%
+  ungroup() 
+mutations_final <- mutations_final_temp_2 %>%
   filter(frequency!=1)
+substitutions_pos <- mutations_final_temp_2 %>%
+  filter(frequency==1) %>%
+  .$position %>%
+  c(., substitutions$position) %>%
+  unique()
 ```
 
-ANGSD results
-=============
+# ANGSD results
 
-Read maf estimation and join mutation and maf files
----------------------------------------------------
+## Read maf estimation and join mutation and maf files
 
 ``` r
 i=1
@@ -167,7 +188,9 @@ for (coverage in c(0.25,0.5,1,2,4,8)){
     ## join estimated maf with true snps and only keep the snps that exist in estimated maf
     joined_frequency <- right_join(mutations_final, maf, by="position") %>%
       select(-ancestral) %>%
-      mutate(coverage=coverage, sample_size=sample_size, frequency=ifelse(is.na(frequency), 1, frequency))
+      mutate(coverage=coverage, sample_size=sample_size, 
+             frequency=ifelse(is.na(frequency) & !(position %in% substitutions_pos), 0, frequency),
+             frequency=ifelse(is.na(frequency) & position %in% substitutions_pos, 1, frequency))
     ## find false negatives
     false_negatives <- anti_join(mutations_final, maf, by="position") %>%
       mutate(coverage=coverage, sample_size=sample_size)
@@ -194,13 +217,12 @@ write_tsv(false_positives_final, "../neutral_sim_uneven_input/rep_1/angsd/false_
 
 ``` r
 joined_frequency_final <- read_tsv("../neutral_sim_uneven_input/rep_1/angsd/joined_frequency_final.tsv") %>%
-  mutate(frequency_bin = cut(frequency, breaks = 0:10/10), error=estimated_frequency-frequency)
+  mutate(frequency_bin = cut(frequency, breaks = 0:10/10, include.lowest = T), error=estimated_frequency-frequency)
 false_negatives_final <- read_tsv("../neutral_sim_uneven_input/rep_1/angsd/false_negatives_final.tsv")
 false_positives_final <- read_tsv("../neutral_sim_uneven_input/rep_1/angsd/false_positives_final.tsv")
 ```
 
-Plot the estimated allele frequency distribution
-------------------------------------------------
+## Plot the estimated allele frequency distribution
 
 These are the histogram of estimated allele frequencies
 
@@ -215,10 +237,9 @@ joined_frequency_final %>%
   theme_cowplot()
 ```
 
-![](data_analysis_neutral_uneven_input_files/figure-markdown_github/unnamed-chunk-8-1.png)
+![](data_analysis_neutral_uneven_input_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
 
-Plot estimated allele frequency vs. true allele frequency (this includes the false positives but not the false negatives)
--------------------------------------------------------------------------------------------------------------------------
+## Plot estimated allele frequency vs. true allele frequency (this includes the false positives but not the false negatives)
 
 ``` r
 estimated_vs_true_frequency <- plot_frequency(joined_frequency_final, joined_summary)
@@ -229,10 +250,9 @@ ggsave("../figures/neutral_uneven_input_estimated_vs_true_frequency.png", estima
 include_graphics("../figures/neutral_uneven_input_estimated_vs_true_frequency.png")
 ```
 
-<img src="../figures/neutral_uneven_input_estimated_vs_true_frequency.png" width="4500" />
+![](../figures/neutral_uneven_input_estimated_vs_true_frequency.png)<!-- -->
 
-Plot estimated allele frequency vs. true allele frequency in bins (this includes the false positives but not the false negatives)
----------------------------------------------------------------------------------------------------------------------------------
+## Plot estimated allele frequency vs. true allele frequency in bins (this includes the false positives but not the false negatives)
 
 ``` r
 estimated_vs_true_frequency_bin <- plot_frequency_in_bins(joined_frequency_final, joined_summary)
@@ -243,10 +263,9 @@ ggsave("../figures/neutral_uneven_input_estimated_vs_true_frequency_bin.png", es
 include_graphics("../figures/neutral_uneven_input_estimated_vs_true_frequency_bin.png")
 ```
 
-<img src="../figures/neutral_uneven_input_estimated_vs_true_frequency_bin.png" width="4500" />
+![](../figures/neutral_uneven_input_estimated_vs_true_frequency_bin.png)<!-- -->
 
-Plot error vs. true allele frequency in bins
---------------------------------------------
+## Plot error vs. true allele frequency in bins
 
 ``` r
 error_vs_true_frequency_bin <- plot_error_in_bins(joined_frequency_final, joined_summary)
@@ -257,10 +276,9 @@ ggsave("../figures/neutral_uneven_input_error_vs_true_frequency_bin.png", error_
 include_graphics("../figures/neutral_uneven_input_error_vs_true_frequency_bin.png")
 ```
 
-<img src="../figures/neutral_uneven_input_error_vs_true_frequency_bin.png" width="4500" />
+![](../figures/neutral_uneven_input_error_vs_true_frequency_bin.png)<!-- -->
 
-Check the SNPs with highest error
----------------------------------
+## Check the SNPs with highest error
 
 ``` r
 filter(joined_frequency_final, coverage==8, sample_size==160) %>%
@@ -295,8 +313,7 @@ filter(joined_frequency_final, coverage==8, sample_size==160) %>%
     ## # … with 4 more variables: coverage <dbl>, sample_size <dbl>,
     ## #   frequency_bin <fct>, error <dbl>
 
-True frequency distribution of false negatives
-----------------------------------------------
+## True frequency distribution of false negatives
 
 ``` r
 false_negatives_final_count <- count(false_negatives_final, coverage, sample_size)
@@ -307,10 +324,9 @@ ggplot(false_negatives_final, aes(x=frequency)) +
   theme_cowplot()
 ```
 
-![](data_analysis_neutral_uneven_input_files/figure-markdown_github/unnamed-chunk-16-1.png)
+![](data_analysis_neutral_uneven_input_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
 
-Esimated frequency distribution of false positives
---------------------------------------------------
+## Esimated frequency distribution of false positives
 
 ``` r
 false_positives_final_count <- count(false_positives_final, coverage, sample_size)
@@ -321,15 +337,17 @@ ggplot(false_positives_final, aes(x=estimated_frequency)) +
   theme_cowplot()
 ```
 
-![](data_analysis_neutral_uneven_input_files/figure-markdown_github/unnamed-chunk-17-1.png)
+![](data_analysis_neutral_uneven_input_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
 
-Compare individual barcoding with Pool-seq
-==========================================
+# Compare individual barcoding with Pool-seq
 
-I used the same set of SNPs obtained from ANGSD and calculated allele frequency based on total allele count across the population. This is to make the results from the two methods more comparable. In reality, however, the SNP calling result will be different if no individual barcode is provided.
+I used the same set of SNPs obtained from ANGSD and calculated allele
+frequency based on total allele count across the population. This is to
+make the results from the two methods more comparable. In reality,
+however, the SNP calling result will be different if no individual
+barcode is provided.
 
-Get minor allele frequencies estimated from Pool-seq
-----------------------------------------------------
+## Get minor allele frequencies estimated from Pool-seq
 
 ``` r
 i=1
@@ -346,7 +364,9 @@ for (coverage in c(0.25,0.5,1,2,4,8)){
     ## join estimated maf with true snps and only keep the snps that exist in estimated maf
     joined_frequency <- right_join(mutations_final, allele_count, by="position") %>%
       select(-ancestral) %>%
-      mutate(coverage=coverage, sample_size=sample_size, frequency=ifelse(is.na(frequency), 1, frequency))
+      mutate(coverage=coverage, sample_size=sample_size, 
+             frequency=ifelse(is.na(frequency) & !(position %in% substitutions_pos), 0, frequency),
+             frequency=ifelse(is.na(frequency) & position %in% substitutions_pos, 1, frequency))
     ## compile the final files for plotting
     if (i==1){
       joined_frequency_final <- joined_frequency
@@ -361,12 +381,11 @@ write_tsv(joined_frequency_final, "../neutral_sim_uneven_input/rep_1/angsd/joine
 
 ``` r
 joined_frequency_final <- read_tsv("../neutral_sim_uneven_input/rep_1/angsd/joined_frequency_final_poolseq.tsv") %>%
-  mutate(estimated_frequency=maf, frequency_bin = cut(frequency, breaks = 0:10/10), error=estimated_frequency-frequency) 
+  mutate(estimated_frequency=maf, frequency_bin = cut(frequency, breaks = 0:10/10, include.lowest = T), error=estimated_frequency-frequency) 
 joined_summary <- summarise_by_design(joined_frequency_final)
 ```
 
-Plot estimated allele frequency vs. true allele frequency (this includes the false positives but not the false negatives)
--------------------------------------------------------------------------------------------------------------------------
+## Plot estimated allele frequency vs. true allele frequency (this includes the false positives but not the false negatives)
 
 ``` r
 estimated_vs_true_frequency_pool <- plot_frequency(joined_frequency_final, joined_summary)
@@ -377,10 +396,9 @@ ggsave("../figures/neutral_uneven_input_estimated_vs_true_frequency_pool.png", e
 include_graphics("../figures/neutral_uneven_input_estimated_vs_true_frequency_pool.png")
 ```
 
-<img src="../figures/neutral_uneven_input_estimated_vs_true_frequency_pool.png" width="4500" />
+![](../figures/neutral_uneven_input_estimated_vs_true_frequency_pool.png)<!-- -->
 
-Plot estimated allele frequency vs. true allele frequency in bins (this includes the false positives but not the false negatives)
----------------------------------------------------------------------------------------------------------------------------------
+## Plot estimated allele frequency vs. true allele frequency in bins (this includes the false positives but not the false negatives)
 
 ``` r
 estimated_vs_true_frequency_pool_bin <- plot_frequency_in_bins(joined_frequency_final, joined_summary)
@@ -391,10 +409,9 @@ ggsave("../figures/neutral_uneven_input_estimated_vs_true_frequency_pool_bin.png
 include_graphics("../figures/neutral_uneven_input_estimated_vs_true_frequency_pool_bin.png")
 ```
 
-<img src="../figures/neutral_uneven_input_estimated_vs_true_frequency_pool_bin.png" width="4500" />
+![](../figures/neutral_uneven_input_estimated_vs_true_frequency_pool_bin.png)<!-- -->
 
-Plot absolute values of error vs. true allele frequency in bins (this includes the false positives but not the false negatives)
--------------------------------------------------------------------------------------------------------------------------------
+## Plot absolute values of error vs. true allele frequency in bins (this includes the false positives but not the false negatives)
 
 ``` r
 error_vs_true_frequency_pool_bin <- plot_error_in_bins(joined_frequency_final, joined_summary)
@@ -405,4 +422,4 @@ ggsave("../figures/neutral_uneven_input_error_vs_true_frequency_pool_bin.png", e
 include_graphics("../figures/neutral_uneven_input_error_vs_true_frequency_pool_bin.png")
 ```
 
-<img src="../figures/neutral_uneven_input_error_vs_true_frequency_pool_bin.png" width="4500" />
+![](../figures/neutral_uneven_input_error_vs_true_frequency_pool_bin.png)<!-- -->
