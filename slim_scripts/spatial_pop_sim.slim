@@ -60,11 +60,11 @@ initialize() {
 			writeFile(OUT_PATH + "rep_" + REP_ID + "/fasta/p" + meta_pop_id + "_sample" + sample_id + "_genome2.fasta", header, append=F);
 			writeFile(OUT_PATH + "rep_" + REP_ID + "/fasta/p" + meta_pop_id + "_sample" + sample_id + "_genome2.fasta", sequence, append=T);
 			// save these genomes for outputting in vcf format later
-		  if (meta_pop_id == 1 & sample_id == 1) {
-		  	output_genomes = sample.genomes;
-		  } else {
-		  	output_genomes = c(output_genomes, sample.genomes);
-		  }
+			if (meta_pop_id == 1 & sample_id == 1) {
+				output_genomes = sample.genomes;
+			} else {
+				output_genomes = c(output_genomes, sample.genomes);
+			}
 		}
 	}
 	// Output population-level allele frequencies
