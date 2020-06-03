@@ -435,7 +435,7 @@ for (coverage in c(0.25,0.5,1,2,4,8)){
 
 ``` r
 real_theta_t <- sum(2*mutations_final$frequency*(1-mutations_final$frequency))/30000000
-real_theta_w <- dim(mutations_final)[1]/(30000000*sum(1/(1:999)))
+real_theta_w <- dim(mutations_final)[1]/(30000000*sum(1/(1:1999)))
 real_tajima_d <- real_theta_t-real_theta_w
 tibble(real_theta_t=round(real_theta_t, 5), real_theta_w=round(real_theta_w, 5)) %>%
   kable()
@@ -443,7 +443,7 @@ tibble(real_theta_t=round(real_theta_t, 5), real_theta_w=round(real_theta_w, 5))
 
 | real\_theta\_t | real\_theta\_w |
 | -------------: | -------------: |
-|        0.00394 |        0.00433 |
+|        0.00394 |        0.00396 |
 
 ## thetas estimated from `realSFS`
 

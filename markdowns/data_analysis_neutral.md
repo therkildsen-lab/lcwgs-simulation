@@ -35,9 +35,6 @@ Data analysis with neutral simulation
         `realSFS`](#read-windowed-thetas-estimated-by-realsfs)
       - [real theta values with the entire
         population](#real-theta-values-with-the-entire-population)
-      - [thetas estimated from the estimated allele frequencies (not
-        from
-        `realSFS`)](#thetas-estimated-from-the-estimated-allele-frequencies-not-from-realsfs)
       - [thetas estimated from
         `realSFS`](#thetas-estimated-from-realsfs)
       - [Plot Watterson’s estimator and Tajima’s estimator of theta and
@@ -437,7 +434,7 @@ for (coverage in c(0.25,0.5,1,2,4,8)){
 
 ``` r
 real_theta_t <- sum(2*mutations_final$frequency*(1-mutations_final$frequency))/30000000
-real_theta_w <- dim(mutations_final)[1]/(30000000*sum(1/(1:999)))
+real_theta_w <- dim(mutations_final)[1]/(30000000*sum(1/(1:1999)))
 real_tajima_d <- real_theta_t-real_theta_w
 tibble(real_theta_t=round(real_theta_t, 5), real_theta_w=round(real_theta_w, 5)) %>%
   kable()
@@ -445,46 +442,7 @@ tibble(real_theta_t=round(real_theta_t, 5), real_theta_w=round(real_theta_w, 5))
 
 | real\_theta\_t | real\_theta\_w |
 | -------------: | -------------: |
-|        0.00394 |        0.00433 |
-
-## thetas estimated from the estimated allele frequencies (not from `realSFS`)
-
-Tajima’s estimator
-
-``` r
-group_by(joined_frequency_final, coverage, sample_size) %>%
-  summarise(theta_t=round(sum(2*estimated_frequency*(1-estimated_frequency))/30000000,5)) %>%
-  ungroup() %>%
-  spread(key = sample_size, value = theta_t) %>%
-  kable()
-```
-
-| coverage |       5 |      10 |      20 |      40 |      80 |     160 |
-| -------: | ------: | ------: | ------: | ------: | ------: | ------: |
-|     0.25 | 0.00013 | 0.00055 | 0.00149 | 0.00245 | 0.00301 | 0.00343 |
-|     0.50 | 0.00055 | 0.00148 | 0.00243 | 0.00301 | 0.00343 | 0.00366 |
-|     1.00 | 0.00146 | 0.00242 | 0.00301 | 0.00342 | 0.00365 | 0.00377 |
-|     2.00 | 0.00239 | 0.00301 | 0.00341 | 0.00365 | 0.00376 | 0.00382 |
-|     4.00 | 0.00299 | 0.00341 | 0.00364 | 0.00377 | 0.00382 | 0.00385 |
-|     8.00 | 0.00335 | 0.00363 | 0.00376 | 0.00383 | 0.00386 | 0.00387 |
-
-Watterson’s estimator
-
-``` r
-group_by(joined_frequency_final, coverage, sample_size) %>%
-  summarise(theta_w=round(n()/30000000/sum(1/(1:(unique(sample_size)-1))), 5)) %>%
-  spread(key = sample_size, value = theta_w) %>%
-  kable()
-```
-
-| coverage |       5 |      10 |      20 |      40 |      80 |     160 |
-| -------: | ------: | ------: | ------: | ------: | ------: | ------: |
-|     0.25 | 0.00014 | 0.00044 | 0.00098 | 0.00143 | 0.00166 | 0.00190 |
-|     0.50 | 0.00058 | 0.00122 | 0.00171 | 0.00194 | 0.00218 | 0.00235 |
-|     1.00 | 0.00162 | 0.00213 | 0.00235 | 0.00254 | 0.00269 | 0.00277 |
-|     2.00 | 0.00284 | 0.00296 | 0.00306 | 0.00315 | 0.00320 | 0.00323 |
-|     4.00 | 0.00393 | 0.00383 | 0.00378 | 0.00376 | 0.00374 | 0.00372 |
-|     8.00 | 0.00483 | 0.00454 | 0.00439 | 0.00429 | 0.00422 | 0.00415 |
+|        0.00394 |        0.00396 |
 
 ## thetas estimated from `realSFS`
 
@@ -533,7 +491,7 @@ filter(thetas_final, summary_stats !="tajima_d") %>%
   theme_cowplot()
 ```
 
-![](data_analysis_neutral_files/figure-gfm/unnamed-chunk-26-1.png)<!-- -->
+![](data_analysis_neutral_files/figure-gfm/unnamed-chunk-24-1.png)<!-- -->
 
 ``` r
 filter(thetas_final, summary_stats =="tajima_d") %>%
@@ -545,7 +503,7 @@ filter(thetas_final, summary_stats =="tajima_d") %>%
   theme_cowplot()
 ```
 
-![](data_analysis_neutral_files/figure-gfm/unnamed-chunk-26-2.png)<!-- -->
+![](data_analysis_neutral_files/figure-gfm/unnamed-chunk-24-2.png)<!-- -->
 
 I will annonate each figure with the chromosome average statistics later
 on.
