@@ -27,7 +27,7 @@ joined_frequency_final_pooled_uneven <- read_tsv("../neutral_sim_uneven_input/re
   transmute(frequency=frequency, frequency_bin = cut(frequency, breaks = 0:5/5, include.lowest = T), estimated_frequency=maf, error=estimated_frequency-frequency, coverage=coverage, sample_size=sample_size, design="poolseq_uneven")
 ```
 
-#### For presentations
+#### For presentations, in bins
 
 ``` r
 ## combine these
@@ -86,7 +86,7 @@ include_graphics("../figures/error_plot_combined.png")
 
 ![](../figures/error_plot_combined.png)<!-- -->
 
-#### For the paper
+#### For the paper, in bins
 
 ``` r
 ## combine these
@@ -147,6 +147,68 @@ include_graphics("../figures/error_plot_combined_for_paper.png")
 ```
 
 ![](../figures/error_plot_combined_for_paper.png)<!-- -->
+
+#### For the paper, smooth curve
+
+``` r
+## combine these
+joined_frequency_final_combined <- bind_rows(joined_frequency_final_even, joined_frequency_final_uneven, joined_frequency_final_pooled_uneven) 
+
+## get summary stats (number of SNPs, RMSE, R-squared)
+joined_summary_table <- group_by(joined_frequency_final_combined, coverage, sample_size, design) %>%
+  summarise(r_squared=round(summary(lm(estimated_frequency~frequency))$r.squared,3), 
+            n=n(), 
+            root_mean_error_squared=round(sqrt(mean(error^2)), 3))
+  
+joined_frequency_final_combined_test <- joined_frequency_final_combined[sample(1:nrow(joined_frequency_final_combined), 1000000),]
+## make the plot
+error_plot_combined <- joined_frequency_final_combined %>%
+  arrange(desc(design)) %>%
+  ggplot(aes(x=frequency, y=abs(error), color=design)) +
+  geom_smooth(se=F) +
+  geom_text(data = joined_summary_table, x = 0.12, aes(label=root_mean_error_squared, color = design, y = 1-as.numeric(as.factor(design))/8), fontface = "bold", size=4.8, show.legend = F) +
+  #geom_text(data = joined_summary_table, x = 2.8, aes(label=r_squared, color = design, y = 1-as.numeric(as.factor(design))/14), fontface = "bold", size=5, show.legend = F) +
+  geom_text(data = joined_summary_table, x = 0.82, aes(label=n, color = design, y = 1-as.numeric(as.factor(design))/8), fontface = "bold", size=4.8, show.legend = F) +
+  annotate("text", x = 0.12, y = 1, label="RMSE", size=4.8) +
+  #annotate("text", x = 2.8, y=1.01, label="R^2", parse=T, size=5) +
+  annotate("text", x = 0.82, y = 1, label="SNP count", size=4.8) +
+  facet_grid(coverage~sample_size) +
+  scale_x_continuous(breaks = (0:5)/5) +
+  ylim(c(0,1.05)) +
+  scale_color_viridis_d(labels=c("LC-WGS with even coverage", "LC-WGS with uneven coverage", "Pool-seq with uneven coverage"), begin = 0.75, end = 0) +
+  xlab("true frequency of derived allele") +
+  ylab("absolute error") +
+  theme_cowplot() +
+  theme(strip.text = element_text(size=20),
+        axis.text.x = element_text(angle=0),
+        panel.border = element_rect(colour = "black", fill=NA, size=1),
+        legend.position = "top",
+        legend.title = element_text(size = 20),
+        legend.text = element_text(size = 15),
+        legend.key.size = unit(1, 'cm')) + 
+  guides(color = guide_legend(override.aes = list(size=8)))
+
+error_plot_combined_grob <- ggplotGrob(error_plot_combined)
+
+error_plot_combined_new <- gtable_add_cols(error_plot_combined_grob, unit(error_plot_combined_grob$widths[[16]], 'cm'), 16)  %>%
+  gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
+                       textGrob("coverage", rot = -90, gp = gpar(col = gray(1)))),
+                  10, 17, 20, 17, name = paste(runif(2))) %>%
+  gtable_add_cols(unit(1/8, "line"), 16) %>%
+  gtable_add_rows(unit(error_plot_combined_grob$heights[[9]], 'cm'), 8) %>%
+  gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
+                          textGrob("sample size", gp = gpar(col = gray(1)))),
+                     9, 5, 9, 15, name = paste(runif(2))) %>%
+  gtable_add_rows(unit(1/8, "line"), 9)
+
+ggsave("../figures/error_plot_combined_smooth_curve_for_paper.png", error_plot_combined_new, width = 42, height = 35, units = "cm", pointsize = 20)
+```
+
+``` r
+include_graphics("../figures/error_plot_combined_smooth_curve_for_paper.png")
+```
+
+![](../figures/error_plot_combined_smooth_curve_for_paper.png)<!-- -->
 
 ## Estimated vs. true allele frequency
 
