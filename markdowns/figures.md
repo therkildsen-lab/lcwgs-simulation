@@ -215,7 +215,7 @@ include_graphics("../figures/frequency_plot_even_coverage_for_paper.png")
 
 ![](../figures/frequency_plot_even_coverage_for_paper.png)<!-- -->
 
-#### LCWGS vs pool-seq, or the paper
+#### LCWGS vs pool-seq, for the paper
 
 ``` r
 ## combine these
@@ -282,6 +282,36 @@ include_graphics("../figures/frequency_plot_combined_for_paper.png")
 
 #### Lower migration rate
 
+###### PCA with true genotypes
+
+``` r
+eigen_vec <- read_tsv("../spatial_pop_sim_lower_m/rep_1/slim/sample_genotypes.eigenvec") %>%
+  transmute(pc1 = PC1, pc2 = PC2, pop = str_c("p", (ceiling(1:1440/160))), ind = rep(1:160, 9))
+pca_plot <- eigen_vec %>%
+  filter(ind<=80) %>%
+  ggplot(aes(x=-pc1, y=pc2, color=pop)) +
+  geom_point(size = 1.2) +
+  scale_color_viridis_d() +
+  theme_cowplot() +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        legend.position = "none",
+        text = element_text(size=5),
+        panel.grid = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        axis.line = element_blank(),
+        axis.title = element_blank())
+ggsave("../figures/spatial_pop_lower_m_genotype_pca.png", pca_plot, width = 5, height = 3, units = "cm")
+```
+
+``` r
+include_graphics("../figures/spatial_pop_lower_m_genotype_pca.png")
+```
+
+![](../figures/spatial_pop_lower_m_genotype_pca.png)<!-- -->
+
+###### PCA with LC-WGS
+
 ``` r
 i=1
 for (coverage in c(0.125,0.25,0.5,1,2,4)){
@@ -310,12 +340,6 @@ for (coverage in c(0.125,0.25,0.5,1,2,4)){
     i=i+1
   }
 }
-## Get mean PC values per population
-pca_table_final_per_pop <- group_by(pca_table_final, population, coverage, sample_size) %>%
-  summarise(PC1_mean=mean(PC1), PC2_mean=mean(PC2), PC3_mean=mean(PC3), PC1_sd=sd(PC1), PC2_sd=sd(PC2), PC3_sd=sd(PC3)) %>%
-  ungroup() %>%
-  group_by(coverage, sample_size) %>%
-  mutate(PC1_mean=rescale(PC1_mean, c(-1,1)), PC2_mean=rescale(PC2_mean, c(-1,1)), PC3_mean=rescale(PC3_mean, c(-1,1)))
 
 ## Plot PCA
 pca_plot <- filter(pca_table_final, coverage < 0.5) %>% 
@@ -328,6 +352,7 @@ pca_plot <- filter(pca_table_final, coverage < 0.5) %>%
         panel.grid = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
+        axis.line = element_blank(),
         panel.border = element_rect(colour = "black", fill=NA, size=1),
         legend.position="none")
 
@@ -354,6 +379,36 @@ include_graphics("../figures/spatial_pop_lower_m_cov_mat_pca.png")
 ![](../figures/spatial_pop_lower_m_cov_mat_pca.png)<!-- -->
 
 #### Higher migration rate
+
+###### PCA with true genotypes
+
+``` r
+eigen_vec <- read_tsv("../spatial_pop_sim/rep_1/slim/sample_genotypes.eigenvec") %>%
+  transmute(pc1 = PC1, pc2 = PC2, pop = str_c("p", (ceiling(1:1440/160))), ind = rep(1:160, 9))
+pca_plot <- eigen_vec %>%
+  filter(ind<=80) %>%
+  ggplot(aes(x=-pc1, y=-pc2, color=pop)) +
+  geom_point(size = 1.2) +
+  scale_color_viridis_d() +
+  theme_cowplot() +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        legend.position = "none",
+        text = element_text(size=5),
+        panel.grid = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        axis.line = element_blank(),
+        axis.title = element_blank())
+ggsave("../figures/spatial_pop_genotype_pca.png", pca_plot, width = 5, height = 3, units = "cm")
+```
+
+``` r
+include_graphics("../figures/spatial_pop_genotype_pca.png")
+```
+
+![](../figures/spatial_pop_genotype_pca.png)<!-- -->
+
+###### PCA with LG-WGS
 
 ``` r
 i=1
@@ -383,12 +438,6 @@ for (coverage in c(0.125,0.25,0.5,1,2,4)){
     i=i+1
   }
 }
-## Get mean PC values per population
-pca_table_final_per_pop <- group_by(pca_table_final, population, coverage, sample_size) %>%
-  summarise(PC1_mean=mean(PC1), PC2_mean=mean(PC2), PC3_mean=mean(PC3), PC1_sd=sd(PC1), PC2_sd=sd(PC2), PC3_sd=sd(PC3)) %>%
-  ungroup() %>%
-  group_by(coverage, sample_size) %>%
-  mutate(PC1_mean=rescale(PC1_mean, c(-1,1)), PC2_mean=rescale(PC2_mean, c(-1,1)), PC3_mean=rescale(PC3_mean, c(-1,1)))
 
 ## Plot PCA
 pca_plot <- pca_table_final %>% 
@@ -401,6 +450,7 @@ pca_plot <- pca_table_final %>%
         panel.grid = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
+        axis.line = element_blank(),
         panel.border = element_rect(colour = "black", fill=NA, size=1),
         legend.position="none")
 

@@ -1,22 +1,24 @@
-Data analysis with simulation of spatial populations with lower migration rate
+Data analysis with simulation of spatial populations with lower
+migration rate
 ================
 
--   [PCA with PCAngsd](#pca-with-pcangsd)
-    -   [Generate PCA tables](#generate-pca-tables)
-    -   [Plot PCA](#plot-pca)
-    -   [Plot PCA centroid](#plot-pca-centroid)
-    -   [Plot DAPC](#plot-dapc)
-    -   [Plot DAPC centroid](#plot-dapc-centroid)
--   [PCA with covMat](#pca-with-covmat)
-    -   [Plot PCA](#plot-pca-1)
-    -   [Plot PCA centroid](#plot-pca-centroid-1)
-    -   [Plot DAPC](#plot-dapc-1)
-    -   [Plot DAPC centroid](#plot-dapc-centroid-1)
--   [PCoA with ibsMat](#pcoa-with-ibsmat)
-    -   [Plot PCoA](#plot-pcoa)
-    -   [Plot PCoA centroid](#plot-pcoa-centroid)
-    -   [Plot DAPC](#plot-dapc-2)
-    -   [Plot DAPC centroid](#plot-dapc-centroid-2)
+  - [PCA with true genotypes](#pca-with-true-genotypes)
+  - [PCA with PCAngsd](#pca-with-pcangsd)
+      - [Generate PCA tables](#generate-pca-tables)
+      - [Plot PCA](#plot-pca)
+      - [Plot PCA centroid](#plot-pca-centroid)
+      - [Plot DAPC](#plot-dapc)
+      - [Plot DAPC centroid](#plot-dapc-centroid)
+  - [PCA with covMat](#pca-with-covmat)
+      - [Plot PCA](#plot-pca-1)
+      - [Plot PCA centroid](#plot-pca-centroid-1)
+      - [Plot DAPC](#plot-dapc-1)
+      - [Plot DAPC centroid](#plot-dapc-centroid-1)
+  - [PCoA with ibsMat](#pcoa-with-ibsmat)
+      - [Plot PCoA](#plot-pcoa)
+      - [Plot PCoA centroid](#plot-pcoa-centroid)
+      - [Plot DAPC](#plot-dapc-2)
+      - [Plot DAPC centroid](#plot-dapc-centroid-2)
 
 ``` r
 library(tidyverse)
@@ -28,8 +30,26 @@ library(ggrepel)
 library(MASS)
 ```
 
-PCA with PCAngsd
-----------------
+## PCA with true genotypes
+
+``` bash
+nohup /programs/plink-2.00/plink2 --pca --vcf /workdir/lcwgs-simulation/spatial_pop_sim_lower_m/rep_1/slim/sample_genotypes.vcf --out /workdir/lcwgs-simulation/spatial_pop_sim_lower_m/rep_1/slim/sample_genotypes \
+> /workdir/lcwgs-simulation/nohups/spatial_pop_sim_lower_m_pca_with_vcf.nohup &
+```
+
+``` r
+eigen_vec <- read_tsv("../spatial_pop_sim_lower_m/rep_1/slim/sample_genotypes.eigenvec") %>%
+  transmute(pc1 = PC1, pc2 = PC2, pop = str_c("p", (ceiling(1:1440/160))), ind = rep(1:160, 9))
+eigen_vec %>%
+  filter(ind<=80) %>%
+  ggplot(aes(x=-pc1, y=pc2, color=pop)) +
+  geom_point() +
+  theme_cowplot()
+```
+
+![](data_analysis_spatial_pop_lower_m_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
+
+## PCA with PCAngsd
 
 ### Generate PCA tables
 
@@ -84,7 +104,7 @@ dapc_table_final_per_pop <- group_by(dapc_table_final, population, coverage, sam
 
 ### Plot PCA
 
-#### PC1 vs. PC2
+#### PC1 vs. PC2
 
 ``` r
 ggplot(pca_table_final,aes(x=PC1, y=PC2, color=population)) +
@@ -96,11 +116,11 @@ ggplot(pca_table_final,aes(x=PC1, y=PC2, color=population)) +
         axis.ticks = element_blank())
 ```
 
-![](data_analysis_spatial_pop_lower_m_files/figure-markdown_github/unnamed-chunk-3-1.png)
+![](data_analysis_spatial_pop_lower_m_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
 
 ### Plot PCA centroid
 
-#### PC1 vs. PC2
+#### PC1 vs. PC2
 
 ``` r
 set.seed(1)
@@ -116,7 +136,7 @@ ggplot(pca_table_final_per_pop, aes(x=PC1_mean, y=PC2_mean, color=population, la
         axis.ticks = element_blank())
 ```
 
-![](data_analysis_spatial_pop_lower_m_files/figure-markdown_github/unnamed-chunk-4-1.png)
+![](data_analysis_spatial_pop_lower_m_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
 
 ### Plot DAPC
 
@@ -130,7 +150,7 @@ ggplot(dapc_table_final,aes(x=LD1, y=LD2, color=population)) +
         axis.ticks = element_blank())
 ```
 
-![](data_analysis_spatial_pop_lower_m_files/figure-markdown_github/unnamed-chunk-5-1.png)
+![](data_analysis_spatial_pop_lower_m_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
 
 ### Plot DAPC centroid
 
@@ -148,10 +168,9 @@ ggplot(dapc_table_final_per_pop, aes(x=LD1_mean, y=LD2_mean, color=population, l
         axis.ticks = element_blank())
 ```
 
-![](data_analysis_spatial_pop_lower_m_files/figure-markdown_github/unnamed-chunk-6-1.png)
+![](data_analysis_spatial_pop_lower_m_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
 
-PCA with covMat
----------------
+## PCA with covMat
 
 ``` r
 i=1
@@ -204,11 +223,12 @@ dapc_table_final_per_pop <- group_by(dapc_table_final, population, coverage, sam
   mutate(LD1_mean=rescale(LD1_mean, c(-1,1)), LD2_mean=rescale(LD2_mean, c(-1,1)))
 ```
 
-Note: there are more NAs in these covariance matrices compared to the covariance matrices generated from PCAngsd.
+Note: there are more NAs in these covariance matrices compared to the
+covariance matrices generated from PCAngsd.
 
 ### Plot PCA
 
-#### PC1 vs. PC2
+#### PC1 vs. PC2
 
 ``` r
 ggplot(pca_table_final,aes(x=PC1, y=PC2, color=population)) +
@@ -220,11 +240,11 @@ ggplot(pca_table_final,aes(x=PC1, y=PC2, color=population)) +
         axis.ticks = element_blank())
 ```
 
-![](data_analysis_spatial_pop_lower_m_files/figure-markdown_github/unnamed-chunk-8-1.png)
+![](data_analysis_spatial_pop_lower_m_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
 
 ### Plot PCA centroid
 
-#### PC1 vs. PC2
+#### PC1 vs. PC2
 
 ``` r
 set.seed(1)
@@ -240,7 +260,7 @@ ggplot(pca_table_final_per_pop, aes(x=PC1_mean, y=PC2_mean, color=population, la
         axis.ticks = element_blank())
 ```
 
-![](data_analysis_spatial_pop_lower_m_files/figure-markdown_github/unnamed-chunk-9-1.png)
+![](data_analysis_spatial_pop_lower_m_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
 
 ### Plot DAPC
 
@@ -254,7 +274,7 @@ ggplot(dapc_table_final,aes(x=LD1, y=LD2, color=population)) +
         axis.ticks = element_blank())
 ```
 
-![](data_analysis_spatial_pop_lower_m_files/figure-markdown_github/unnamed-chunk-10-1.png)
+![](data_analysis_spatial_pop_lower_m_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
 
 ### Plot DAPC centroid
 
@@ -272,10 +292,9 @@ ggplot(dapc_table_final_per_pop, aes(x=LD1_mean, y=LD2_mean, color=population, l
         axis.ticks = element_blank())
 ```
 
-![](data_analysis_spatial_pop_lower_m_files/figure-markdown_github/unnamed-chunk-11-1.png)
+![](data_analysis_spatial_pop_lower_m_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
 
-PCoA with ibsMat
-----------------
+## PCoA with ibsMat
 
 ``` r
 i=1
@@ -330,7 +349,7 @@ dapc_table_final_per_pop <- group_by(dapc_table_final, population, coverage, sam
 
 ### Plot PCoA
 
-#### PCo1 vs. PCo2
+#### PCo1 vs. PCo2
 
 ``` r
 ggplot(mds_table_final,aes(x=PCo1, y=PCo2, color=population)) +
@@ -342,11 +361,11 @@ ggplot(mds_table_final,aes(x=PCo1, y=PCo2, color=population)) +
         axis.ticks = element_blank())
 ```
 
-![](data_analysis_spatial_pop_lower_m_files/figure-markdown_github/unnamed-chunk-13-1.png)
+![](data_analysis_spatial_pop_lower_m_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
 
 ### Plot PCoA centroid
 
-#### PCo1 vs. PCo2
+#### PCo1 vs. PCo2
 
 ``` r
 set.seed(1)
@@ -362,7 +381,7 @@ ggplot(mds_table_final_per_pop, aes(x=PCo1_mean, y=PCo2_mean, color=population, 
         axis.ticks = element_blank())
 ```
 
-![](data_analysis_spatial_pop_lower_m_files/figure-markdown_github/unnamed-chunk-14-1.png)
+![](data_analysis_spatial_pop_lower_m_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
 
 ### Plot DAPC
 
@@ -376,7 +395,7 @@ ggplot(dapc_table_final,aes(x=LD1, y=LD2, color=population)) +
         axis.ticks = element_blank())
 ```
 
-![](data_analysis_spatial_pop_lower_m_files/figure-markdown_github/unnamed-chunk-15-1.png)
+![](data_analysis_spatial_pop_lower_m_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
 
 ### Plot DAPC centroid
 
@@ -394,4 +413,4 @@ ggplot(dapc_table_final_per_pop, aes(x=LD1_mean, y=LD2_mean, color=population, l
         axis.ticks = element_blank())
 ```
 
-![](data_analysis_spatial_pop_lower_m_files/figure-markdown_github/unnamed-chunk-16-1.png)
+![](data_analysis_spatial_pop_lower_m_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->

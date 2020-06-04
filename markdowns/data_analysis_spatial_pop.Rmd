@@ -19,6 +19,25 @@ library(ggrepel)
 library(MASS)
 ```
 
+## PCA with true genotypes
+
+```{bash eval=F}
+nohup /programs/plink-2.00/plink2 --pca \
+--vcf /workdir/lcwgs-simulation/spatial_pop_sim/rep_1/slim/sample_genotypes.vcf \
+--out /workdir/lcwgs-simulation/spatial_pop_sim/rep_1/slim/sample_genotypes \
+> /workdir/lcwgs-simulation/nohups/spatial_pop_sim_pca_with_vcf.nohup &
+```
+
+```{r eval=T, message=F, warning=F}
+eigen_vec <- read_tsv("../spatial_pop_sim/rep_1/slim/sample_genotypes.eigenvec") %>%
+  transmute(pc1 = PC1, pc2 = PC2, pop = str_c("p", (ceiling(1:1440/160))), ind = rep(1:160, 9))
+eigen_vec %>%
+  filter(ind<=80) %>%
+  ggplot(aes(x=-pc1, y=-pc2, color=pop)) +
+  geom_point() +
+  theme_cowplot()
+```
+
 ## PCA with PCAngsd
 
 ### Generate PCA tables
