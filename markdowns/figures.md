@@ -1,6 +1,13 @@
 Figures for presentation and paper
 ================
 
+  - [Error in allele frequency
+    estimation](#error-in-allele-frequency-estimation)
+  - [Estimated vs. true allele
+    frequency](#estimated-vs.-true-allele-frequency)
+  - [PCA](#pca)
+  - [Fst](#fst)
+
 ``` r
 library(tidyverse)
 library(cowplot)
@@ -171,7 +178,7 @@ joined_frequency_final_combined_test <- joined_frequency_final_combined[sample(1
 frequency_plot_combined <- joined_frequency_final_combined %>%
   arrange(desc(design)) %>%
   ggplot(aes(x=frequency, y=estimated_frequency)) +
-  geom_hex(size=0.05, aes(fill=log(..density..)), show.legend = T, color = "white") +
+  geom_hex(bins = 100, size= 0.05, color="white", aes(fill=log(stat(density))), show.legend = T) +
   geom_text(data = joined_summary_table, x = 0.92, aes(label=r_squared, y = 0.15-as.numeric(as.factor(design))/8), fontface = "bold", size=4.8) +
   geom_text(data = joined_summary_table, x = 0.18, aes(label=n, y = 1.08-1/8), fontface = "bold", size = 4.8, show.legend = F, color = "black") +
   annotate("text", x = 0.92, y = 0.15, label="R^2", parse=T , size=4.8) +
@@ -180,8 +187,9 @@ frequency_plot_combined <- joined_frequency_final_combined %>%
   facet_grid(coverage~sample_size) +
   scale_x_continuous(breaks = (0:5)/5) +
   scale_y_continuous(breaks = (0:5)/5, limits = c(0, 1.1)) +
-  scale_fill_viridis_c() +
-  scale_color_viridis_c() +
+  scale_fill_continuous(high = "black", low = "#56B1F7") +
+  #scale_fill_viridis_c() +
+  #scale_color_viridis_c() +
   ylab("estimated frequency") +
   theme_cowplot() +
   theme(strip.text = element_text(size=20),
