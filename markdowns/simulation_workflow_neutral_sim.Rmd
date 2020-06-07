@@ -693,3 +693,76 @@ nohup bash /workdir/lcwgs-simulation/shell_scripts/estimate_theta_gatk_neutral_s
   1 \
   > '/workdir/lcwgs-simulation/nohups/estimate_theta_gatk_neutral_sim_1.nohup' &
 ```
+
+# Experimentation with replicating SFS estimation
+
+## Run realSFS
+
+```{bash eval=F}
+## 40 samples, 1x
+nohup /workdir/programs/angsd0.931/angsd/misc/realSFS \
+/workdir/lcwgs-simulation/neutral_sim/rep_1/angsd_gatk/bam_list_40_1x.saf.idx \
+-P 16 -bootstrap 50 -tole 1e-07 -maxIter 1000 \
+> /workdir/lcwgs-simulation/neutral_sim/rep_1/angsd_gatk/bam_list_40_1x_bootstrap_50.sfs \
+2> /workdir/lcwgs-simulation/nohups/bam_list_40_1x_bootstrap_50.nohup &
+## 10 samples, 1x
+nohup /workdir/programs/angsd0.931/angsd/misc/realSFS \
+/workdir/lcwgs-simulation/neutral_sim/rep_1/angsd_gatk/bam_list_10_1x.saf.idx \
+-P 16 -bootstrap 50 -tole 1e-07 -maxIter 1000 \
+> /workdir/lcwgs-simulation/neutral_sim/rep_1/angsd_gatk/bam_list_10_1x_bootstrap_50.sfs \
+2> /workdir/lcwgs-simulation/nohups/bam_list_10_1x_bootstrap_50.nohup &
+```
+
+## Visualize results
+
+```{r eval=T}
+## 10 samples, 8x
+read_delim("../neutral_sim/rep_1/angsd_gatk/bam_list_10_8x.sfs", col_names = F, delim= " ") %>% 
+  t() %>% 
+  .[2:20, 1] %>% 
+  tibble(freq=., count=2:20) %>% 
+  ggplot() + 
+  geom_col(aes(x=count, y=freq))
+## 10 samples, 1x, 20 replicates
+read_delim("../neutral_sim/rep_1/angsd_gatk/bam_list_10_1x_bootstrap_50.sfs", col_names = F, delim= " ") %>% 
+  t() %>% 
+  .[2:20,] %>% 
+  as_tibble() %>% 
+  bind_cols(count=2:20) %>% 
+  pivot_longer(1:20, names_to = "rep", values_to = "freq") %>% 
+  ggplot() + 
+  geom_col(aes(x=count, y=freq)) + 
+  facet_wrap(~rep)
+## 10 samples, 1x, average over 50 replicates
+read_delim("../neutral_sim/rep_1/angsd_gatk/bam_list_10_1x_bootstrap_50.sfs", col_names = F, delim= " ") %>% 
+  apply(2, mean) %>% 
+  .[2:20] %>% 
+  tibble(freq=., count=2:20) %>% 
+  ggplot() + 
+  geom_col(aes(x=count, y=freq))
+
+## 40 samples, 8x
+read_delim("../neutral_sim/rep_1/angsd_gatk/bam_list_40_8x.sfs", col_names = F, delim= " ") %>% 
+  t() %>% 
+  .[2:80, 1] %>% 
+  tibble(freq=., count=2:80) %>% 
+  ggplot() + 
+  geom_col(aes(x=count, y=freq), width = 0.8)
+## 40 samples, 1x, 20 replicates
+read_delim("../neutral_sim/rep_1/angsd_gatk/bam_list_40_1x_bootstrap_50.sfs", col_names = F, delim= " ") %>% 
+  t() %>% 
+  .[2:80,] %>% 
+  as_tibble() %>% 
+  bind_cols(count=2:80) %>% 
+  pivot_longer(1:20, names_to = "rep", values_to = "freq") %>% 
+  ggplot() + 
+  geom_col(aes(x=count, y=freq), width = 0.8) + 
+  facet_wrap(~rep)
+## 40 samples, 1x, average over 50 replicates
+read_delim("../neutral_sim/rep_1/angsd_gatk/bam_list_40_1x_bootstrap_50.sfs", col_names = F, delim= " ") %>% 
+  apply(2, mean) %>% 
+  .[2:80] %>% 
+  tibble(freq=., count=2:80) %>% 
+  ggplot() + 
+  geom_col(aes(x=count, y=freq), width = 0.8)
+```

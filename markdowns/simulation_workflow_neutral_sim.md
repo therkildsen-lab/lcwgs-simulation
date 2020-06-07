@@ -42,6 +42,10 @@ Simulation workflow for neutral simulation
         D](#get-shell-script-for-estimating-thetas-and-tajimas-d-1)
       - [Run the shell script to estimate theta and Tajima’s
         D](#run-the-shell-script-to-estimate-theta-and-tajimas-d-1)
+  - [Experimentation with replicating SFS
+    estimation](#experimentation-with-replicating-sfs-estimation)
+      - [Run realSFS](#run-realsfs)
+      - [Visualize results](#visualize-results)
 
 ``` r
 library(tidyverse)
@@ -751,3 +755,148 @@ nohup bash /workdir/lcwgs-simulation/shell_scripts/estimate_theta_gatk_neutral_s
   1 \
   > '/workdir/lcwgs-simulation/nohups/estimate_theta_gatk_neutral_sim_1.nohup' &
 ```
+
+# Experimentation with replicating SFS estimation
+
+## Run realSFS
+
+``` bash
+## 40 samples, 1x
+nohup /workdir/programs/angsd0.931/angsd/misc/realSFS \
+/workdir/lcwgs-simulation/neutral_sim/rep_1/angsd_gatk/bam_list_40_1x.saf.idx \
+-P 16 -bootstrap 50 -tole 1e-07 -maxIter 1000 \
+> /workdir/lcwgs-simulation/neutral_sim/rep_1/angsd_gatk/bam_list_40_1x_bootstrap_50.sfs \
+2> /workdir/lcwgs-simulation/nohups/bam_list_40_1x_bootstrap_50.nohup &
+## 10 samples, 1x
+nohup /workdir/programs/angsd0.931/angsd/misc/realSFS \
+/workdir/lcwgs-simulation/neutral_sim/rep_1/angsd_gatk/bam_list_10_1x.saf.idx \
+-P 16 -bootstrap 50 -tole 1e-07 -maxIter 1000 \
+> /workdir/lcwgs-simulation/neutral_sim/rep_1/angsd_gatk/bam_list_10_1x_bootstrap_50.sfs \
+2> /workdir/lcwgs-simulation/nohups/bam_list_10_1x_bootstrap_50.nohup &
+```
+
+## Visualize results
+
+``` r
+## 10 samples, 8x
+read_delim("../neutral_sim/rep_1/angsd_gatk/bam_list_10_8x.sfs", col_names = F, delim= " ") %>% 
+  t() %>% 
+  .[2:20, 1] %>% 
+  tibble(freq=., count=2:20) %>% 
+  ggplot() + 
+  geom_col(aes(x=count, y=freq))
+```
+
+    ## Parsed with column specification:
+    ## cols(
+    ##   .default = col_double(),
+    ##   X22 = col_logical()
+    ## )
+
+    ## See spec(...) for full column specifications.
+
+![](simulation_workflow_neutral_sim_files/figure-gfm/unnamed-chunk-22-1.png)<!-- -->
+
+``` r
+## 10 samples, 1x, 20 replicates
+read_delim("../neutral_sim/rep_1/angsd_gatk/bam_list_10_1x_bootstrap_50.sfs", col_names = F, delim= " ") %>% 
+  t() %>% 
+  .[2:20,] %>% 
+  as_tibble() %>% 
+  bind_cols(count=2:20) %>% 
+  pivot_longer(1:20, names_to = "rep", values_to = "freq") %>% 
+  ggplot() + 
+  geom_col(aes(x=count, y=freq)) + 
+  facet_wrap(~rep)
+```
+
+    ## Parsed with column specification:
+    ## cols(
+    ##   .default = col_double(),
+    ##   X22 = col_logical()
+    ## )
+    ## See spec(...) for full column specifications.
+
+    ## Warning: `as_tibble.matrix()` requires a matrix with column names or a `.name_repair` argument. Using compatibility `.name_repair`.
+    ## This warning is displayed once per session.
+
+![](simulation_workflow_neutral_sim_files/figure-gfm/unnamed-chunk-22-2.png)<!-- -->
+
+``` r
+## 10 samples, 1x, average over 50 replicates
+read_delim("../neutral_sim/rep_1/angsd_gatk/bam_list_10_1x_bootstrap_50.sfs", col_names = F, delim= " ") %>% 
+  apply(2, mean) %>% 
+  .[2:20] %>% 
+  tibble(freq=., count=2:20) %>% 
+  ggplot() + 
+  geom_col(aes(x=count, y=freq))
+```
+
+    ## Parsed with column specification:
+    ## cols(
+    ##   .default = col_double(),
+    ##   X22 = col_logical()
+    ## )
+    ## See spec(...) for full column specifications.
+
+![](simulation_workflow_neutral_sim_files/figure-gfm/unnamed-chunk-22-3.png)<!-- -->
+
+``` r
+## 40 samples, 8x
+read_delim("../neutral_sim/rep_1/angsd_gatk/bam_list_40_8x.sfs", col_names = F, delim= " ") %>% 
+  t() %>% 
+  .[2:80, 1] %>% 
+  tibble(freq=., count=2:80) %>% 
+  ggplot() + 
+  geom_col(aes(x=count, y=freq), width = 0.8)
+```
+
+    ## Parsed with column specification:
+    ## cols(
+    ##   .default = col_double(),
+    ##   X82 = col_logical()
+    ## )
+    ## See spec(...) for full column specifications.
+
+![](simulation_workflow_neutral_sim_files/figure-gfm/unnamed-chunk-22-4.png)<!-- -->
+
+``` r
+## 40 samples, 1x, 20 replicates
+read_delim("../neutral_sim/rep_1/angsd_gatk/bam_list_40_1x_bootstrap_50.sfs", col_names = F, delim= " ") %>% 
+  t() %>% 
+  .[2:80,] %>% 
+  as_tibble() %>% 
+  bind_cols(count=2:80) %>% 
+  pivot_longer(1:20, names_to = "rep", values_to = "freq") %>% 
+  ggplot() + 
+  geom_col(aes(x=count, y=freq), width = 0.8) + 
+  facet_wrap(~rep)
+```
+
+    ## Parsed with column specification:
+    ## cols(
+    ##   .default = col_double(),
+    ##   X82 = col_logical()
+    ## )
+    ## See spec(...) for full column specifications.
+
+![](simulation_workflow_neutral_sim_files/figure-gfm/unnamed-chunk-22-5.png)<!-- -->
+
+``` r
+## 40 samples, 1x, average over 50 replicates
+read_delim("../neutral_sim/rep_1/angsd_gatk/bam_list_40_1x_bootstrap_50.sfs", col_names = F, delim= " ") %>% 
+  apply(2, mean) %>% 
+  .[2:80] %>% 
+  tibble(freq=., count=2:80) %>% 
+  ggplot() + 
+  geom_col(aes(x=count, y=freq), width = 0.8)
+```
+
+    ## Parsed with column specification:
+    ## cols(
+    ##   .default = col_double(),
+    ##   X82 = col_logical()
+    ## )
+    ## See spec(...) for full column specifications.
+
+![](simulation_workflow_neutral_sim_files/figure-gfm/unnamed-chunk-22-6.png)<!-- -->
