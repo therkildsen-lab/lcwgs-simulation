@@ -187,8 +187,8 @@ frequency_plot_combined <- joined_frequency_final_combined %>%
   facet_grid(coverage~sample_size) +
   scale_x_continuous(breaks = (0:5)/5) +
   scale_y_continuous(breaks = (0:5)/5, limits = c(0, 1.1)) +
-  scale_fill_continuous(high = "#133e69", low = "#5fb7fa") +
-  #scale_fill_viridis_c() +
+  #scale_fill_continuous(high = "#133e69", low = "#5fb7fa") +
+  scale_fill_viridis_c(direction = 1) +
   #scale_color_viridis_c() +
   ylab("estimated frequency") +
   theme_cowplot() +
