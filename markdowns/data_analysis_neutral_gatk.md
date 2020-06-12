@@ -287,6 +287,11 @@ filter(sfs_final, frequency>0, frequency<1) %>%
 
 ![](data_analysis_neutral_gatk_files/figure-gfm/unnamed-chunk-9-2.png)<!-- -->
 
+Note that the SFS appears more smooth when sample size is lower given
+the same average coverage. This makes sense because the variance in
+coverage is higher (e.g. more sites with \>2n coverage) when the sample
+size is lower.
+
 ## Plot the estimated allele frequency distribution
 
 These are the histogram of estimated allele frequencies
