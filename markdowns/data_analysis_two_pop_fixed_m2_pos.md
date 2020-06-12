@@ -23,6 +23,7 @@ Data analysis with simulation of divergent selection on two populations
       - [Compute and plot the estimated windowed Fst (with no minimum
         individual filter and 1,000bp fixed
         windows)](#compute-and-plot-the-estimated-windowed-fst-with-no-minimum-individual-filter-and-1000bp-fixed-windows)
+      - [Selection scan using PCAngsd](#selection-scan-using-pcangsd)
   - [RAD seq simulation with lower selection and lower
     recombination](#rad-seq-simulation-with-lower-selection-and-lower-recombination)
       - [Get true sample allele count](#get-true-sample-allele-count)
@@ -43,6 +44,7 @@ Data analysis with simulation of divergent selection on two populations
       - [Compute and plot the estimated windowed Fst (with no minimum
         individual filter and 1,000bp fixed
         windows)](#compute-and-plot-the-estimated-windowed-fst-with-no-minimum-individual-filter-and-1000bp-fixed-windows-1)
+      - [Selection scan using PCAngsd](#selection-scan-using-pcangsd-1)
   - [RAD seq simulation with lower selection and lower
     recombination](#rad-seq-simulation-with-lower-selection-and-lower-recombination-1)
       - [Get true sample allele count](#get-true-sample-allele-count-1)
@@ -55,6 +57,7 @@ library(tidyverse)
 library(cowplot)
 library(knitr)
 library(data.table)
+library(RcppCNPy)
 ```
 
 # Define all relevant functions
@@ -146,6 +149,29 @@ fixed_windowed_fst <- function(x, window_length){
     summarise(fst=sum(alpha)/sum(beta)) %>%
     ungroup() %>%
     mutate(position=as.numeric(as.character(position)))
+}
+get_selection_scan <- function(x){
+  i=1
+  for (coverage in c(0.25,0.5,1,2,4,8)){
+    for (sample_size in c(5,10,20,40,80, 160)){
+      ## read in estimated fst
+      genome_selection <- npyLoad(paste0(x, "angsd/pcagnsd_bam_list_", sample_size, "_", coverage, "x.selection.npy"))
+      genome_selection_sites <- read_table(paste0(x, "angsd/pcagnsd_bam_list_", sample_size, "_", coverage, "x.sites"), col_names = F) %>%
+        transmute(coverage = coverage, 
+                  sample_size = sample_size,
+                  pos = parse_integer(str_remove(X1, "rep_1_")), 
+                  chi_squared = genome_selection[,1],
+                  neg_log_p_value = -log(1-pchisq(chi_squared, df=1)))
+      ## compile the final files for plotting
+      if (i==1){
+        genome_selection_sites_final <- genome_selection_sites
+      } else {
+        genome_selection_sites_final <- bind_rows(genome_selection_sites_final, genome_selection_sites)
+      }
+      i=i+1
+    }
+  }
+  return(genome_selection_sites_final)
 }
 count_to_maf <- function(ancestral_allele, totA, totC, totG, totT){
   if(ancestral_allele == "A"){
@@ -240,9 +266,9 @@ mutations_final <- get_mutations("../two_pop_sim_fixed_m2_pos/rep_1/")
 real_theta_t_p1 <- sum(2*mutations_final$p1*(1-mutations_final$p1))/30000000
 real_theta_t_p2 <- sum(2*mutations_final$p2*(1-mutations_final$p2))/30000000
 real_theta_w_p1 <- filter(mutations_final, p1 > 0, p1 < 1) %>%
-  nrow() %>% `/`(30000000*sum(1/(1:999)))
+  nrow() %>% `/`(30000000*sum(1/(1:1999)))
 real_theta_w_p2 <- filter(mutations_final, p1 > 0, p1 < 1) %>%
-  nrow() %>% `/`(30000000*sum(1/(1:999)))
+  nrow() %>% `/`(30000000*sum(1/(1:1999)))
 tibble(theta = c("tajima", "watterson"), p1=c(real_theta_t_p1, real_theta_w_p1), p2=c(real_theta_t_p2,real_theta_w_p2))
 ```
 
@@ -250,7 +276,7 @@ tibble(theta = c("tajima", "watterson"), p1=c(real_theta_t_p1, real_theta_w_p1),
     ##   theta          p1      p2
     ##   <chr>       <dbl>   <dbl>
     ## 1 tajima    0.00361 0.00363
-    ## 2 watterson 0.00401 0.00401
+    ## 2 watterson 0.00367 0.00367
 
 ## Plot Fst
 
@@ -487,6 +513,27 @@ include_graphics("../figures/two_pop_sim_fixed_m2_pos_windowed_fst_raw.png")
 
 ![](../figures/two_pop_sim_fixed_m2_pos_windowed_fst_raw.png)<!-- -->
 
+## Selection scan using PCAngsd
+
+``` r
+selection_scan <- get_selection_scan("/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos/rep_1/")
+selection_scan_summary <- group_by(selection_scan, coverage, sample_size) %>%
+  summarize(n_snp = n(), log_p_cutoff = -log(0.05/n_snp))
+selection_scan_plot <- ggplot(selection_scan, aes(x = pos, y = neg_log_p_value)) +
+  geom_point(alpha=0.5, size=0.1) +
+  geom_point(data=mutations_final_m2, aes(x=position, y=27), color="red", size=0.2, shape=8) +
+  geom_hline(data = selection_scan_summary, aes(yintercept = log_p_cutoff), linetype = "dashed") +
+  facet_grid(coverage ~ sample_size) +
+  theme_cowplot()
+ggsave("../figures/two_pop_sim_fixed_m2_pos_selection_scan.png", selection_scan_plot, height = 8, width=15, units = "in")
+```
+
+``` r
+include_graphics("../figures/two_pop_sim_fixed_m2_pos_selection_scan.png")
+```
+
+![](../figures/two_pop_sim_fixed_m2_pos_selection_scan.png)<!-- -->
+
 # RAD seq simulation with lower selection and lower recombination
 
 To simulate RAD-seq, I assumed that the genotype calling is perfectly
@@ -532,7 +579,7 @@ mutate(maf_final, coverage="RAD") %>%
     theme_cowplot()
 ```
 
-![](data_analysis_two_pop_fixed_m2_pos_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->
+![](data_analysis_two_pop_fixed_m2_pos_files/figure-gfm/unnamed-chunk-22-1.png)<!-- -->
 
 # Two populations with divergent selection, with smaller population size ( Ne\~10,000 in each population)
 
@@ -584,7 +631,7 @@ ggplot(mutations_final_m1, aes(x=position, y=fst, color=type)) +
   theme_cowplot()
 ```
 
-![](data_analysis_two_pop_fixed_m2_pos_files/figure-gfm/unnamed-chunk-23-1.png)<!-- -->
+![](data_analysis_two_pop_fixed_m2_pos_files/figure-gfm/unnamed-chunk-25-1.png)<!-- -->
 
 ``` r
 arrange(mutations_final, desc(fst)) %>%
@@ -658,6 +705,27 @@ include_graphics("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_windowed_f
 
 ![](../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_windowed_fst_raw.png)<!-- -->
 
+## Selection scan using PCAngsd
+
+``` r
+selection_scan <- get_selection_scan("/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/")
+selection_scan_summary <- group_by(selection_scan, coverage, sample_size) %>%
+  summarize(n_snp = n(), log_p_cutoff = -log(0.05/n_snp))
+selection_scan_plot <- ggplot(selection_scan, aes(x = pos, y = neg_log_p_value)) +
+  geom_point(alpha=0.5, size=0.1) +
+  geom_point(data=mutations_final_m2, aes(x=position, y=16), color="red", size=0.2, shape=8) +
+  geom_hline(data = selection_scan_summary, aes(yintercept = log_p_cutoff), linetype = "dashed") +
+  facet_grid(coverage ~ sample_size) +
+  theme_cowplot()
+ggsave("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_selection_scan.png", selection_scan_plot, height = 8, width=15, units = "in")
+```
+
+``` r
+include_graphics("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_selection_scan.png")
+```
+
+![](../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_selection_scan.png)<!-- -->
+
 # RAD seq simulation with lower selection and lower recombination
 
 To simulate RAD-seq, I assumed that the genotype calling is perfectly
@@ -703,4 +771,4 @@ mutate(maf_final, coverage="RAD") %>%
     theme_cowplot()
 ```
 
-![](data_analysis_two_pop_fixed_m2_pos_files/figure-gfm/unnamed-chunk-31-1.png)<!-- -->
+![](data_analysis_two_pop_fixed_m2_pos_files/figure-gfm/unnamed-chunk-35-1.png)<!-- -->
