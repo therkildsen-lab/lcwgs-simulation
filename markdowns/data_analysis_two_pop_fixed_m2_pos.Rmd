@@ -130,6 +130,28 @@ get_selection_scan <- function(x){
   }
   return(genome_selection_sites_final)
 }
+get_neutrality_stats <- function(x){
+  i=1
+  for (coverage in c(0.25,0.5,1,2,4,8)){
+    for (sample_size in c(5,10,20,40,80, 160)){
+      ## read in estimated fst
+      neutrality_stats <- read_tsv(paste0(x, "angsd_gatk/bam_list_p1_", sample_size, "_", coverage, "x.windowed_thetas.idx.pestPG")) %>%
+        janitor::clean_names() %>%
+        dplyr::select(-1, -2) %>%
+        mutate(coverage = coverage, 
+                  sample_size = sample_size) %>%
+        rename(pos = win_center)
+      ## compile the final files for plotting
+      if (i==1){
+        neutrality_stats_final <- neutrality_stats
+      } else {
+        neutrality_stats_final <- bind_rows(neutrality_stats_final, neutrality_stats)
+      }
+      i=i+1
+    }
+  }
+  return(neutrality_stats_final)
+}
 count_to_maf <- function(ancestral_allele, totA, totC, totG, totT){
   if(ancestral_allele == "A"){
     minor_allele_count <- max(totC, totG, totT)
@@ -224,7 +246,7 @@ real_theta_t_p1 <- sum(2*mutations_final$p1*(1-mutations_final$p1))/30000000
 real_theta_t_p2 <- sum(2*mutations_final$p2*(1-mutations_final$p2))/30000000
 real_theta_w_p1 <- filter(mutations_final, p1 > 0, p1 < 1) %>%
   nrow() %>% `/`(30000000*sum(1/(1:1999)))
-real_theta_w_p2 <- filter(mutations_final, p1 > 0, p1 < 1) %>%
+real_theta_w_p2 <- filter(mutations_final, p2 > 0, p2 < 1) %>%
   nrow() %>% `/`(30000000*sum(1/(1:1999)))
 tibble(theta = c("tajima", "watterson"), p1=c(real_theta_t_p1, real_theta_w_p1), p2=c(real_theta_t_p2,real_theta_w_p2))
 ```
@@ -397,6 +419,100 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_selection_scan.png", selection_scan_
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_selection_scan.png")
 ```
 
+## Selection scan using neutrality test stats
+
+#### Read in the data
+
+```{r eval=T, warning=F, message=F}
+p1_neutrality_stats <- get_neutrality_stats("/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos/rep_1/")
+```
+
+#### Genome wide theta
+
+###### SFS
+
+```{r eval=T, warning=F, message=F, fig.height=12, fig.width=15}
+i=1
+for (coverage in c(0.25,0.5,1,2,4,8)){
+  for (sample_size in c(5,10,20,40, 80, 160)){
+    sfs <- scan(paste0("../two_pop_sim_fixed_m2_pos/rep_1/angsd_gatk/bam_list_p1_", sample_size, "_", coverage, "x.sfs")) %>%
+      enframe(name = frequency) %>%
+      mutate(frequency=(0:(sample_size*2))/(sample_size*2), coverage=coverage, sample_size=sample_size)
+    if (i==1){
+      sfs_final <- sfs
+    } else {
+      sfs_final <- bind_rows(sfs_final, sfs)
+    }
+    i=i+1
+  }
+}
+sfs_final_sum <- filter(sfs_final, frequency>0, frequency<1) %>%
+  group_by(coverage, sample_size) %>%
+  summarise(n=sum(value))
+filter(sfs_final, frequency>0, frequency<1) %>%
+  group_by(coverage, sample_size) %>%
+  ggplot(aes(x=frequency, y=value)) +
+  geom_point(size=0.5) +
+  geom_line() +
+  geom_text(data=sfs_final_sum, x=0.8, y=40000, aes(label=paste0("n=",round(n,0)))) +
+  facet_grid(coverage~sample_size) +
+  theme_cowplot()
+```
+
+###### Tajima's estimator
+
+```{r eval=T, warning=F, message=F}
+p1_neutrality_stats %>%
+  group_by(coverage, sample_size) %>%
+  summarise(t_p = round(sum(t_p) / sum(n_sites), 5)) %>%
+  pivot_wider(names_from = sample_size, values_from = t_p)
+```
+
+###### Watterson's estimator
+
+```{r eval=T, warning=F, message=F}
+p1_neutrality_stats %>%
+  group_by(coverage, sample_size) %>%
+  summarise(t_w = round(sum(t_w) / sum(n_sites), 5)) %>%
+  pivot_wider(names_from = sample_size, values_from = t_w)
+```
+
+It is strange that Watterson's estimator is now overestimated. 
+
+#### Plot Tajima's D
+
+```{r eval=F, warning=F, message=F}
+p1_tajima_plot <- ggplot(p1_neutrality_stats, aes(x = pos, y = tajima)) +
+  geom_point(alpha=0.5, size=0.1) +
+  geom_point(data=mutations_final_m2, aes(x=position, y=1.5), color="red", size=0.2, shape=8) +
+  facet_grid(coverage ~ sample_size) +
+  theme_cowplot()
+ggsave("../figures/two_pop_sim_fixed_m2_pos_p1_tajima_d.png", p1_tajima_plot, height = 8, width=15, units = "in")
+```
+
+```{r}
+include_graphics("../figures/two_pop_sim_fixed_m2_pos_p1_tajima_d.png")
+```
+
+#### Plot Fay and Wu's H
+
+```{r eval=F, warning=F, message=F}
+max_fayh <- group_by(p1_neutrality_stats, coverage, sample_size) %>%
+  summarise(max_fayh = max(fayh)) %>%
+  crossing(mutations_final_m2[,2])
+
+p1_fayh_plot <- ggplot(p1_neutrality_stats, aes(x = pos, y = fayh)) +
+  geom_point(alpha=0.5, size=0.1) +
+  geom_point(data=max_fayh, aes(x=position, y=max_fayh*1.1), color="red", size=0.2, shape=8) +
+  facet_wrap(coverage ~ sample_size, scales = "free_y") +
+  theme_cowplot()
+ggsave("../figures/two_pop_sim_fixed_m2_pos_p1_fay_h.png", p1_fayh_plot, height = 10, width=15, units = "in")
+```
+
+```{r}
+include_graphics("../figures/two_pop_sim_fixed_m2_pos_p1_fay_h.png")
+```
+
 # RAD seq simulation with lower selection and lower recombination
 
 To simulate RAD-seq, I assumed that the genotype calling is perfectly accurate (i.e. sequence depth is high). I then took random samples along the chromosome representing RAD tags.  
@@ -454,7 +570,7 @@ real_theta_t_p1 <- sum(2*mutations_final$p1*(1-mutations_final$p1))/30000000
 real_theta_t_p2 <- sum(2*mutations_final$p2*(1-mutations_final$p2))/30000000
 real_theta_w_p1 <- filter(mutations_final, p1 > 0, p1 < 1) %>%
   nrow() %>% `/`(30000000*sum(1/(1:1999)))
-real_theta_w_p2 <- filter(mutations_final, p1 > 0, p1 < 1) %>%
+real_theta_w_p2 <- filter(mutations_final, p2 > 0, p2 < 1) %>%
   nrow() %>% `/`(30000000*sum(1/(1:1999)))
 tibble(theta = c("tajima", "watterson"), p1=c(real_theta_t_p1, real_theta_w_p1), p2=c(real_theta_t_p2,real_theta_w_p2))
 ```
@@ -531,6 +647,101 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_selection_scan.png",
 
 ```{r}
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_selection_scan.png")
+```
+
+## Selection scan using neutrality test stats
+
+#### Read in the data
+
+```{r eval=T, warning=F, message=F}
+p1_neutrality_stats <- get_neutrality_stats("/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/")
+```
+
+#### Genome wide theta
+
+###### SFS
+
+```{r eval=T, warning=F, message=F, fig.height=12, fig.width=15}
+i=1
+for (coverage in c(0.25,0.5,1,2,4,8)){
+  for (sample_size in c(5,10,20,40, 80, 160)){
+    sfs <- scan(paste0("../two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/angsd_gatk/bam_list_p1_", sample_size, "_", coverage, "x.sfs")) %>%
+      enframe(name = frequency) %>%
+      mutate(frequency=(0:(sample_size*2))/(sample_size*2), coverage=coverage, sample_size=sample_size)
+    if (i==1){
+      sfs_final <- sfs
+    } else {
+      sfs_final <- bind_rows(sfs_final, sfs)
+    }
+    i=i+1
+  }
+}
+sfs_final_sum <- filter(sfs_final, frequency>0, frequency<1) %>%
+  group_by(coverage, sample_size) %>%
+  summarise(n=sum(value))
+filter(sfs_final, frequency>0, frequency<1) %>%
+  group_by(coverage, sample_size) %>%
+  ggplot(aes(x=frequency, y=value)) +
+  geom_point(size=0.5) +
+  geom_line() +
+  geom_text(data=sfs_final_sum, x=0.8, y=40000, aes(label=paste0("n=",round(n,0)))) +
+  facet_grid(coverage~sample_size) +
+  theme_cowplot()
+```
+
+###### Tajima's estimator
+
+```{r eval=T, warning=F, message=F}
+p1_neutrality_stats %>%
+  group_by(coverage, sample_size) %>%
+  summarise(t_p = round(sum(t_p) / sum(n_sites), 5)) %>%
+  pivot_wider(names_from = sample_size, values_from = t_p)
+```
+
+###### Watterson's estimator
+
+```{r eval=T, warning=F, message=F}
+p1_neutrality_stats %>%
+  group_by(coverage, sample_size) %>%
+  summarise(t_w = round(sum(t_w) / sum(n_sites), 5)) %>%
+  pivot_wider(names_from = sample_size, values_from = t_w)
+```
+
+Again, Watterson's estimator is now severely overestimated at higher sample size and higher coverage. 
+
+#### Plot Tajima's D
+
+```{r eval=F, warning=F, message=F}
+p1_tajima_plot <- ggplot(p1_neutrality_stats, aes(x = pos, y = tajima)) +
+  geom_point(alpha=0.5, size=0.1) +
+  geom_point(data=mutations_final_m2, aes(x=position, y=1.5), color="red", size=0.2, shape=8) +
+  facet_grid(coverage ~ sample_size) +
+  theme_cowplot()
+ggsave("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_p1_tajima_d.png", p1_tajima_plot, height = 8, width=15, units = "in")
+```
+
+```{r}
+include_graphics("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_p1_tajima_d.png")
+```
+
+#### Plot Fay and Wu's H
+
+```{r eval=F, warning=F, message=F}
+max_fayh <- group_by(p1_neutrality_stats, coverage, sample_size) %>%
+  summarise(max_fayh = max(fayh)) %>%
+  crossing(mutations_final_m2[,2])
+
+p1_fayh_plot <- ggplot(p1_neutrality_stats, aes(x = pos, y = fayh)) +
+  geom_point(alpha=0.5, size=0.1) +
+  geom_smooth(span = 0.01) +
+  geom_point(data=max_fayh, aes(x=position, y=max_fayh*1.1), color="red", size=0.2, shape=8) +
+  facet_wrap(coverage ~ sample_size, scales = "free_y") +
+  theme_cowplot()
+ggsave("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_p1_fay_h.png", p1_fayh_plot, height = 10, width=15, units = "in")
+```
+
+```{r}
+include_graphics("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_p1_fay_h.png")
 ```
 
 # RAD seq simulation with lower selection and lower recombination
