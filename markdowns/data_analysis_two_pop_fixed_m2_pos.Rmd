@@ -3,6 +3,7 @@ title: "Data analysis with simulation of divergent selection on two populations"
 output: 
   github_document: 
     toc: true
+    toc_depth: 4
 ---
 
 ```{r setup, include=FALSE}
@@ -98,6 +99,32 @@ get_estimated_fst <- function(x){
   return(fst_n_ind_final)
 }
 
+get_estimated_windowed_fst_gatk <- function(x, window_length){
+  i=1
+  for (coverage in c(0.25,0.5,1,2,4,8)){
+    for (sample_size in c(5,10,20,40,80, 160)){
+      ## read in estimated fst
+      fst <- read_tsv(paste0(x, "angsd_gatk/bam_list_", sample_size, "_", coverage, "x.alpha_beta.txt"), col_names = F, col_types = cols()) %>%
+        transmute(position=X2, alpha=X3, beta=X4, coverage=coverage, sample_size=sample_size) %>%
+        mutate(position=cut(position, 
+                         breaks=seq(0,40*10^6,window_length),
+                         labels=seq(window_length/2,40*10^6-window_length/2,window_length))) %>%
+        group_by(position, coverage, sample_size) %>%
+        summarise(alpha = sum(alpha), beta = sum(beta), fst = alpha / beta) %>%
+        ungroup() %>%
+        mutate(position=as.numeric(as.character(position)))
+      ## compile the final files for plotting
+      if (i==1){
+        fst_final <- fst
+      } else {
+        fst_final <- bind_rows(fst_final, fst)
+      }
+      i=i+1
+    }
+  }
+  return(fst_final)
+}
+
 fixed_windowed_fst <- function(x, window_length){
   mutate(x, position=cut(position, 
                          breaks=seq(0,40*10^6,window_length),
@@ -107,6 +134,7 @@ fixed_windowed_fst <- function(x, window_length){
     ungroup() %>%
     mutate(position=as.numeric(as.character(position)))
 }
+
 get_selection_scan <- function(x){
   i=1
   for (coverage in c(0.25,0.5,1,2,4,8)){
@@ -193,21 +221,15 @@ get_sample_allele_count_per_pop <- function(x){
     }
   }
 }
-allele_count_to_fst <- function(x, n_rad_tag){
-  set.seed(1)
-  rad_intervals <- sample(1:(30000000-150), n_rad_tag) %>%
-    tibble(start=., stop=.+150) %>%
-    arrange(by=start)
+allele_count_to_fst <- function(x){
   i <- 1
   for (sample_size in c(5,10,20,40,80,160)){
-    base_count_p1 <- read_tsv(paste0(x,"slim/p1_", sample_size, "_base_count.tsv"), col_types = cols()) %>%
-      filter(position %inrange% as.list(rad_intervals))
+    base_count_p1 <- read_tsv(paste0(x,"slim/p1_", sample_size, "_base_count.tsv"), col_types = cols())
     maf_p1 <- base_count_p1 %>%
       rowwise() %>%
       transmute(maf = count_to_maf(ancestral, A_count, C_count, G_count, T_count), position=position) %>%
       ungroup()
-    base_count_p2 <- read_tsv(paste0(x, "slim/p2_", sample_size, "_base_count.tsv"), col_types = cols()) %>%
-      filter(position %inrange% as.list(rad_intervals))
+    base_count_p2 <- read_tsv(paste0(x, "slim/p2_", sample_size, "_base_count.tsv"), col_types = cols())
     maf_p2 <- base_count_p2 %>%
       rowwise() %>%
       transmute(maf = count_to_maf(ancestral, A_count, C_count, G_count, T_count), position=position) %>%
@@ -215,8 +237,26 @@ allele_count_to_fst <- function(x, n_rad_tag){
     fst <- tibble(position=maf_p1$position, p1=maf_p1$maf, p2=maf_p2$maf) %>%
       rowwise() %>%
       mutate(maf_mean = (p1+p2)/2) %>%
-      filter(maf_mean>0.05, maf_mean < 0.95) %>%
       mutate(h_t=2*maf_mean*(1-maf_mean), h_s=p1*(1-p1) + p2*(1-p2), fst=1-h_s/h_t, sample_size=sample_size)
+    if (i==1) {
+      fst_final <- fst
+    } else {
+      fst_final <- bind_rows(fst_final, fst)
+    }
+    i <- i+1
+  }
+  return(fst_final)
+}
+subset_fst <- function(n_rad_tag, combined_fst){
+  set.seed(1)
+  rad_intervals <- sample(1:(30000000-150), n_rad_tag) %>%
+    tibble(start=., stop=.+150) %>%
+    arrange(by=start)
+  n_sites <- sum(1:30000000 %inrange% as.list(rad_intervals))
+  i <- 1
+  for (n_samples in c(5,10,20,40,80,160)){
+    fst <- filter(combined_fst, sample_size == n_samples, position %inrange% as.list(rad_intervals)) %>%
+      mutate(n_sites = n_sites)
     if (i==1) {
       fst_final <- fst
     } else {
@@ -228,32 +268,60 @@ allele_count_to_fst <- function(x, n_rad_tag){
 }
 ```
 
-# Standard model ( Ne~50,000 in each population)
+# Standard model (Ne~50,000 in each population)
 
-## Read in the ancestral states
+## The model
+
+### Read in the ancestral states
 
 ```{r eval=T, warning=F, message=F}
 ancestral <- get_ancestral("../two_pop_sim_fixed_m2_pos/rep_1/")
 ```
 
-## Read mutation and substitution file
+### Read mutation and substitution file
 
-The target theta is ~ 0.004
+The target theta is ~ 0.004.
 
-```{r eval=T, warning=F, message=F, fig.height=2, fig.width=10}
+```{r eval=T, warning=F, message=F, fig.height=4, fig.width=10}
 mutations_final <- get_mutations("../two_pop_sim_fixed_m2_pos/rep_1/")
 real_theta_t_p1 <- sum(2*mutations_final$p1*(1-mutations_final$p1))/30000000
 real_theta_t_p2 <- sum(2*mutations_final$p2*(1-mutations_final$p2))/30000000
+real_theta_t_combined <- sum(2*mutations_final$frequency_mean*(1-mutations_final$frequency_mean))/30000000
 real_theta_w_p1 <- filter(mutations_final, p1 > 0, p1 < 1) %>%
-  nrow() %>% `/`(30000000*sum(1/(1:1999)))
+  nrow() %>% `/`(30000000*sum(1/(1:(5000*2-1))))
 real_theta_w_p2 <- filter(mutations_final, p2 > 0, p2 < 1) %>%
-  nrow() %>% `/`(30000000*sum(1/(1:1999)))
-tibble(theta = c("tajima", "watterson"), p1=c(real_theta_t_p1, real_theta_w_p1), p2=c(real_theta_t_p2,real_theta_w_p2))
+  nrow() %>% `/`(30000000*sum(1/(1:(5000*2-1))))
+real_theta_w_combined <- nrow(mutations_final) / (30000000*sum(1/(1:(10000*2-1))))
+tibble(theta = c("tajima", "watterson"), 
+       p1 = c(real_theta_t_p1, real_theta_w_p1), 
+       p2 = c(real_theta_t_p2, real_theta_w_p2),
+       combined = c(real_theta_t_combined, real_theta_w_combined)) %>% 
+  kable()
+## p1 SFS
+filter(mutations_final, p1 > 0, p1 < 1) %>%
+  mutate(p1 = round(p1, 4)) %>%
+  count(p1) %>%
+  ggplot(aes(x=p1, y=n)) +
+  geom_line() +
+  geom_point(size=1) +
+  theme_cowplot()
+## p2 SFS
+filter(mutations_final, p2 > 0, p2 < 1) %>%
+  mutate(p2 = round(p2, 4)) %>%
+  count(p2) %>%
+  ggplot(aes(x=p2, y=n)) +
+  geom_line() +
+  geom_point(size=1) +
+  theme_cowplot()
 ```
 
-## Plot Fst
+`theta_w` is much lower than `theta_p` in p1 and p2, presumably because selection has strongly reduced the effective migration between the two populations, creating a genome-wide pattern of population contraction when each population is evaluated separately. 
+
+### Plot Fst
 
 The target mean neutral Fst is ~ 0.015 and the target peak Fst is ~ 0.6 (based on cod data). The expected neutral Fst is `1/(1+16Nm)` = 0.01234, but because of the selection stage, I expect Fst to be slightly higher than this theoretical expectation.
+
+I used `mean(h_s)/mean(h_t)` to calculate average Fst. I am not sure if this estimator is biased though.
 
 ```{r eval=T, warning=F, message=F, fig.height=2, fig.width=10}
 mutations_final_m1 <- filter(mutations_final, type=="m1")
@@ -273,7 +341,7 @@ arrange(mutations_final, desc(fst)) %>%
 arrange(mutations_final_m2, desc(fst))
 ```
 
-## Plot Fst from the Greenland cod project as a comparison
+### Plot Fst from the Greenland cod project as a comparison
 
 ```{r eval=T, warning=F, message=F, fig.height=2, fig.width=10}
 fst <- read_tsv("../../cod/greenland-cod/angsd/popminind2/ILU2011_UUM2010_bam_list_realigned_mindp161_maxdp768_minind97_minq20_popminind2.fst", col_names = F) %>%
@@ -297,13 +365,15 @@ ggplot(aes(x=position, y=fst)) +
 filter(fst, lg=="LG19") %>% summarise(mean_fst_neutral=sum(alpha)/sum(beta))
 ```
 
-## Read in read depth and estimated Fst
+## Inference with Samtool's GL model
+
+### Read in read depth and estimated Fst
 
 ```{r eval=F, warning=F, message=F}
 fst_n_ind_final <- get_estimated_fst("../two_pop_sim_fixed_m2_pos/rep_1/")
 ```
 
-## Plot genome-wide average Fst (with no minimum individual filter)
+### Plot genome-wide average Fst (with no minimum individual filter)
 
 ```{r eval=F, warning=F, message=F, fig.height=4, fig.width=6}
 group_by(fst_n_ind_final, sample_size, coverage) %>%
@@ -330,7 +400,7 @@ include_graphics("../figures/two_pop_sim_fixed_m2_pos_average_fst_raw.png")
 
 * Also, at smaller sample size, Fst tends to be even more overestimated. This is consistent with empircal data. But couterintuitively, higher coverage makes the problem worse in such cases. We'll need to look into this further. 
 
-## Plot the estimated per-SNP Fst (with no minimum individual filter)
+### Plot the estimated per-SNP Fst (with no minimum individual filter)
 
 ```{r eval=F, warning=F, message=F, fig.height=8, fig.width=15}
 fst_plot <- ggplot(fst_n_ind_final, aes(x=position, y=fst)) +
@@ -345,7 +415,7 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_fst_raw.png", fst_plot, height = 8, 
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_fst_raw.png")
 ```
 
-## Plot genome-wide average Fst (with minimum individual filter)
+### Plot genome-wide average Fst (with minimum individual filter)
 
 I am doing this to help Matt check whether filtering can introduce systematic changes in genome-wide average Fst estimation. There doesn't appear to be any systematic bias caused by filtering in here. However, mapping is not simulated here, and differential mapping at high Fst regions may cause systematic biases. 
 
@@ -368,7 +438,7 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_filtered_average_fst_raw.png", avera
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_filtered_average_fst_raw.png")
 ```
 
-## Plot the estimated per-SNP Fst (with minimum individual filter)
+### Plot the estimated per-SNP Fst (with minimum individual filter)
 
 ```{r eval=F, warning=F, message=F, fig.height=8, fig.width=15}
 filtered_fst_plot <- fst_n_ind_final_filtered %>%
@@ -384,7 +454,7 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_filtered_fst_raw.png", filtered_fst_
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_filtered_fst_raw.png")
 ```
 
-## Compute and plot the estimated windowed Fst (with no minimum individual filter and 1,000bp fixed windows)
+### Compute and plot the estimated windowed Fst (with no minimum individual filter and 1,000bp fixed windows)
 
 ```{r eval=F, warning=F, message=F, fig.height=8, fig.width=15}
 windowed_fst_plot <- fixed_windowed_fst(fst_n_ind_final, 1000) %>%
@@ -400,7 +470,7 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_windowed_fst_raw.png", windowed_fst_
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_windowed_fst_raw.png")
 ```
 
-## Selection scan using PCAngsd
+### Selection scan using PCAngsd
 
 ```{r eval=F, warning=F, message=F}
 selection_scan <- get_selection_scan("/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos/rep_1/")
@@ -419,7 +489,50 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_selection_scan.png", selection_scan_
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_selection_scan.png")
 ```
 
-## Selection scan using neutrality test stats
+## Inference with GATK's GL model
+
+### Fst in 1000bp windows
+
+Note that these saf files were generated without a minMaf or a snp_pval filter, but a minDepth filters.
+
+##### Read in per-SNP Fst and caculate average in 1000bp windows
+
+```{r eval=F, warning=F, message=F}
+fst_windowed_final_gatk <- get_estimated_windowed_fst_gatk("../two_pop_sim_fixed_m2_pos/rep_1/", 1000)
+windowed_fst_plot <- fst_windowed_final_gatk %>%
+  ggplot(aes(x=position, y=fst)) +
+    geom_point(alpha=0.5, size=0.1) +
+    geom_point(data=mutations_final_m2, aes(x=position, y=1.01), color="red", size=0.2, shape=8) +
+    facet_grid(coverage~sample_size) +
+    theme_cowplot()
+ggsave("../figures/two_pop_sim_fixed_m2_pos_windowed_fst_gatk.png", windowed_fst_plot, height = 8, width=15, units = "in")
+```
+
+```{r}
+include_graphics("../figures/two_pop_sim_fixed_m2_pos_windowed_fst_gatk.png")
+```
+
+##### Chromosome-average Fst
+
+```{r eval=F, warning=F, message=F}
+average_fst_gatk_plot <- fst_windowed_final_gatk %>%
+  group_by(coverage, sample_size) %>%
+  summarize(average_fst = sum(alpha) / sum(beta)) %>%
+  ggplot(aes(x=as.factor(sample_size), y=as.factor(coverage), fill=average_fst, label=round(average_fst, 4))) +
+  geom_tile() +
+  geom_text() +
+  scale_fill_viridis_c() +
+  theme_cowplot()
+ggsave("../figures/two_pop_sim_fixed_m2_pos_average_fst_gatk.png", average_fst_gatk_plot, height = 4, width=6, units = "in")
+```
+
+```{r}
+include_graphics("../figures/two_pop_sim_fixed_m2_pos_average_fst_gatk.png")
+```
+
+In general, these Fst results are very similar to those from the Samtools GL model.
+
+### Selection scan using neutrality test stats
 
 #### Read in the data
 
@@ -427,7 +540,7 @@ include_graphics("../figures/two_pop_sim_fixed_m2_pos_selection_scan.png")
 p1_neutrality_stats <- get_neutrality_stats("/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos/rep_1/")
 ```
 
-#### Genome wide theta
+#### Genome wide stats
 
 ###### SFS
 
@@ -452,7 +565,7 @@ sfs_final_sum <- filter(sfs_final, frequency>0, frequency<1) %>%
 filter(sfs_final, frequency>0, frequency<1) %>%
   group_by(coverage, sample_size) %>%
   ggplot(aes(x=frequency, y=value)) +
-  geom_point(size=0.5) +
+  geom_point(size=1) +
   geom_line() +
   geom_text(data=sfs_final_sum, x=0.8, y=40000, aes(label=paste0("n=",round(n,0)))) +
   facet_grid(coverage~sample_size) +
@@ -465,7 +578,8 @@ filter(sfs_final, frequency>0, frequency<1) %>%
 p1_neutrality_stats %>%
   group_by(coverage, sample_size) %>%
   summarise(t_p = round(sum(t_p) / sum(n_sites), 5)) %>%
-  pivot_wider(names_from = sample_size, values_from = t_p)
+  pivot_wider(names_from = sample_size, values_from = t_p) %>% 
+  kable()
 ```
 
 ###### Watterson's estimator
@@ -474,12 +588,15 @@ p1_neutrality_stats %>%
 p1_neutrality_stats %>%
   group_by(coverage, sample_size) %>%
   summarise(t_w = round(sum(t_w) / sum(n_sites), 5)) %>%
-  pivot_wider(names_from = sample_size, values_from = t_w)
+  pivot_wider(names_from = sample_size, values_from = t_w) %>% 
+  kable()
 ```
 
 It is strange that Watterson's estimator is now overestimated. 
 
-#### Plot Tajima's D
+#### Window-based stats
+
+#### Tajima's D 
 
 ```{r eval=F, warning=F, message=F}
 p1_tajima_plot <- ggplot(p1_neutrality_stats, aes(x = pos, y = tajima)) +
@@ -494,7 +611,7 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_p1_tajima_d.png", p1_tajima_plot, he
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_p1_tajima_d.png")
 ```
 
-#### Plot Fay and Wu's H
+#### Fay and Wu's H 
 
 ```{r eval=F, warning=F, message=F}
 max_fayh <- group_by(p1_neutrality_stats, coverage, sample_size) %>%
@@ -513,25 +630,47 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_p1_fay_h.png", p1_fayh_plot, height 
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_p1_fay_h.png")
 ```
 
-# RAD seq simulation with lower selection and lower recombination
+## RAD seq simulaiton and inference 
 
 To simulate RAD-seq, I assumed that the genotype calling is perfectly accurate (i.e. sequence depth is high). I then took random samples along the chromosome representing RAD tags.  
 
-## Get true sample allele count
+### Get true sample allele count
 
 ```{r eval=F, warning=F, message=F}
 get_sample_allele_count_per_pop("../two_pop_sim_fixed_m2_pos/rep_1/")
+fst_all_snps <- allele_count_to_fst("/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos/rep_1/")
+write_tsv(fst_all_snps, "/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos/rep_1/slim/fst_all_snps.tsv")
 ```
 
-## Get sample true MAF and Fst from allele counts
+### Get the true SFS and theta estimators with population samples in p1
+
+```{r eval=T, warning=F, message=F}
+fst_all_snps <- read_tsv("/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos/rep_1/slim/fst_all_snps.tsv")
+## SFS
+group_by(fst_all_snps, sample_size) %>%
+  filter(p1>0, p1<1) %>%
+  count(p1) %>%
+  ggplot(aes(x=p1, y=n)) +
+  geom_line() +
+  geom_point() +
+  theme_cowplot() +
+  facet_wrap(~sample_size)
+## theta_p
+group_by(fst_all_snps, sample_size) %>%
+  filter(p1>0, p1<1) %>%
+  summarise(theta_p = 2 * sum(p1*(1-p1)) / 30000000,
+            theta_w = n() / 30000000 / sum(1/1:(2*sample_size-1)))
+```
+
+### Get sample true MAF and Fst from allele counts
 
 Each RAD tag is 150 bp. Note that `n_rad_tag` are numbers of RAD tags per Mbp. According to the "Breaking RAD" paper, the median RAD tag density that they've found in studies published by then is 4.08. A few studies had up to 20 tags per Mbp, three had up to 110 per Mbp, and one had 362 tags per Mbp.
 
 ```{r eval=T, warning=F, message=F}
 i <- 1
 for (n in c(1,2,4,8,16,32)*120){
-  maf <- allele_count_to_fst("../two_pop_sim_fixed_m2_pos/rep_1/", n_rad_tag = n) %>%
-  mutate(n_rad_tag = n/30)
+  maf <- subset_fst(n_rad_tag = n, combined_fst = fst_all_snps) %>%
+    mutate(n_rad_tag = n/30)
   if (i == 1){
     maf_final <- maf
   } else {
@@ -541,10 +680,45 @@ for (n in c(1,2,4,8,16,32)*120){
 }
 ```
 
-## Plot per SNP Fst
+### Chromosome-wide stats
+
+#### Plot SFS in p1 from RAD data
+
+```{r eval=T, warning=F, message=F, fig.height=8, fig.width=15}
+count(maf_final, p1, sample_size, n_rad_tag) %>%
+  filter(p1>0, p1<1) %>%
+  ggplot(aes(x=p1, y=n)) +
+  geom_point(size=0.5) +
+  geom_line(size=0.2) +
+  facet_grid(n_rad_tag~sample_size, scales = "free_y") +
+  theme_cowplot()
+```
+
+#### Tajima's estimator
+
+```{r eval=T}
+group_by(maf_final, sample_size, n_rad_tag) %>%
+  summarise(theta_t = 2 * sum(p1 * (1 - p1)) / unique(n_sites)) %>%
+  pivot_wider(names_from = sample_size, values_from = theta_t) %>%
+  kable()
+```
+
+#### Watterson's estimator
+
+```{r eval=T}
+filter(maf_final, p1 > 0, p1 < 1) %>%
+  group_by(sample_size, n_rad_tag) %>%
+  summarize(theta_w = n() / (unique(n_sites)*sum(1/(1:(unique(sample_size)*2-1))))) %>%
+  pivot_wider(names_from = sample_size, values_from = theta_w) %>%
+  kable()
+```
+
+
+### Plot per SNP Fst
 
 ```{r eval=T, warning=F, message=F, fig.height=8, fig.width=15}
 mutate(maf_final, coverage="RAD") %>%
+  filter(maf_mean>0.05, maf_mean < 0.95) %>%
   ggplot(aes(x=position, y=fst)) +
     geom_point(alpha=0.5, size=0.2) +
     geom_point(data=mutations_final_m2, aes(x=position, y=1.01), color="red", size=0.2, shape=8) +
@@ -556,26 +730,28 @@ mutate(maf_final, coverage="RAD") %>%
 
 The same population size is simulated, but I've scaled down mutation rate, recombination rate, migration rate. The selection coefficient is unchanged. (Ignore the directory name. I'm just using it for convenience.)
 
-## Read in the ancestral states
+## The model
+
+### Read in the ancestral states
 
 ```{r eval=T, warning=F, message=F}
 ancestral <- get_ancestral("../two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/")
 ```
 
-## Read mutation and substitution file
+### Read mutation and substitution file
 
 ```{r eval=T, warning=F, message=F}
 mutations_final <- get_mutations("../two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/")
 real_theta_t_p1 <- sum(2*mutations_final$p1*(1-mutations_final$p1))/30000000
 real_theta_t_p2 <- sum(2*mutations_final$p2*(1-mutations_final$p2))/30000000
 real_theta_w_p1 <- filter(mutations_final, p1 > 0, p1 < 1) %>%
-  nrow() %>% `/`(30000000*sum(1/(1:1999)))
+  nrow() %>% `/`(30000000*sum(1/(1:(5000*2-1))))
 real_theta_w_p2 <- filter(mutations_final, p2 > 0, p2 < 1) %>%
-  nrow() %>% `/`(30000000*sum(1/(1:1999)))
+  nrow() %>% `/`(30000000*sum(1/(1:(5000*2-1))))
 tibble(theta = c("tajima", "watterson"), p1=c(real_theta_t_p1, real_theta_w_p1), p2=c(real_theta_t_p2,real_theta_w_p2))
 ```
 
-## Plot Fst
+### Plot Fst
 
 ```{r eval=T, warning=F, message=F, fig.height=2, fig.width=10}
 mutations_final_m1 <- filter(mutations_final, type=="m1")
@@ -593,13 +769,15 @@ arrange(mutations_final, desc(fst)) %>%
 arrange(mutations_final_m2, desc(fst))
 ```
 
-## Read in read depth and estimated Fst
+## Inference based on Samtool's GL model
+
+### Read in read depth and estimated Fst
 
 ```{r eval=F, warning=F, message=F}
 fst_n_ind_final <- get_estimated_fst("../two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/")
 ```
 
-## Plot the estimated per-SNP Fst (with no minimum individual filter)
+### Plot the estimated per-SNP Fst (with no minimum individual filter)
 
 ```{r eval=F, warning=F, message=F, fig.height=8, fig.width=15}
 fst_plot <- ggplot(fst_n_ind_final, aes(x=position, y=fst)) +
@@ -614,7 +792,7 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_fst_raw.png", fst_pl
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_fst_raw.png")
 ```
 
-## Compute and plot the estimated windowed Fst (with no minimum individual filter and 1,000bp fixed windows)
+### Compute and plot the estimated windowed Fst (with no minimum individual filter and 1,000bp fixed windows)
 
 ```{r eval=F, warning=F, message=F, fig.height=8, fig.width=15}
 windowed_fst_plot <- fixed_windowed_fst(fst_n_ind_final, 5000) %>%
@@ -630,7 +808,7 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_windowed_fst_raw.png
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_windowed_fst_raw.png")
 ```
 
-## Selection scan using PCAngsd
+### Selection scan using PCAngsd
 
 ```{r eval=F, warning=F, message=F}
 selection_scan <- get_selection_scan("/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/")
@@ -649,7 +827,9 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_selection_scan.png",
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_selection_scan.png")
 ```
 
-## Selection scan using neutrality test stats
+## Inference based on GATK's GL model
+
+### Selection scan using neutrality test stats
 
 #### Read in the data
 
@@ -657,7 +837,7 @@ include_graphics("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_selection_
 p1_neutrality_stats <- get_neutrality_stats("/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/")
 ```
 
-#### Genome wide theta
+#### Genome wide stats
 
 ###### SFS
 
@@ -709,7 +889,9 @@ p1_neutrality_stats %>%
 
 Again, Watterson's estimator is now severely overestimated at higher sample size and higher coverage. 
 
-#### Plot Tajima's D
+#### Window-based stats
+
+###### Plot Tajima's D
 
 ```{r eval=F, warning=F, message=F}
 p1_tajima_plot <- ggplot(p1_neutrality_stats, aes(x = pos, y = tajima)) +
@@ -724,7 +906,7 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_p1_tajima_d.png", p1
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_p1_tajima_d.png")
 ```
 
-#### Plot Fay and Wu's H
+###### Plot Fay and Wu's H
 
 ```{r eval=F, warning=F, message=F}
 max_fayh <- group_by(p1_neutrality_stats, coverage, sample_size) %>%
@@ -744,25 +926,47 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_p1_fay_h.png", p1_fa
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_p1_fay_h.png")
 ```
 
-# RAD seq simulation with lower selection and lower recombination
+## RAD seq simulation and inference 
 
 To simulate RAD-seq, I assumed that the genotype calling is perfectly accurate (i.e. sequence depth is high). I then took random samples along the chromosome representing RAD tags.  
 
-## Get true sample allele count
+### Get true sample allele count
 
 ```{r eval=F, warning=F, message=F}
 get_sample_allele_count_per_pop("../two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/")
+fst_all_snps <- allele_count_to_fst("/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/")
+write_tsv(fst_all_snps, "/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/slim/fst_all_snps.tsv")
 ```
 
-## Get sample true MAF and Fst from allele counts
+### Get the true SFS and theta estimators with population samples in p1
+
+```{r eval=T, warning=F, message=F}
+fst_all_snps <- read_tsv("/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/slim/fst_all_snps.tsv")
+## SFS
+group_by(fst_all_snps, sample_size) %>%
+  filter(p1>0, p1<1) %>%
+  count(p1) %>%
+  ggplot(aes(x=p1, y=n)) +
+  geom_line() +
+  geom_point() +
+  theme_cowplot() +
+  facet_wrap(~sample_size)
+## theta_p
+group_by(fst_all_snps, sample_size) %>%
+  filter(p1>0, p1<1) %>%
+  summarise(theta_p = 2 * sum(p1*(1-p1)) / 30000000,
+            theta_w = n() / 30000000 / sum(1/1:(2*sample_size-1)))
+```
+
+### Get sample true MAF and Fst from allele counts
 
 Each RAD tag is 150 bp. Note that `n_rad_tag` are numbers of RAD tags per Mbp. According to the "Breaking RAD" paper, the median RAD tag density that they've found in studies published by then is 4.08. A few studies had up to 20 tags per Mbp, three had up to 110 per Mbp, and one had 362 tags per Mbp.
 
 ```{r eval=T, warning=F, message=F}
 i <- 1
 for (n in c(1,2,4,8,16,32)*120){
-  maf <- allele_count_to_fst("../two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/", n_rad_tag = n) %>%
-  mutate(n_rad_tag = n/30)
+  maf <- subset_fst(n_rad_tag = n, combined_fst = fst_all_snps) %>%
+    mutate(n_rad_tag = n/30)
   if (i == 1){
     maf_final <- maf
   } else {
@@ -772,10 +976,44 @@ for (n in c(1,2,4,8,16,32)*120){
 }
 ```
 
-## Plot per SNP Fst
+### Plot SFS in p1 from RAD data
+
+```{r eval=T, warning=F, message=F, fig.height=8, fig.width=15}
+count(maf_final, p1, sample_size, n_rad_tag) %>%
+  filter(p1>0, p1<1) %>%
+  ggplot(aes(x=p1, y=n)) +
+  geom_point(size=0.5) +
+  geom_line(size=0.2) +
+  facet_grid(n_rad_tag~sample_size, scales = "free_y") +
+  theme_cowplot()
+```
+
+### Get theta estimation in p1 from RAD data
+
+#### Tajima's estimator
+
+```{r eval=T}
+group_by(maf_final, sample_size, n_rad_tag) %>%
+  summarise(theta_t = 2 * sum(p1 * (1 - p1)) / unique(n_sites)) %>%
+  pivot_wider(names_from = sample_size, values_from = theta_t) %>%
+  kable()
+```
+
+#### Watterson's estimator
+
+```{r eval=T}
+filter(maf_final, p1 > 0, p1 < 1) %>%
+  group_by(sample_size, n_rad_tag) %>%
+  summarize(theta_w = n() / (unique(n_sites)*sum(1/(1:(unique(sample_size)*2-1))))) %>%
+  pivot_wider(names_from = sample_size, values_from = theta_w) %>%
+  kable()
+```
+
+### Plot per SNP Fst
 
 ```{r eval=T, warning=F, message=F, fig.height=8, fig.width=15}
 mutate(maf_final, coverage="RAD") %>%
+  filter(maf_mean>0.05, maf_mean < 0.95) %>%
   ggplot(aes(x=position, y=fst)) +
     geom_point(alpha=0.5, size=0.2) +
     geom_point(data=mutations_final_m2, aes(x=position, y=1.01), color="red", size=0.2, shape=8) +
