@@ -9,7 +9,9 @@ for SAMPLE_SIZE in {5,10,20,40,80,160}; do
   for COVERAGE in {0.25,0.5,1,2,4,8}; do
 		/workdir/programs/angsd0.931/angsd/misc/realSFS \
     $BASE_DIR'angsd_gatk/bam_list_p1_'$SAMPLE_SIZE'_'$COVERAGE'x.saf.idx' \
-    -P 32 -tole 3.16e-07 -maxIter 500 \
+    -P 32 \
+    -tole 1e-08 \
+    -maxIter 1000 \
     > $BASE_DIR'angsd_gatk/bam_list_p1_'$SAMPLE_SIZE'_'$COVERAGE'x.sfs' &
     ## Submit two jobs at a time
     COUNT=$(( COUNT + 1 ))
