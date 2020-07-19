@@ -61,8 +61,8 @@ error_plot_combined <- joined_frequency_final_combined %>%
   annotate("text", x = 4, y=1, label="SNP count", size=6) +
   facet_grid(coverage~sample_size) +
   scale_x_discrete(labels=seq(0.1, 0.9, 0.2))  +
-  scale_fill_viridis_d(labels=c("LC-WGS with even coverage", "LC-WGS with uneven coverage", "Pool-seq with uneven coverage"), begin = 0, end = 0.75) +
-  scale_color_viridis_d(labels=c("LC-WGS with even coverage", "LC-WGS with uneven coverage", "Pool-seq with uneven coverage"), begin = 0, end = 0.75) +
+  scale_fill_viridis_d(labels=c("LC-WGS with even coverage", "LC-WGS with uneven coverage", "Pool-seq with uneven coverage"), begin = 0, end = 0.75, direction = -1) +
+  scale_color_viridis_d(labels=c("LC-WGS with even coverage", "LC-WGS with uneven coverage", "Pool-seq with uneven coverage"), begin = 0, end = 0.75, direction = -1) +
   xlab("true frequency") +
   ylab("error") +
   ylim(c(0,1.02)) +
@@ -668,11 +668,12 @@ fst_plot <- filter(fst_n_ind_final, coverage < 4, sample_size > 5, sample_size <
   ggplot(aes(x=position/10^6, y=fst)) +
   geom_point(alpha=0.8, size=0.15) +
   geom_point(data=mutations_final_m2, aes(x=position/10^6, y=0.75), color="red", size=2, shape=16) +
-  ylim(NA, 0.75) +
+  ylim(NA, 0.77) +
   labs(x = "position (in Mbp)", y = expression(F[ST])) + 
   facet_grid(coverage~sample_size) +
   theme_cowplot() +
-  theme(text = element_text(size=20)
+  theme(text = element_text(size=20),
+        panel.border = element_rect(colour = "black", fill=NA, size=1)
         #, axis.title.x = element_blank(),
         #axis.text.x = element_blank(),
         #axis.ticks.x = element_blank()
@@ -698,7 +699,7 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_windowed_fst.png", fst_plot_new, wid
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_windowed_fst.png")
 ```
 
-```{eval=F}
+```{R eval=F}
 fst_plot_radseq <- maf_final %>%
   filter(sample_size > 5, sample_size < 160, n_rad_tag < 1000) %>%
   mutate(n_rad_tag = n_rad_tag/30) %>%
@@ -707,8 +708,10 @@ fst_plot_radseq <- maf_final %>%
   geom_point(data=mutations_final_m2, aes(x=position/10^6, y=0.75), color="red", size=2, shape=16) +
   facet_grid(n_rad_tag~sample_size) +
   labs(x = "position (in Mbp)", y = expression(F[ST])) + 
+  ylim(NA, 0.77) +
   theme_cowplot() +
-  theme(text = element_text(size=20))
+  theme(text = element_text(size=20),
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
 fst_plot_grob <- ggplotGrob(fst_plot_radseq)
 
 fst_plot_new <- gtable_add_cols(fst_plot_grob, unit(fst_plot_grob$widths[[12]], 'cm'), 13)  %>%
@@ -722,10 +725,25 @@ fst_plot_new <- gtable_add_cols(fst_plot_grob, unit(fst_plot_grob$widths[[12]], 
                      7, 5, 7, 11, name = paste(runif(2))) %>%
   gtable_add_rows(unit(1/8, "line"), 7)
 ggsave("../figures/two_pop_sim_fixed_m2_pos_rad_seq_windowed_fst.png", fst_plot_new, width = 15, height = 7, units = "in", pointsize = 20)
+
+fst_plot_radseq_single_row <-  maf_final %>%
+  filter(sample_size > 5, sample_size < 160, n_rad_tag == 960) %>%
+  mutate(n_rad_tag = n_rad_tag/30, method="RADseq") %>%
+  ggplot(aes(x=position/10^6, y=fst)) +
+  geom_point(alpha=0.8, size=1) +
+  geom_point(data=mutations_final_m2, aes(x=position/10^6, y=0.75), color="red", size=2, shape=16) +
+  facet_grid(method~sample_size) +
+  labs(x = "position (in Mbp)", y = expression(F[ST])) + 
+  ylim(NA, 0.77) +
+  theme_cowplot() +
+  theme(text = element_text(size=20),
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
+ggsave("../figures/two_pop_sim_fixed_m2_pos_rad_seq_windowed_fst_single_row.png", fst_plot_radseq_single_row, width = 15, height = 2.5, units = "in", pointsize = 20)
 ```
 
 ```{r eval=T, warning=F, message=F}
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_rad_seq_windowed_fst.png")
+include_graphics("../figures/two_pop_sim_fixed_m2_pos_rad_seq_windowed_fst_single_row.png")
 ```
 
 
