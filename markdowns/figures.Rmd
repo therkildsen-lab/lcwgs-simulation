@@ -338,9 +338,18 @@ for (coverage in c(0.125,0.25,0.5,1,2,4)){
     i=i+1
   }
 }
-
+## Make sure that the PCA plots follow the same direction
+pca_table_final_summary <- group_by(pca_table_final, population, coverage, sample_size) %>%
+  summarise(pc2_mean = mean(PC2)) %>%
+  ungroup() %>%
+  pivot_wider(names_from = population, values_from = pc2_mean) %>%
+  transmute(coverage = coverage, sample_size = sample_size, invert = p3 < p7)
+## Flip PC2 axis when needed (PC1 axis happens to be in the same direction for all plots)
+pca_table_final_flipped <- left_join(pca_table_final, pca_table_final_summary, 
+                                     by=c("coverage", "sample_size")) %>%
+  mutate(PC2 = ifelse(invert==TRUE, -PC2, PC2))
 ## Plot PCA
-pca_plot <- filter(pca_table_final, coverage < 0.5) %>% 
+pca_plot <- filter(pca_table_final_flipped, coverage < 0.5) %>% 
   ggplot(aes(x=PC1, y=PC2, color=population)) +
   geom_point() +
   facet_grid(coverage~sample_size, scales="free") +
@@ -432,9 +441,19 @@ for (coverage in c(0.125,0.25,0.5,1,2,4)){
     i=i+1
   }
 }
-
+## Make sure that the PCA plots follow the same direction
+pca_table_final_summary <- group_by(pca_table_final, population, coverage, sample_size) %>%
+  summarise(pc1_mean = mean(PC1), pc2_mean = mean(PC2)) %>%
+  ungroup() %>%
+  pivot_wider(names_from = population, values_from = c(pc1_mean, pc2_mean)) %>%
+  transmute(coverage = coverage, sample_size = sample_size, invert_pc1 = pc1_mean_p1 > pc1_mean_p9, invert_pc2 = pc2_mean_p3 < pc2_mean_p7)
+## Flip PC1 and PC2 axes when needed 
+pca_table_final_flipped <- left_join(pca_table_final, pca_table_final_summary, 
+                                     by=c("coverage", "sample_size")) %>%
+  mutate(PC1 = ifelse(invert_pc1==TRUE, -PC1, PC1),
+         PC2 = ifelse(invert_pc2==TRUE, -PC2, PC2))
 ## Plot PCA
-pca_plot <- pca_table_final %>% 
+pca_plot <- pca_table_final_flipped %>% 
   ggplot(aes(x=PC1, y=PC2, color=population)) +
   geom_point() +
   facet_grid(coverage~sample_size, scales="free") +
