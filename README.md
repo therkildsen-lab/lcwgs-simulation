@@ -29,6 +29,7 @@
 
 [data analysis with spatially structured populations and lower migration rate](https://github.com/therkildsen-lab/lcwgs-simulation/blob/master/markdowns/data_analysis_spatial_pop_lower_m.md)
 
+[simulation workflow and data analysis with spatially structured populations and a longer chromosome](https://github.com/therkildsen-lab/lcwgs-simulation/blob/master/markdowns/simulation_workflow_spatial_pop_sim_longer_chr.md)
 ## miscellaneous
 
 [figures for presentations and the paper](https://github.com/therkildsen-lab/lcwgs-simulation/blob/master/markdowns/figures.md)
