@@ -34,7 +34,7 @@ wait
 ## subsample
 COUNT=0
 for k in {1..1000}; do
-  for j in {0.25,0.5,1,2,4,8}; do
+  for j in {1,2,4}; do
     samtools view \
     -s `awk -v j=$j 'BEGIN { print j / 20 }'` \
     -b $OUT_DIR'bam/sample_'$k'_sorted.bam' \

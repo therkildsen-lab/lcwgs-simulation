@@ -1,5 +1,5 @@
 ---
-title: "Simulation workflow for neutral simulation, sampling with replacement"
+title: "Simulation workflow for imputations"
 output: 
   github_document: 
     toc: true
@@ -12,6 +12,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r message=F, warning=F}
 library(tidyverse)
 ```
+
+These scripts were initially created to deal with the issue that imputation needs up to 1000 sample, so we used a sampling with replacement design. Then, we also decided to created scenarios with higher LD to test the performance of imputation with.
 
 # Neutral simulation, sampling with replacement
 
@@ -58,7 +60,7 @@ REP_ID=$1
 DIR=${2:-/workdir/lcwgs-simulation/neutral_sim/}
 
 OUT_DIR=$DIR'rep_'$REP_ID'/'
-N_CORE_MAX=40
+N_CORE_MAX=30
 ## Generate sam files
 COUNT=0
 for i in {1..2000}; do
@@ -117,7 +119,7 @@ REP_ID=$1
 DIR=${2:-/workdir/lcwgs-simulation/neutral_sim/}
 
 OUT_DIR=$DIR'rep_'$REP_ID'/'
-N_CORE_MAX=40
+N_CORE_MAX=30
 ## merge
 COUNT=0
 for k in {1..1000}; do
@@ -190,6 +192,79 @@ for (coverage in c(0.25,0.5,1,2,4,8)){
         write_lines(paste0("/workdir/lcwgs-simulation/neutral_sim_with_replacement/rep_1/bam/sample_", i, "_sorted_", coverage, "x.bam"), paste0("../neutral_sim_with_replacement/rep_1/sample_lists/bam_list_", sample_size, "_", coverage, "x.txt"))
       } else {
         write_lines(paste0("/workdir/lcwgs-simulation/neutral_sim_with_replacement/rep_1/bam/sample_", i, "_sorted_", coverage, "x.bam"), paste0("../neutral_sim_with_replacement/rep_1/sample_lists/bam_list_", sample_size, "_", coverage, "x.txt"), append = T)
+      }
+    }
+  }
+}
+```
+
+# Neutral simulation with lower mutation rate andeven lower recombination rate 
+
+Here, we lower mutation rate by a factor of 100 and recombination rate by a factor of 500 to simulate a population with Ne~1000 and proportionally higher LD. We also sample the offspring of the population that we estimate frequency of to account for issues casued by large sample size. 
+
+## Create a shell script to run SLiM with nohup
+
+```{r eval=F}
+shell_script <- "#!/bin/bash
+REP_ID=$1
+# Create output directory
+if [ ! -d /workdir/lcwgs-simulation/neutral_sim_higher_ld/rep_$REP_ID ]; then
+  mkdir /workdir/lcwgs-simulation/neutral_sim_higher_ld/rep_$REP_ID
+  cd /workdir/lcwgs-simulation/neutral_sim_higher_ld/rep_$REP_ID
+  mkdir angsd
+  mkdir bam
+  mkdir fasta
+  mkdir fastq
+  mkdir sample_lists
+  mkdir slim
+fi
+# Run SLiM 
+/programs/SLiM-3.3/bin/slim \\
+  -d REP_ID=$REP_ID  \\
+  -d MUTATION_RATE=1e-8 \\
+  -d REC_RATE=0.5e-8 \\
+  -d CHR_LENGTH=30000000 \\
+  -d POP_SIZE=1000 \\
+  -d SAMPLE_SIZE=2000 \\
+  -d \"OUT_PATH='/workdir/lcwgs-simulation/neutral_sim_higher_ld/'\" \\
+  /workdir/lcwgs-simulation/slim_scripts/neutral_sim_for_imputation.slim"
+write_lines(shell_script, "../shell_scripts/neutral_sim_higher_ld.sh")
+```
+
+## Run the shell script for SLiM simulation on server
+
+```{bash eval=F}
+for k in 1; do
+  nohup bash /workdir/lcwgs-simulation/shell_scripts/neutral_sim_higher_ld.sh $k > '/workdir/lcwgs-simulation/nohups/neutral_sim_higher_ld_'$k'.nohup' &
+done
+```
+
+## Run the shell script for ART simulation on server
+
+```{bash eval=F}
+for k in 1; do
+  nohup bash /workdir/lcwgs-simulation/shell_scripts/art_neutral_sim.sh $k /workdir/lcwgs-simulation/neutral_sim_higher_ld/ > '/workdir/lcwgs-simulation/nohups/art_neutral_sim_higher_ld_'$k'.nohup' &
+done
+```
+
+## Run the shell script for merging, sorting, and subsampling
+
+```{bash eval=F}
+for k in 1; do
+  nohup bash /workdir/lcwgs-simulation/shell_scripts/merge_sort_subsample_neutral_sim.sh $k /workdir/lcwgs-simulation/neutral_sim_higher_ld/ > '/workdir/lcwgs-simulation/nohups/merge_sort_subsample_neutral_sim_higher_ld_'$k'.nohup' &
+done
+```
+
+## Make bam lists
+
+```{r eval=F}
+for (coverage in c(0.25,0.5,1,2,4,8)){
+  for (sample_size in c(5,10,20,40,80,160)){
+    for (i in 1:sample_size){
+      if (i==1){
+        write_lines(paste0("/workdir/lcwgs-simulation/neutral_sim_higher_ld/rep_1/bam/sample_", i, "_sorted_", coverage, "x.bam"), paste0("../neutral_sim_higher_ld/rep_1/sample_lists/bam_list_", sample_size, "_", coverage, "x.txt"))
+      } else {
+        write_lines(paste0("/workdir/lcwgs-simulation/neutral_sim_higher_ld/rep_1/bam/sample_", i, "_sorted_", coverage, "x.bam"), paste0("../neutral_sim_higher_ld/rep_1/sample_lists/bam_list_", sample_size, "_", coverage, "x.txt"), append = T)
       }
     }
   }

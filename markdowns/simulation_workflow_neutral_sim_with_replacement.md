@@ -1,24 +1,46 @@
-Simulation workflow for neutral simulation, sampling with replacement
+Simulation workflow for imputations
 ================
 
--   [Neutral simulation, sampling with replacement](#neutral-simulation-sampling-with-replacement)
-    -   [Copy fasta files from the original neutral simulation directory](#copy-fasta-files-from-the-original-neutral-simulation-directory)
-    -   [Run the shell script for sampling with replacement](#run-the-shell-script-for-sampling-with-replacement)
-    -   [Create a shell script to run ART with nohup](#create-a-shell-script-to-run-art-with-nohup)
-    -   [Run the shell script for ART simulation on server](#run-the-shell-script-for-art-simulation-on-server)
-    -   [Merge, sort, and subsample bam files](#merge-sort-and-subsample-bam-files)
-    -   [Run the shell script for merging, sorting, and subsampling](#run-the-shell-script-for-merging-sorting-and-subsampling)
-    -   [Make bam lists](#make-bam-lists)
+  - [Neutral simulation, sampling with
+    replacement](#neutral-simulation-sampling-with-replacement)
+      - [Copy fasta files from the original neutral simulation
+        directory](#copy-fasta-files-from-the-original-neutral-simulation-directory)
+      - [Run the shell script for sampling with
+        replacement](#run-the-shell-script-for-sampling-with-replacement)
+      - [Create a shell script to run ART with
+        nohup](#create-a-shell-script-to-run-art-with-nohup)
+      - [Run the shell script for ART simulation on
+        server](#run-the-shell-script-for-art-simulation-on-server)
+      - [Merge, sort, and subsample bam
+        files](#merge-sort-and-subsample-bam-files)
+      - [Run the shell script for merging, sorting, and
+        subsampling](#run-the-shell-script-for-merging-sorting-and-subsampling)
+      - [Make bam lists](#make-bam-lists)
+  - [Neutral simulation with lower mutation rate andeven lower
+    recombination
+    rate](#neutral-simulation-with-lower-mutation-rate-andeven-lower-recombination-rate)
+      - [Create a shell script to run SLiM with
+        nohup](#create-a-shell-script-to-run-slim-with-nohup)
+      - [Run the shell script for SLiM simulation on
+        server](#run-the-shell-script-for-slim-simulation-on-server)
+      - [Run the shell script for ART simulation on
+        server](#run-the-shell-script-for-art-simulation-on-server-1)
+      - [Run the shell script for merging, sorting, and
+        subsampling](#run-the-shell-script-for-merging-sorting-and-subsampling-1)
+      - [Make bam lists](#make-bam-lists-1)
 
 ``` r
 library(tidyverse)
 ```
 
-Neutral simulation, sampling with replacement
-=============================================
+These scripts were initially created to deal with the issue that
+imputation needs up to 1000 sample, so we used a sampling with
+replacement design. Then, we also decided to created scenarios with
+higher LD to test the performance of imputation with.
 
-Copy fasta files from the original neutral simulation directory
----------------------------------------------------------------
+# Neutral simulation, sampling with replacement
+
+## Copy fasta files from the original neutral simulation directory
 
 In this step, randomly sample these fasta files with replacement.
 
@@ -45,8 +67,7 @@ done"
 write_lines(shell_script, "../shell_scripts/sample_with_replacement.sh")
 ```
 
-Run the shell script for sampling with replacement
---------------------------------------------------
+## Run the shell script for sampling with replacement
 
 ``` bash
 for k in 1; do
@@ -54,8 +75,7 @@ for k in 1; do
 done
 ```
 
-Create a shell script to run ART with nohup
--------------------------------------------
+## Create a shell script to run ART with nohup
 
 ``` r
 shell_script <-"#!/bin/bash
@@ -63,7 +83,7 @@ REP_ID=$1
 DIR=${2:-/workdir/lcwgs-simulation/neutral_sim/}
 
 OUT_DIR=$DIR'rep_'$REP_ID'/'
-N_CORE_MAX=40
+N_CORE_MAX=30
 ## Generate sam files
 COUNT=0
 for i in {1..2000}; do
@@ -106,8 +126,7 @@ done"
 write_lines(shell_script, "../shell_scripts/art_neutral_sim.sh")
 ```
 
-Run the shell script for ART simulation on server
--------------------------------------------------
+## Run the shell script for ART simulation on server
 
 ``` bash
 for k in 1; do
@@ -115,8 +134,7 @@ for k in 1; do
 done
 ```
 
-Merge, sort, and subsample bam files
-------------------------------------
+## Merge, sort, and subsample bam files
 
 ``` r
 shell_script <-"#!/bin/bash
@@ -124,7 +142,7 @@ REP_ID=$1
 DIR=${2:-/workdir/lcwgs-simulation/neutral_sim/}
 
 OUT_DIR=$DIR'rep_'$REP_ID'/'
-N_CORE_MAX=40
+N_CORE_MAX=30
 ## merge
 COUNT=0
 for k in {1..1000}; do
@@ -179,8 +197,7 @@ done"
 write_lines(shell_script, "../shell_scripts/merge_sort_subsample_neutral_sim.sh")
 ```
 
-Run the shell script for merging, sorting, and subsampling
-----------------------------------------------------------
+## Run the shell script for merging, sorting, and subsampling
 
 ``` bash
 for k in 1; do
@@ -188,8 +205,7 @@ for k in 1; do
 done
 ```
 
-Make bam lists
---------------
+## Make bam lists
 
 ``` r
 for (coverage in c(0.25,0.5,1,2,4,8)){
@@ -199,6 +215,83 @@ for (coverage in c(0.25,0.5,1,2,4,8)){
         write_lines(paste0("/workdir/lcwgs-simulation/neutral_sim_with_replacement/rep_1/bam/sample_", i, "_sorted_", coverage, "x.bam"), paste0("../neutral_sim_with_replacement/rep_1/sample_lists/bam_list_", sample_size, "_", coverage, "x.txt"))
       } else {
         write_lines(paste0("/workdir/lcwgs-simulation/neutral_sim_with_replacement/rep_1/bam/sample_", i, "_sorted_", coverage, "x.bam"), paste0("../neutral_sim_with_replacement/rep_1/sample_lists/bam_list_", sample_size, "_", coverage, "x.txt"), append = T)
+      }
+    }
+  }
+}
+```
+
+# Neutral simulation with lower mutation rate andeven lower recombination rate
+
+Here, we lower mutation rate by a factor of 100 and recombination rate
+by a factor of 500 to simulate a population with Ne\~1000 and
+proportionally higher LD. We also sample the offspring of the population
+that we estimate frequency of to account for issues casued by large
+sample size.
+
+## Create a shell script to run SLiM with nohup
+
+``` r
+shell_script <- "#!/bin/bash
+REP_ID=$1
+# Create output directory
+if [ ! -d /workdir/lcwgs-simulation/neutral_sim_higher_ld/rep_$REP_ID ]; then
+  mkdir /workdir/lcwgs-simulation/neutral_sim_higher_ld/rep_$REP_ID
+  cd /workdir/lcwgs-simulation/neutral_sim_higher_ld/rep_$REP_ID
+  mkdir angsd
+  mkdir bam
+  mkdir fasta
+  mkdir fastq
+  mkdir sample_lists
+  mkdir slim
+fi
+# Run SLiM 
+/programs/SLiM-3.3/bin/slim \\
+  -d REP_ID=$REP_ID  \\
+  -d MUTATION_RATE=1e-8 \\
+  -d REC_RATE=0.5e-8 \\
+  -d CHR_LENGTH=30000000 \\
+  -d POP_SIZE=1000 \\
+  -d SAMPLE_SIZE=2000 \\
+  -d \"OUT_PATH='/workdir/lcwgs-simulation/neutral_sim_higher_ld/'\" \\
+  /workdir/lcwgs-simulation/slim_scripts/neutral_sim_for_imputation.slim"
+write_lines(shell_script, "../shell_scripts/neutral_sim_higher_ld.sh")
+```
+
+## Run the shell script for SLiM simulation on server
+
+``` bash
+for k in 1; do
+  nohup bash /workdir/lcwgs-simulation/shell_scripts/neutral_sim_higher_ld.sh $k > '/workdir/lcwgs-simulation/nohups/neutral_sim_higher_ld_'$k'.nohup' &
+done
+```
+
+## Run the shell script for ART simulation on server
+
+``` bash
+for k in 1; do
+  nohup bash /workdir/lcwgs-simulation/shell_scripts/art_neutral_sim.sh $k /workdir/lcwgs-simulation/neutral_sim_higher_ld/ > '/workdir/lcwgs-simulation/nohups/art_neutral_sim_higher_ld_'$k'.nohup' &
+done
+```
+
+## Run the shell script for merging, sorting, and subsampling
+
+``` bash
+for k in 1; do
+  nohup bash /workdir/lcwgs-simulation/shell_scripts/merge_sort_subsample_neutral_sim.sh $k /workdir/lcwgs-simulation/neutral_sim_higher_ld/ > '/workdir/lcwgs-simulation/nohups/merge_sort_subsample_neutral_sim_higher_ld_'$k'.nohup' &
+done
+```
+
+## Make bam lists
+
+``` r
+for (coverage in c(0.25,0.5,1,2,4,8)){
+  for (sample_size in c(5,10,20,40,80,160)){
+    for (i in 1:sample_size){
+      if (i==1){
+        write_lines(paste0("/workdir/lcwgs-simulation/neutral_sim_higher_ld/rep_1/bam/sample_", i, "_sorted_", coverage, "x.bam"), paste0("../neutral_sim_higher_ld/rep_1/sample_lists/bam_list_", sample_size, "_", coverage, "x.txt"))
+      } else {
+        write_lines(paste0("/workdir/lcwgs-simulation/neutral_sim_higher_ld/rep_1/bam/sample_", i, "_sorted_", coverage, "x.bam"), paste0("../neutral_sim_higher_ld/rep_1/sample_lists/bam_list_", sample_size, "_", coverage, "x.txt"), append = T)
       }
     }
   }
