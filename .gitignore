@@ -51,3 +51,7 @@ neutral_sim_uneven_input/
 *.pptx
 spatial_pop_sim_longer_chr/
 neutral_sim_higher_ld/
+neutral_sim_low_mu_low_r/
+neutral_sim_high_mu_medium_r/
+neutral_sim_high_mu_high_r/
+neutral_sim_medium_mu_low_r/

@@ -16,9 +16,9 @@ Simulation workflow for imputations
       - [Run the shell script for merging, sorting, and
         subsampling](#run-the-shell-script-for-merging-sorting-and-subsampling)
       - [Make bam lists](#make-bam-lists)
-  - [Neutral simulation with lower mutation rate andeven lower
+  - [Neutral simulation with intermediate mutation rate and low
     recombination
-    rate](#neutral-simulation-with-lower-mutation-rate-andeven-lower-recombination-rate)
+    rate](#neutral-simulation-with-intermediate-mutation-rate-and-low-recombination-rate)
       - [Create a shell script to run SLiM with
         nohup](#create-a-shell-script-to-run-slim-with-nohup)
       - [Run the shell script for SLiM simulation on
@@ -28,6 +28,29 @@ Simulation workflow for imputations
       - [Run the shell script for merging, sorting, and
         subsampling](#run-the-shell-script-for-merging-sorting-and-subsampling-1)
       - [Make bam lists](#make-bam-lists-1)
+  - [Neutral simulation with high mutation rate and intermediate
+    recombination
+    rate](#neutral-simulation-with-high-mutation-rate-and-intermediate-recombination-rate)
+      - [Create a shell script to run SLiM with
+        nohup](#create-a-shell-script-to-run-slim-with-nohup-1)
+      - [Run the shell script for SLiM simulation on
+        server](#run-the-shell-script-for-slim-simulation-on-server-1)
+      - [Run the shell script for ART simulation on
+        server](#run-the-shell-script-for-art-simulation-on-server-2)
+      - [Run the shell script for merging, sorting, and
+        subsampling](#run-the-shell-script-for-merging-sorting-and-subsampling-2)
+      - [Make bam lists](#make-bam-lists-2)
+  - [Neutral simulation with high mutation rate and high recombination
+    rate](#neutral-simulation-with-high-mutation-rate-and-high-recombination-rate)
+      - [Create a shell script to run SLiM with
+        nohup](#create-a-shell-script-to-run-slim-with-nohup-2)
+      - [Run the shell script for SLiM simulation on
+        server](#run-the-shell-script-for-slim-simulation-on-server-2)
+      - [Run the shell script for ART simulation on
+        server](#run-the-shell-script-for-art-simulation-on-server-3)
+      - [Run the shell script for merging, sorting, and
+        subsampling](#run-the-shell-script-for-merging-sorting-and-subsampling-3)
+      - [Make bam lists](#make-bam-lists-3)
 
 ``` r
 library(tidyverse)
@@ -221,7 +244,7 @@ for (coverage in c(0.25,0.5,1,2,4,8)){
 }
 ```
 
-# Neutral simulation with lower mutation rate andeven lower recombination rate
+# Neutral simulation with intermediate mutation rate and low recombination rate
 
 Here, we lower mutation rate by a factor of 100 and recombination rate
 by a factor of 500 to simulate a population with Ne\~1000 and
@@ -235,9 +258,9 @@ sample size.
 shell_script <- "#!/bin/bash
 REP_ID=$1
 # Create output directory
-if [ ! -d /workdir/lcwgs-simulation/neutral_sim_higher_ld/rep_$REP_ID ]; then
-  mkdir /workdir/lcwgs-simulation/neutral_sim_higher_ld/rep_$REP_ID
-  cd /workdir/lcwgs-simulation/neutral_sim_higher_ld/rep_$REP_ID
+if [ ! -d /workdir/lcwgs-simulation/neutral_sim_medium_mu_low_r/rep_$REP_ID ]; then
+  mkdir /workdir/lcwgs-simulation/neutral_sim_medium_mu_low_r/rep_$REP_ID
+  cd /workdir/lcwgs-simulation/neutral_sim_medium_mu_low_r/rep_$REP_ID
   mkdir angsd
   mkdir bam
   mkdir fasta
@@ -253,16 +276,16 @@ fi
   -d CHR_LENGTH=30000000 \\
   -d POP_SIZE=1000 \\
   -d SAMPLE_SIZE=2000 \\
-  -d \"OUT_PATH='/workdir/lcwgs-simulation/neutral_sim_higher_ld/'\" \\
+  -d \"OUT_PATH='/workdir/lcwgs-simulation/neutral_sim_medium_mu_low_r/'\" \\
   /workdir/lcwgs-simulation/slim_scripts/neutral_sim_for_imputation.slim"
-write_lines(shell_script, "../shell_scripts/neutral_sim_higher_ld.sh")
+write_lines(shell_script, "../shell_scripts/neutral_sim_medium_mu_low_r.sh")
 ```
 
 ## Run the shell script for SLiM simulation on server
 
 ``` bash
 for k in 1; do
-  nohup bash /workdir/lcwgs-simulation/shell_scripts/neutral_sim_higher_ld.sh $k > '/workdir/lcwgs-simulation/nohups/neutral_sim_higher_ld_'$k'.nohup' &
+  nohup bash /workdir/lcwgs-simulation/shell_scripts/neutral_sim_medium_mu_low_r.sh $k > '/workdir/lcwgs-simulation/nohups/neutral_sim_medium_mu_low_r_'$k'.nohup' &
 done
 ```
 
@@ -270,7 +293,7 @@ done
 
 ``` bash
 for k in 1; do
-  nohup bash /workdir/lcwgs-simulation/shell_scripts/art_neutral_sim.sh $k /workdir/lcwgs-simulation/neutral_sim_higher_ld/ > '/workdir/lcwgs-simulation/nohups/art_neutral_sim_higher_ld_'$k'.nohup' &
+  nohup bash /workdir/lcwgs-simulation/shell_scripts/art_neutral_sim.sh $k /workdir/lcwgs-simulation/neutral_sim_medium_mu_low_r/ > '/workdir/lcwgs-simulation/nohups/art_neutral_sim_medium_mu_low_r_'$k'.nohup' &
 done
 ```
 
@@ -278,7 +301,7 @@ done
 
 ``` bash
 for k in 1; do
-  nohup bash /workdir/lcwgs-simulation/shell_scripts/merge_sort_subsample_neutral_sim.sh $k /workdir/lcwgs-simulation/neutral_sim_higher_ld/ > '/workdir/lcwgs-simulation/nohups/merge_sort_subsample_neutral_sim_higher_ld_'$k'.nohup' &
+  nohup bash /workdir/lcwgs-simulation/shell_scripts/merge_sort_subsample_neutral_sim.sh $k /workdir/lcwgs-simulation/neutral_sim_medium_mu_low_r/ > '/workdir/lcwgs-simulation/nohups/merge_sort_subsample_neutral_sim_medium_mu_low_r_'$k'.nohup' &
 done
 ```
 
@@ -289,9 +312,163 @@ for (coverage in c(0.25,0.5,1,2,4,8)){
   for (sample_size in c(5,10,20,40,80,160)){
     for (i in 1:sample_size){
       if (i==1){
-        write_lines(paste0("/workdir/lcwgs-simulation/neutral_sim_higher_ld/rep_1/bam/sample_", i, "_sorted_", coverage, "x.bam"), paste0("../neutral_sim_higher_ld/rep_1/sample_lists/bam_list_", sample_size, "_", coverage, "x.txt"))
+        write_lines(paste0("/workdir/lcwgs-simulation/neutral_sim_medium_mu_low_r/rep_1/bam/sample_", i, "_sorted_", coverage, "x.bam"), paste0("../neutral_sim_medium_mu_low_r/rep_1/sample_lists/bam_list_", sample_size, "_", coverage, "x.txt"))
       } else {
-        write_lines(paste0("/workdir/lcwgs-simulation/neutral_sim_higher_ld/rep_1/bam/sample_", i, "_sorted_", coverage, "x.bam"), paste0("../neutral_sim_higher_ld/rep_1/sample_lists/bam_list_", sample_size, "_", coverage, "x.txt"), append = T)
+        write_lines(paste0("/workdir/lcwgs-simulation/neutral_sim_medium_mu_low_r/rep_1/bam/sample_", i, "_sorted_", coverage, "x.bam"), paste0("../neutral_sim_medium_mu_low_r/rep_1/sample_lists/bam_list_", sample_size, "_", coverage, "x.txt"), append = T)
+      }
+    }
+  }
+}
+```
+
+# Neutral simulation with high mutation rate and intermediate recombination rate
+
+Here, we lower mutation rate by a factor of 10 and recombination rate by
+a factor of 50 to simulate a population with Ne\~10000 and
+proportionally higher LD. We also sample the offspring of the population
+that we estimate frequency of to account for issues casued by large
+sample size.
+
+## Create a shell script to run SLiM with nohup
+
+``` r
+shell_script <- "#!/bin/bash
+REP_ID=$1
+# Create output directory
+if [ ! -d /workdir/lcwgs-simulation/neutral_sim_high_mu_medium_r/rep_$REP_ID ]; then
+  mkdir /workdir/lcwgs-simulation/neutral_sim_high_mu_medium_r/rep_$REP_ID
+  cd /workdir/lcwgs-simulation/neutral_sim_high_mu_medium_r/rep_$REP_ID
+  mkdir angsd
+  mkdir bam
+  mkdir fasta
+  mkdir fastq
+  mkdir sample_lists
+  mkdir slim
+fi
+# Run SLiM 
+/programs/SLiM-3.3/bin/slim \\
+  -d REP_ID=$REP_ID  \\
+  -d MUTATION_RATE=1e-7 \\
+  -d REC_RATE=0.5e-7 \\
+  -d CHR_LENGTH=30000000 \\
+  -d POP_SIZE=1000 \\
+  -d SAMPLE_SIZE=2000 \\
+  -d \"OUT_PATH='/workdir/lcwgs-simulation/neutral_sim_high_mu_medium_r/'\" \\
+  /workdir/lcwgs-simulation/slim_scripts/neutral_sim_for_imputation.slim"
+write_lines(shell_script, "../shell_scripts/neutral_sim_high_mu_medium_r.sh")
+```
+
+## Run the shell script for SLiM simulation on server
+
+``` bash
+for k in 1; do
+  nohup bash /workdir/lcwgs-simulation/shell_scripts/neutral_sim_high_mu_medium_r.sh $k > '/workdir/lcwgs-simulation/nohups/neutral_sim_high_mu_medium_r_'$k'.nohup' &
+done
+```
+
+## Run the shell script for ART simulation on server
+
+``` bash
+for k in 1; do
+  nohup bash /workdir/lcwgs-simulation/shell_scripts/art_neutral_sim.sh $k /workdir/lcwgs-simulation/neutral_sim_high_mu_medium_r/ > '/workdir/lcwgs-simulation/nohups/art_neutral_sim_high_mu_medium_r_'$k'.nohup' &
+done
+```
+
+## Run the shell script for merging, sorting, and subsampling
+
+``` bash
+for k in 1; do
+  nohup bash /workdir/lcwgs-simulation/shell_scripts/merge_sort_subsample_neutral_sim.sh $k /workdir/lcwgs-simulation/neutral_sim_high_mu_medium_r/ > '/workdir/lcwgs-simulation/nohups/merge_sort_subsample_neutral_sim_high_mu_medium_r_'$k'.nohup' &
+done
+```
+
+## Make bam lists
+
+``` r
+for (coverage in c(0.25,0.5,1,2,4,8)){
+  for (sample_size in c(5,10,20,40,80,160)){
+    for (i in 1:sample_size){
+      if (i==1){
+        write_lines(paste0("/workdir/lcwgs-simulation/neutral_sim_high_mu_medium_r/rep_1/bam/sample_", i, "_sorted_", coverage, "x.bam"), paste0("../neutral_sim_high_mu_medium_r/rep_1/sample_lists/bam_list_", sample_size, "_", coverage, "x.txt"))
+      } else {
+        write_lines(paste0("/workdir/lcwgs-simulation/neutral_sim_high_mu_medium_r/rep_1/bam/sample_", i, "_sorted_", coverage, "x.bam"), paste0("../neutral_sim_high_mu_medium_r/rep_1/sample_lists/bam_list_", sample_size, "_", coverage, "x.txt"), append = T)
+      }
+    }
+  }
+}
+```
+
+# Neutral simulation with high mutation rate and high recombination rate
+
+Here, we lower mutation rate by a factor of 10 and recombination rate by
+a factor of 10 to simulate a population with Ne\~10000 and
+proportionally similar LD. We also sample the offspring of the
+population that we estimate frequency of to account for issues casued by
+large sample size.
+
+## Create a shell script to run SLiM with nohup
+
+``` r
+shell_script <- "#!/bin/bash
+REP_ID=$1
+# Create output directory
+if [ ! -d /workdir/lcwgs-simulation/neutral_sim_high_mu_high_r/rep_$REP_ID ]; then
+  mkdir /workdir/lcwgs-simulation/neutral_sim_high_mu_high_r/rep_$REP_ID
+  cd /workdir/lcwgs-simulation/neutral_sim_high_mu_high_r/rep_$REP_ID
+  mkdir angsd
+  mkdir bam
+  mkdir fasta
+  mkdir fastq
+  mkdir sample_lists
+  mkdir slim
+fi
+# Run SLiM 
+/programs/SLiM-3.3/bin/slim \\
+  -d REP_ID=$REP_ID  \\
+  -d MUTATION_RATE=1e-7 \\
+  -d REC_RATE=2.5e-7 \\
+  -d CHR_LENGTH=30000000 \\
+  -d POP_SIZE=1000 \\
+  -d SAMPLE_SIZE=2000 \\
+  -d \"OUT_PATH='/workdir/lcwgs-simulation/neutral_sim_high_mu_high_r/'\" \\
+  /workdir/lcwgs-simulation/slim_scripts/neutral_sim_for_imputation.slim"
+write_lines(shell_script, "../shell_scripts/neutral_sim_high_mu_high_r.sh")
+```
+
+## Run the shell script for SLiM simulation on server
+
+``` bash
+for k in 1; do
+  nohup bash /workdir/lcwgs-simulation/shell_scripts/neutral_sim_high_mu_high_r.sh $k > '/workdir/lcwgs-simulation/nohups/neutral_sim_high_mu_high_r_'$k'.nohup' &
+done
+```
+
+## Run the shell script for ART simulation on server
+
+``` bash
+for k in 1; do
+  nohup bash /workdir/lcwgs-simulation/shell_scripts/art_neutral_sim.sh $k /workdir/lcwgs-simulation/neutral_sim_high_mu_high_r/ > '/workdir/lcwgs-simulation/nohups/art_neutral_sim_high_mu_high_r_'$k'.nohup' &
+done
+```
+
+## Run the shell script for merging, sorting, and subsampling
+
+``` bash
+for k in 1; do
+  nohup bash /workdir/lcwgs-simulation/shell_scripts/merge_sort_subsample_neutral_sim.sh $k /workdir/lcwgs-simulation/neutral_sim_high_mu_high_r/ > '/workdir/lcwgs-simulation/nohups/merge_sort_subsample_neutral_sim_high_mu_high_r_'$k'.nohup' &
+done
+```
+
+## Make bam lists
+
+``` r
+for (coverage in c(0.25,0.5,1,2,4,8)){
+  for (sample_size in c(5,10,20,40,80,160)){
+    for (i in 1:sample_size){
+      if (i==1){
+        write_lines(paste0("/workdir/lcwgs-simulation/neutral_sim_high_mu_high_r/rep_1/bam/sample_", i, "_sorted_", coverage, "x.bam"), paste0("../neutral_sim_high_mu_high_r/rep_1/sample_lists/bam_list_", sample_size, "_", coverage, "x.txt"))
+      } else {
+        write_lines(paste0("/workdir/lcwgs-simulation/neutral_sim_high_mu_high_r/rep_1/bam/sample_", i, "_sorted_", coverage, "x.bam"), paste0("../neutral_sim_high_mu_high_r/rep_1/sample_lists/bam_list_", sample_size, "_", coverage, "x.txt"), append = T)
       }
     }
   }
