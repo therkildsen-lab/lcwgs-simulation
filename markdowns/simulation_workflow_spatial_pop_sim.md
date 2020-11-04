@@ -1,31 +1,52 @@
 Simulation workflow for two dimensional spatial populations
 ================
 
--   [Two dimensional spatial populations](#two-dimensional-spatial-populations)
-    -   [Create a shell script to run SLiM with nohup](#create-a-shell-script-to-run-slim-with-nohup)
-    -   [Run the shell script for SLiM simulation on server](#run-the-shell-script-for-slim-simulation-on-server)
-    -   [Create a shell script to run ART with nohup](#create-a-shell-script-to-run-art-with-nohup)
-    -   [Run the shell script for ART simulation on server](#run-the-shell-script-for-art-simulation-on-server)
-    -   [Merge, sort, and subsample bam files](#merge-sort-and-subsample-bam-files)
-    -   [Run the shell script for merging, sorting, and subsampling](#run-the-shell-script-for-merging-sorting-and-subsampling)
-    -   [Make bam lists](#make-bam-lists)
-    -   [Index the ancestral fasta file](#index-the-ancestral-fasta-file)
-    -   [Get shell script for SNP calling](#get-shell-script-for-snp-calling)
-    -   [Run the shell script for SNP calling](#run-the-shell-script-for-snp-calling)
-    -   [Get shell script for writing SNP lists](#get-shell-script-for-writing-snp-lists)
-    -   [Run shell script to get SNP list](#run-shell-script-to-get-snp-list)
-    -   [Get shell script for PCA](#get-shell-script-for-pca)
-    -   [Run the shell script for PCA](#run-the-shell-script-for-pca)
+  - [Two dimensional spatial
+    populations](#two-dimensional-spatial-populations)
+      - [Create a shell script to run SLiM with
+        nohup](#create-a-shell-script-to-run-slim-with-nohup)
+      - [Run the shell script for SLiM simulation on
+        server](#run-the-shell-script-for-slim-simulation-on-server)
+      - [Create a shell script to run ART with
+        nohup](#create-a-shell-script-to-run-art-with-nohup)
+      - [Run the shell script for ART simulation on
+        server](#run-the-shell-script-for-art-simulation-on-server)
+      - [Merge, sort, and subsample bam
+        files](#merge-sort-and-subsample-bam-files)
+      - [Run the shell script for merging, sorting, and
+        subsampling](#run-the-shell-script-for-merging-sorting-and-subsampling)
+      - [Make bam lists](#make-bam-lists)
+      - [Index the ancestral fasta
+        file](#index-the-ancestral-fasta-file)
+      - [Get shell script for SNP
+        calling](#get-shell-script-for-snp-calling)
+      - [Run the shell script for SNP
+        calling](#run-the-shell-script-for-snp-calling)
+      - [Get shell script for writing SNP
+        lists](#get-shell-script-for-writing-snp-lists)
+      - [Run shell script to get SNP
+        list](#run-shell-script-to-get-snp-list)
+      - [Get shell script for PCAngsd](#get-shell-script-for-pcangsd)
+      - [Run the shell script for
+        PCAngsd](#run-the-shell-script-for-pcangsd)
+  - [Uneven coverage](#uneven-coverage)
+      - [Generate bamlists for uneven
+        coverage](#generate-bamlists-for-uneven-coverage)
+      - [Get genotype likelihood, call SNPs, and get covariance
+        matrix](#get-genotype-likelihood-call-snps-and-get-covariance-matrix)
+      - [Run the shell script for SNP
+        calling](#run-the-shell-script-for-snp-calling-1)
+      - [Get shell script for PCAngsd](#get-shell-script-for-pcangsd-1)
+      - [Run the shell script for
+        PCAngsd](#run-the-shell-script-for-pcangsd-1)
 
 ``` r
 library(tidyverse)
 ```
 
-Two dimensional spatial populations
-===================================
+# Two dimensional spatial populations
 
-Create a shell script to run SLiM with nohup
---------------------------------------------
+## Create a shell script to run SLiM with nohup
 
 ``` r
 shell_script <- "#!/bin/bash
@@ -56,8 +77,7 @@ fi
 write_lines(shell_script, "../shell_scripts/spatial_pop_sim.sh")
 ```
 
-Run the shell script for SLiM simulation on server
---------------------------------------------------
+## Run the shell script for SLiM simulation on server
 
 ``` bash
 for k in 1; do
@@ -65,8 +85,7 @@ for k in 1; do
 done
 ```
 
-Create a shell script to run ART with nohup
--------------------------------------------
+## Create a shell script to run ART with nohup
 
 ``` r
 shell_script <-"#!/bin/bash
@@ -129,8 +148,7 @@ done"
 write_lines(shell_script, "../shell_scripts/art_spatial_pop_sim.sh")
 ```
 
-Run the shell script for ART simulation on server
--------------------------------------------------
+## Run the shell script for ART simulation on server
 
 ``` bash
 for k in 1; do
@@ -138,8 +156,7 @@ for k in 1; do
 done
 ```
 
-Merge, sort, and subsample bam files
-------------------------------------
+## Merge, sort, and subsample bam files
 
 ``` r
 shell_script <-"#!/bin/bash
@@ -204,8 +221,7 @@ done"
 write_lines(shell_script, "../shell_scripts/merge_sort_subsample_spatial_pop_sim.sh")
 ```
 
-Run the shell script for merging, sorting, and subsampling
-----------------------------------------------------------
+## Run the shell script for merging, sorting, and subsampling
 
 ``` bash
 for k in 1; do
@@ -213,8 +229,7 @@ for k in 1; do
 done
 ```
 
-Make bam lists
---------------
+## Make bam lists
 
 ``` r
 make_bam_lists <- function(basedir){
@@ -241,8 +256,7 @@ make_bam_lists <- function(basedir){
 make_bam_lists("/workdir/lcwgs-simulation/spatial_pop_sim/rep_1/")
 ```
 
-Index the ancestral fasta file
-------------------------------
+## Index the ancestral fasta file
 
 ``` bash
 for REP_ID in 1; do
@@ -251,10 +265,10 @@ for REP_ID in 1; do
 done
 ```
 
-Get shell script for SNP calling
---------------------------------
+## Get shell script for SNP calling
 
-After some experimentation, it turns out that a MAF filter is very important to have.
+After some experimentation, it turns out that a MAF filter is very
+important to have.
 
 ``` r
 ## Note that I used -doMajorMinor 5, using the ancestral sequence to determine major and minor alleles
@@ -287,16 +301,14 @@ done"
 write_lines(shell_script, "../shell_scripts/snp_calling_spatial_pop_sim.sh")
 ```
 
-Run the shell script for SNP calling
-------------------------------------
+## Run the shell script for SNP calling
 
 ``` bash
 nohup bash /workdir/lcwgs-simulation/shell_scripts/snp_calling_spatial_pop_sim.sh 1 '/workdir/lcwgs-simulation/spatial_pop_sim/' \
 > /workdir/lcwgs-simulation/nohups/snp_calling_spatial_pop_sim.nohup &
 ```
 
-Get shell script for writing SNP lists
---------------------------------------
+## Get shell script for writing SNP lists
 
 ``` r
 shell_script <-"#!/bin/bash
@@ -336,15 +348,13 @@ done"
 write_lines(shell_script, "../shell_scripts/get_snp_list_spatial_pop_sim.sh")
 ```
 
-Run shell script to get SNP list
---------------------------------
+## Run shell script to get SNP list
 
 ``` bash
 bash /workdir/lcwgs-simulation/shell_scripts/get_snp_list_spatial_pop_sim.sh 1 '/workdir/lcwgs-simulation/spatial_pop_sim/'
 ```
 
-Get shell script for PCA
-------------------------
+## Get shell script for PCAngsd
 
 ``` r
 shell_script <-"#!/bin/bash
@@ -366,10 +376,102 @@ done"
 write_lines(shell_script, "../shell_scripts/run_pcangd_spatial_pop_sim.sh")
 ```
 
-Run the shell script for PCA
-----------------------------
+## Run the shell script for PCAngsd
 
 ``` bash
 nohup bash /workdir/lcwgs-simulation/shell_scripts/run_pcangd_spatial_pop_sim.sh 1 '/workdir/lcwgs-simulation/spatial_pop_sim/' \
 > /workdir/lcwgs-simulation/nohups/run_pcangd_spatial_pop_sim.nohup &
+```
+
+# Uneven coverage
+
+## Generate bamlists for uneven coverage
+
+``` r
+make_bam_lists_uneven_coverage <- function(basedir){
+  n <- 1
+  for (sample_size in c(5,10,20,40,80)){
+    for (population in 1:9) {
+      for (i in 1:sample_size){
+        coverage=ifelse(n%%2 == 1, 0.125, 4)
+        n <- n+1
+        if (i==1 & population==1){
+          write_lines(paste0(basedir, "bam/p", population, "_sample", i, "_sorted_", coverage, "x.bam"), paste0(basedir, "sample_lists/bam_list_", sample_size, "_uneven_coverage.txt"))
+        } else {
+          write_lines(paste0(basedir, "bam/p", population, "_sample", i, "_sorted_", coverage, "x.bam"), paste0(basedir, "sample_lists/bam_list_", sample_size, "_uneven_coverage.txt"), append = T)
+        }
+      }
+    }
+  }
+}
+make_bam_lists_uneven_coverage("/workdir/lcwgs-simulation/spatial_pop_sim/rep_1/")
+```
+
+## Get genotype likelihood, call SNPs, and get covariance matrix
+
+``` r
+## Note that I used -doMajorMinor 5, using the ancestral sequence to determine major and minor alleles
+shell_script <-"#!/bin/bash
+REP_ID=$1
+OUT_DIR_BASE=$2
+BASE_DIR=$OUT_DIR_BASE'rep_'$REP_ID'/'
+N_JOB_MAX=3
+COUNT=0
+for SAMPLE_SIZE in {5,10,20,40,80}; do
+  ## SNP calling
+  /workdir/programs/angsd0.931/angsd/angsd \\
+  -b $BASE_DIR'sample_lists/bam_list_'$SAMPLE_SIZE'_uneven_coverage.txt' \\
+  -anc $BASE_DIR'slim/ancestral.fasta' \\
+  -out $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_uneven_coverage' \\
+  -GL 1 -doGlf 2 -doMaf 1 -doMajorMinor 5 \\
+  -doCounts 1 -doDepth 1 -dumpCounts 1 \\
+  -doIBS 2 -makematrix 1 -doCov 1 \\
+  -P 10 -SNP_pval 1e-6 -rmTriallelic 1e-6 \\
+  -setMinDepth 2 -minInd 1 -minMaf 0.05 -minQ 20 &
+  ## Submit two jobs at a time
+  COUNT=$(( COUNT + 1 ))
+  if [ $COUNT == $N_JOB_MAX ]; then
+   wait
+   COUNT=0
+  fi
+done"
+write_lines(shell_script, "../shell_scripts/snp_calling_spatial_pop_sim_uneven_coverage.sh")
+```
+
+## Run the shell script for SNP calling
+
+``` bash
+nohup bash /workdir/lcwgs-simulation/shell_scripts/snp_calling_spatial_pop_sim_uneven_coverage.sh \
+1 \
+'/workdir/lcwgs-simulation/spatial_pop_sim/' \
+> /workdir/lcwgs-simulation/nohups/snp_calling_spatial_pop_sim_uneven_coverage.nohup &
+```
+
+## Get shell script for PCAngsd
+
+``` r
+shell_script <-"#!/bin/bash
+REP_ID=$1
+OUT_DIR_BASE=$2
+BASE_DIR=$OUT_DIR_BASE'rep_'$REP_ID'/'
+for SAMPLE_SIZE in {5,10,20,40,80}; do
+  ## Run PCAngsd
+  python2 /workdir/programs/pcangsd/pcangsd.py \\
+  -beagle $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_uneven_coverage.beagle.gz' \\
+  -minMaf 0.05 \\
+  -threads 16 \\
+  -iter 200 \\
+  -maf_iter 200 \\
+  -o $BASE_DIR'angsd/pcagnsd_bam_list_'$SAMPLE_SIZE'_uneven_coverage'
+done"
+write_lines(shell_script, "../shell_scripts/run_pcangd_spatial_pop_sim_uneven_coverage.sh")
+```
+
+## Run the shell script for PCAngsd
+
+``` bash
+nohup bash /workdir/lcwgs-simulation/shell_scripts/run_pcangd_spatial_pop_sim_uneven_coverage.sh \
+1 \
+'/workdir/lcwgs-simulation/spatial_pop_sim/' \
+> /workdir/lcwgs-simulation/nohups/run_pcangd_spatial_pop_sim_uneven_coverage.nohup &
 ```

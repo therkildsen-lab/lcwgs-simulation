@@ -64,7 +64,7 @@ for (coverage in c(0.125,0.25,0.5,1,2,4)){
     plda <- predict(object = fit,
                   newdata = pca_table[,1:(5+1)])
     prop.lda <- fit$svd^2/sum(fit$svd^2)
-    dapc_table <- data.frame(group = pca_table[,1], lda = plda$x) %>%
+    dapc_table <- data.frame(population = pca_table[,1], lda = plda$x) %>%
       transmute(population=population, LD1=rescale(lda.LD1,c(-1,1)), LD2=rescale(lda.LD2, c(-1,1)), coverage=coverage, sample_size=sample_size)
     ## Bind PCA tables and DAPC tables for all sample size and coverage combinations
     if (i==1){
@@ -205,7 +205,7 @@ for (coverage in c(0.125,0.25,0.5,1,2,4)){
     plda <- predict(object = fit,
                   newdata = pca_table[,1:(5+1)])
     prop.lda <- fit$svd^2/sum(fit$svd^2)
-    dapc_table <- data.frame(group = pca_table[,1], lda = plda$x) %>%
+    dapc_table <- data.frame(population = pca_table[,1], lda = plda$x) %>%
       transmute(population=population, LD1=rescale(lda.LD1,c(-1,1)), LD2=rescale(lda.LD2, c(-1,1)), coverage=coverage, sample_size=sample_size)
     ## Bind PCA tables and DAPC tables for all sample size and coverage combinations
     if (i==1){
@@ -348,7 +348,7 @@ for (coverage in c(0.125,0.25,0.5,1,2,4)){
     plda <- predict(object = fit,
                   newdata = mds_table[,1:(5+1)])
     prop.lda <- fit$svd^2/sum(fit$svd^2)
-    dapc_table <- data.frame(group = mds_table[,1], lda = plda$x) %>%
+    dapc_table <- data.frame(population = mds_table[,1], lda = plda$x) %>%
       transmute(population=population, LD1=rescale(lda.LD1,c(-1,1)), LD2=rescale(lda.LD2, c(-1,1)), coverage=coverage, sample_size=sample_size)
     ## Bind PCoA tables and DAPC tables for all sample size and coverage combinations
     if (i==1){
@@ -457,6 +457,140 @@ ggplot(dapc_table_final_per_pop, aes(x=LD1_mean, y=LD2_mean, color=population, l
   facet_grid(coverage~sample_size, scales="free") +
   ylim(c(-1.2, 1.2)) +
   xlim(c(-1.2, 1.2)) +
+  theme_bw() +
+  theme(panel.grid = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank())
+```
+
+## PCA with uneven coverage
+
+### PCA with PCAngsd
+
+```{r eval=T, warning=F, message=F, fig.height=2.2, fig.width=15}
+i=1
+for (sample_size in c(5,10,20,40,80)){
+  pop_label <- read_lines(paste0("../spatial_pop_sim/rep_1/sample_lists/bam_list_",sample_size,"_uneven_coverage.txt")) %>%
+    str_extract('p[1-9]')
+  coverage <- ifelse(1:(sample_size*9) %% 2 == 1,0.125, 4)
+  ## Read covariance matrix
+  cov_matrix <- npyLoad(paste0("../spatial_pop_sim/rep_1/angsd/pcagnsd_bam_list_",sample_size,"_uneven_coverage.cov.npy")) %>%
+    as.matrix()
+  ## Perform eigen decomposition
+  e <- eigen(cov_matrix)
+  e_value<-e$values
+  x_variance<-e_value[1]/sum(e_value)*100
+  y_variance<-e_value[2]/sum(e_value)*100
+  e_vector <- as.data.frame(e$vectors)[,1:5]
+  pca_table <- bind_cols(pop_label=pop_label, e_vector) %>%
+    transmute(population=pop_label, PC1=rescale(V1, c(-1, 1)), PC2=rescale(V2, c(-1, 1)), PC3=rescale(V3, c(-1, 1)), PC4=rescale(V4, c(-1, 1)), PC5=rescale(V5, c(-1, 1)), coverage=coverage, sample_size=sample_size)
+  ## Bind PCA tables and DAPC tables for all sample size and coverage combinations
+  if (i==1){
+    pca_table_final <- pca_table
+  } else {
+    pca_table_final <- bind_rows(pca_table_final,pca_table)
+  }
+  i=i+1
+}
+ggplot(pca_table_final,aes(x=PC1, y=PC2, color=population, shape=as.character(coverage))) +
+  geom_point() +
+  facet_grid(.~sample_size, scales="free") +
+  theme_bw() +
+  theme(panel.grid = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank())
+ggplot(pca_table_final,aes(x=PC1, y=PC2, color=as.character(coverage))) +
+  geom_point() +
+  facet_grid(.~sample_size, scales="free") +
+  theme_bw() +
+  theme(panel.grid = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank())
+```
+
+### PCA with covMat
+
+```{r eval=T, warning=F, message=F, fig.height=2.2, fig.width=15}
+i=1
+for (sample_size in c(5,10,20,40,80)){
+  pop_label <- read_lines(paste0("../spatial_pop_sim/rep_1/sample_lists/bam_list_",sample_size,"_uneven_coverage.txt")) %>%
+    str_extract('p[1-9]')
+  coverage <- ifelse(1:(sample_size*9) %% 2 == 1,0.125, 4)
+  ## Read covariance matrix
+  cov_matrix <- read_tsv(paste0("../spatial_pop_sim/rep_1/angsd/bam_list_",sample_size,"_uneven_coverage.covMat"), col_names = F) %>%
+    as.matrix() %>%
+    .[,-(sample_size*9+1)]
+  cov_matrix[is.na(cov_matrix)]<- median(cov_matrix, na.rm = T)
+  ## Perform eigen decomposition
+  e <- eigen(cov_matrix)
+  e_value<-e$values
+  x_variance<-e_value[1]/sum(e_value)*100
+  y_variance<-e_value[2]/sum(e_value)*100
+  e_vector <- as.data.frame(e$vectors)[,1:5]
+  pca_table <- bind_cols(pop_label=pop_label, e_vector) %>%
+    transmute(population=pop_label, PC1=rescale(V1, c(-1, 1)), PC2=rescale(V2, c(-1, 1)), PC3=rescale(V3, c(-1, 1)), PC4=rescale(V3, c(-1, 1)), PC5=rescale(V5, c(-1, 1)), sample_size=sample_size, coverage=coverage)
+  ## Bind PCA tables and DAPC tables for all sample size and coverage combinations
+  if (i==1){
+    pca_table_final <- pca_table
+  } else {
+    pca_table_final <- bind_rows(pca_table_final,pca_table)
+  }
+  i=i+1
+}
+ggplot(pca_table_final,aes(x=PC1, y=PC2, color=population, shape=as.character(coverage))) +
+  geom_point() +
+  facet_grid(.~sample_size, scales="free") +
+  theme_bw() +
+  theme(panel.grid = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank())
+ggplot(pca_table_final,aes(x=PC1, y=PC2, color=as.character(coverage))) +
+  geom_point() +
+  facet_grid(.~sample_size, scales="free") +
+  theme_bw() +
+  theme(panel.grid = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank())
+```
+
+### PCoA with ibsMat
+
+```{r eval=T, warning=F, message=F, fig.height=2.2, fig.width=15}
+i=1
+for (sample_size in c(5,10,20,40,80)){
+  pop_label <- read_lines(paste0("../spatial_pop_sim/rep_1/sample_lists/bam_list_",sample_size,"_uneven_coverage.txt")) %>%
+    str_extract('p[1-9]')
+  coverage <- ifelse(1:(sample_size*9) %% 2 == 1,0.125, 4)
+  ## Read covariance matrix
+  dist_matrix <- read_tsv(paste0("../spatial_pop_sim/rep_1/angsd/bam_list_",sample_size,"_uneven_coverage.ibsMat"), col_names = F) %>%
+    as.matrix() %>%
+    .[,-(sample_size*9+1)]
+  dist_matrix[is.na(dist_matrix)] <- mean(dist_matrix, na.rm = T)
+  ## Perform MDS
+  mds <- cmdscale(as.dist(dist_matrix), k=5) %>%
+    as.data.frame() 
+  mds_table <- bind_cols(pop_label=pop_label, mds) %>%
+    transmute(population=pop_label, PCo1=rescale(V1, c(-1, 1)), PCo2=rescale(V2, c(-1, 1)), PCo3=rescale(V3, c(-1, 1)), PCo4=rescale(V4, c(-1, 1)), PCo5=rescale(V5, c(-1, 1)), coverage=coverage, sample_size=sample_size)
+  eigen_value <- cmdscale(as.dist(dist_matrix), k=5, eig = T)$eig
+  var_explained <- round(eigen_value/sum(eigen_value)*100, 2)
+  ## Bind PCoA tables and DAPC tables for all sample size and coverage combinations
+  if (i==1){
+    mds_table_final <- mds_table
+  } else {
+    mds_table_final <- bind_rows(mds_table_final,mds_table)
+  }
+  i=i+1
+}
+ggplot(mds_table_final,aes(x=PCo1, y=PCo2, color=population)) +
+  geom_point() +
+  facet_grid(.~sample_size, scales="free") +
+  theme_bw() +
+  theme(panel.grid = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank())
+ggplot(mds_table_final,aes(x=PCo1, y=PCo2, color=as.character(coverage))) +
+  geom_point() +
+  facet_grid(.~sample_size, scales="free") +
   theme_bw() +
   theme(panel.grid = element_blank(),
         axis.text = element_blank(),
