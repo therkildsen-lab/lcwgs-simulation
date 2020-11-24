@@ -8,6 +8,8 @@ Data analysis with simulation of spatial populations
       - [Plot PCA centroid](#plot-pca-centroid)
       - [Plot DAPC](#plot-dapc)
       - [Plot DAPC centroid](#plot-dapc-centroid)
+  - [PCA with PCAngsd, e=2](#pca-with-pcangsd-e2)
+  - [PCA with PCAngsd, e=8](#pca-with-pcangsd-e8)
   - [PCA with covMat](#pca-with-covmat)
       - [Plot PCA](#plot-pca-1)
       - [Plot PCA centroid](#plot-pca-centroid-1)
@@ -207,6 +209,132 @@ ggplot(dapc_table_final_per_pop, aes(x=LD1_mean, y=LD2_mean, color=population, l
 
 ![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
 
+## PCA with PCAngsd, e=2
+
+``` r
+i=1
+for (coverage in c(0.125,0.25,0.5,1,2,4)){
+  for (sample_size in c(5,10,20,40,80)){
+    pop_label <- read_lines(paste0("../spatial_pop_sim/rep_1/sample_lists/bam_list_",sample_size,"_",coverage,"x.txt")) %>%
+      str_extract('p[1-9]')
+    ## Read covariance matrix
+    cov_matrix <- npyLoad(paste0("../spatial_pop_sim/rep_1/angsd/pcagnsd_bam_list_",sample_size,"_",coverage,"x_e2.cov.npy")) %>%
+      as.matrix()
+    ## Perform eigen decomposition
+    e <- eigen(cov_matrix)
+    e_value<-e$values
+    x_variance<-e_value[1]/sum(e_value)*100
+    y_variance<-e_value[2]/sum(e_value)*100
+    e_vector <- as.data.frame(e$vectors)[,1:5]
+    pca_table <- bind_cols(pop_label=pop_label, e_vector) %>%
+      transmute(population=pop_label, PC1=rescale(V1, c(-1, 1)), PC2=rescale(V2, c(-1, 1)), PC3=rescale(V3, c(-1, 1)), PC4=rescale(V4, c(-1, 1)), PC5=rescale(V5, c(-1, 1)), coverage=coverage, sample_size=sample_size)
+    ## Perform DAPC
+    fit <- lda(population ~ ., data=pca_table[,1:(5+1)], na.action="na.omit", CV=F, output = "Scatterplot")
+    plda <- predict(object = fit,
+                  newdata = pca_table[,1:(5+1)])
+    prop.lda <- fit$svd^2/sum(fit$svd^2)
+    dapc_table <- data.frame(population = pca_table[,1], lda = plda$x) %>%
+      transmute(population=population, LD1=rescale(lda.LD1,c(-1,1)), LD2=rescale(lda.LD2, c(-1,1)), coverage=coverage, sample_size=sample_size)
+    ## Bind PCA tables and DAPC tables for all sample size and coverage combinations
+    if (i==1){
+      pca_table_final <- pca_table
+      dapc_table_final <- dapc_table
+    } else {
+      pca_table_final <- bind_rows(pca_table_final,pca_table)
+      dapc_table_final <- bind_rows(dapc_table_final,dapc_table)
+    }
+    i=i+1
+  }
+}
+## Get mean PC values per population
+pca_table_final_per_pop <- group_by(pca_table_final, population, coverage, sample_size) %>%
+  summarise(PC1_mean=mean(PC1), PC2_mean=mean(PC2), PC3_mean=mean(PC3), PC1_sd=sd(PC1), PC2_sd=sd(PC2), PC3_sd=sd(PC3)) %>%
+  ungroup() %>%
+  group_by(coverage, sample_size) %>%
+  mutate(PC1_mean=rescale(PC1_mean, c(-1,1)), PC2_mean=rescale(PC2_mean, c(-1,1)), PC3_mean=rescale(PC3_mean, c(-1,1)))
+## Get mean LD values per population
+dapc_table_final_per_pop <- group_by(dapc_table_final, population, coverage, sample_size) %>%
+  summarise(LD1_mean=mean(LD1), LD2_mean=mean(LD2), LD1_sd=sd(LD1), LD2_sd=sd(LD2)) %>%
+  ungroup() %>%
+  group_by(coverage, sample_size) %>%
+  mutate(LD1_mean=rescale(LD1_mean, c(-1,1)), LD2_mean=rescale(LD2_mean, c(-1,1)))
+```
+
+``` r
+ggplot(pca_table_final,aes(x=PC1, y=PC2, color=population)) +
+  geom_point() +
+  facet_grid(coverage~sample_size, scales="free") +
+  theme_bw() +
+  theme(panel.grid = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank())
+```
+
+![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
+
+## PCA with PCAngsd, e=8
+
+``` r
+i=1
+for (coverage in c(0.125,0.25,0.5,1,2,4)){
+  for (sample_size in c(5,10,20,40,80)){
+    pop_label <- read_lines(paste0("../spatial_pop_sim/rep_1/sample_lists/bam_list_",sample_size,"_",coverage,"x.txt")) %>%
+      str_extract('p[1-9]')
+    ## Read covariance matrix
+    cov_matrix <- npyLoad(paste0("../spatial_pop_sim/rep_1/angsd/pcagnsd_bam_list_",sample_size,"_",coverage,"x_e8.cov.npy")) %>%
+      as.matrix()
+    ## Perform eigen decomposition
+    e <- eigen(cov_matrix)
+    e_value<-e$values
+    x_variance<-e_value[1]/sum(e_value)*100
+    y_variance<-e_value[2]/sum(e_value)*100
+    e_vector <- as.data.frame(e$vectors)[,1:5]
+    pca_table <- bind_cols(pop_label=pop_label, e_vector) %>%
+      transmute(population=pop_label, PC1=rescale(V1, c(-1, 1)), PC2=rescale(V2, c(-1, 1)), PC3=rescale(V3, c(-1, 1)), PC4=rescale(V4, c(-1, 1)), PC5=rescale(V5, c(-1, 1)), coverage=coverage, sample_size=sample_size)
+    ## Perform DAPC
+    fit <- lda(population ~ ., data=pca_table[,1:(5+1)], na.action="na.omit", CV=F, output = "Scatterplot")
+    plda <- predict(object = fit,
+                  newdata = pca_table[,1:(5+1)])
+    prop.lda <- fit$svd^2/sum(fit$svd^2)
+    dapc_table <- data.frame(population = pca_table[,1], lda = plda$x) %>%
+      transmute(population=population, LD1=rescale(lda.LD1,c(-1,1)), LD2=rescale(lda.LD2, c(-1,1)), coverage=coverage, sample_size=sample_size)
+    ## Bind PCA tables and DAPC tables for all sample size and coverage combinations
+    if (i==1){
+      pca_table_final <- pca_table
+      dapc_table_final <- dapc_table
+    } else {
+      pca_table_final <- bind_rows(pca_table_final,pca_table)
+      dapc_table_final <- bind_rows(dapc_table_final,dapc_table)
+    }
+    i=i+1
+  }
+}
+## Get mean PC values per population
+pca_table_final_per_pop <- group_by(pca_table_final, population, coverage, sample_size) %>%
+  summarise(PC1_mean=mean(PC1), PC2_mean=mean(PC2), PC3_mean=mean(PC3), PC1_sd=sd(PC1), PC2_sd=sd(PC2), PC3_sd=sd(PC3)) %>%
+  ungroup() %>%
+  group_by(coverage, sample_size) %>%
+  mutate(PC1_mean=rescale(PC1_mean, c(-1,1)), PC2_mean=rescale(PC2_mean, c(-1,1)), PC3_mean=rescale(PC3_mean, c(-1,1)))
+## Get mean LD values per population
+dapc_table_final_per_pop <- group_by(dapc_table_final, population, coverage, sample_size) %>%
+  summarise(LD1_mean=mean(LD1), LD2_mean=mean(LD2), LD1_sd=sd(LD1), LD2_sd=sd(LD2)) %>%
+  ungroup() %>%
+  group_by(coverage, sample_size) %>%
+  mutate(LD1_mean=rescale(LD1_mean, c(-1,1)), LD2_mean=rescale(LD2_mean, c(-1,1)))
+```
+
+``` r
+ggplot(pca_table_final,aes(x=PC1, y=PC2, color=population)) +
+  geom_point() +
+  facet_grid(coverage~sample_size, scales="free") +
+  theme_bw() +
+  theme(panel.grid = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank())
+```
+
+![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
+
 ## PCA with covMat
 
 ``` r
@@ -277,7 +405,7 @@ ggplot(pca_table_final,aes(x=PC1, y=PC2, color=population)) +
         axis.ticks = element_blank())
 ```
 
-![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
+![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
 
 #### PC1 vs. PC3
 
@@ -291,7 +419,7 @@ ggplot(pca_table_final,aes(x=PC1, y=PC3, color=population)) +
         axis.ticks = element_blank())
 ```
 
-![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
+![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
 
 ### Plot PCA centroid
 
@@ -311,7 +439,7 @@ ggplot(pca_table_final_per_pop, aes(x=PC1_mean, y=PC2_mean, color=population, la
         axis.ticks = element_blank())
 ```
 
-![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
+![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
 
 #### PC1 vs. PC3
 
@@ -329,7 +457,7 @@ ggplot(pca_table_final_per_pop, aes(x=PC1_mean, y=PC3_mean, color=population, la
         axis.ticks = element_blank())
 ```
 
-![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
+![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
 
 ### Plot DAPC
 
@@ -343,7 +471,7 @@ ggplot(dapc_table_final,aes(x=LD1, y=LD2, color=population)) +
         axis.ticks = element_blank())
 ```
 
-![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
+![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->
 
 ### Plot DAPC centroid
 
@@ -361,7 +489,7 @@ ggplot(dapc_table_final_per_pop, aes(x=LD1_mean, y=LD2_mean, color=population, l
         axis.ticks = element_blank())
 ```
 
-![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
+![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->
 
 ## PCoA with ibsMat
 
@@ -430,7 +558,7 @@ ggplot(mds_table_final,aes(x=PCo1, y=PCo2, color=population)) +
         axis.ticks = element_blank())
 ```
 
-![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
+![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-23-1.png)<!-- -->
 
 #### PCo1 vs. PCo3
 
@@ -444,7 +572,7 @@ ggplot(mds_table_final,aes(x=PCo1, y=PCo3, color=population)) +
         axis.ticks = element_blank())
 ```
 
-![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->
+![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-24-1.png)<!-- -->
 
 ### Plot PCoA centroid
 
@@ -464,7 +592,7 @@ ggplot(mds_table_final_per_pop, aes(x=PCo1_mean, y=PCo2_mean, color=population, 
         axis.ticks = element_blank())
 ```
 
-![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->
+![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-25-1.png)<!-- -->
 
 #### PCo1 vs. PCo3
 
@@ -482,7 +610,7 @@ ggplot(mds_table_final_per_pop, aes(x=PCo1_mean, y=PCo3_mean, color=population, 
         axis.ticks = element_blank())
 ```
 
-![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-22-1.png)<!-- -->
+![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-26-1.png)<!-- -->
 
 ### Plot DAPC
 
@@ -496,7 +624,7 @@ ggplot(dapc_table_final,aes(x=LD1, y=LD2, color=population)) +
         axis.ticks = element_blank())
 ```
 
-![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-23-1.png)<!-- -->
+![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-27-1.png)<!-- -->
 
 ### Plot DAPC centroid
 
@@ -514,7 +642,7 @@ ggplot(dapc_table_final_per_pop, aes(x=LD1_mean, y=LD2_mean, color=population, l
         axis.ticks = element_blank())
 ```
 
-![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-24-1.png)<!-- -->
+![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-28-1.png)<!-- -->
 
 ## PCA with uneven coverage
 
@@ -554,7 +682,7 @@ ggplot(pca_table_final,aes(x=PC1, y=PC2, color=population, shape=as.character(co
         axis.ticks = element_blank())
 ```
 
-![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-25-1.png)<!-- -->
+![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-29-1.png)<!-- -->
 
 ``` r
 ggplot(pca_table_final,aes(x=PC1, y=PC2, color=as.character(coverage))) +
@@ -566,7 +694,7 @@ ggplot(pca_table_final,aes(x=PC1, y=PC2, color=as.character(coverage))) +
         axis.ticks = element_blank())
 ```
 
-![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-25-2.png)<!-- -->
+![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-29-2.png)<!-- -->
 
 ### PCA with covMat
 
@@ -606,7 +734,7 @@ ggplot(pca_table_final,aes(x=PC1, y=PC2, color=population, shape=as.character(co
         axis.ticks = element_blank())
 ```
 
-![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-26-1.png)<!-- -->
+![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-30-1.png)<!-- -->
 
 ``` r
 ggplot(pca_table_final,aes(x=PC1, y=PC2, color=as.character(coverage))) +
@@ -618,7 +746,7 @@ ggplot(pca_table_final,aes(x=PC1, y=PC2, color=as.character(coverage))) +
         axis.ticks = element_blank())
 ```
 
-![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-26-2.png)<!-- -->
+![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-30-2.png)<!-- -->
 
 ### PCoA with ibsMat
 
@@ -657,7 +785,7 @@ ggplot(mds_table_final,aes(x=PCo1, y=PCo2, color=population)) +
         axis.ticks = element_blank())
 ```
 
-![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-27-1.png)<!-- -->
+![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-31-1.png)<!-- -->
 
 ``` r
 ggplot(mds_table_final,aes(x=PCo1, y=PCo2, color=as.character(coverage))) +
@@ -669,4 +797,4 @@ ggplot(mds_table_final,aes(x=PCo1, y=PCo2, color=as.character(coverage))) +
         axis.ticks = element_blank())
 ```
 
-![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-27-2.png)<!-- -->
+![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-31-2.png)<!-- -->

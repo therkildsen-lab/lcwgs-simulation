@@ -26,9 +26,7 @@ Simulation workflow for two dimensional spatial populations
         lists](#get-shell-script-for-writing-snp-lists)
       - [Run shell script to get SNP
         list](#run-shell-script-to-get-snp-list)
-      - [Get shell script for PCAngsd](#get-shell-script-for-pcangsd)
-      - [Run the shell script for
-        PCAngsd](#run-the-shell-script-for-pcangsd)
+      - [Run PCAngsd](#run-pcangsd)
   - [Uneven coverage](#uneven-coverage)
       - [Generate bamlists for uneven
         coverage](#generate-bamlists-for-uneven-coverage)
@@ -36,9 +34,9 @@ Simulation workflow for two dimensional spatial populations
         matrix](#get-genotype-likelihood-call-snps-and-get-covariance-matrix)
       - [Run the shell script for SNP
         calling](#run-the-shell-script-for-snp-calling-1)
-      - [Get shell script for PCAngsd](#get-shell-script-for-pcangsd-1)
+      - [Get shell script for PCAngsd](#get-shell-script-for-pcangsd)
       - [Run the shell script for
-        PCAngsd](#run-the-shell-script-for-pcangsd-1)
+        PCAngsd](#run-the-shell-script-for-pcangsd)
 
 ``` r
 library(tidyverse)
@@ -354,7 +352,9 @@ write_lines(shell_script, "../shell_scripts/get_snp_list_spatial_pop_sim.sh")
 bash /workdir/lcwgs-simulation/shell_scripts/get_snp_list_spatial_pop_sim.sh 1 '/workdir/lcwgs-simulation/spatial_pop_sim/'
 ```
 
-## Get shell script for PCAngsd
+## Run PCAngsd
+
+#### Without specifying the value of e
 
 ``` r
 shell_script <-"#!/bin/bash
@@ -376,11 +376,48 @@ done"
 write_lines(shell_script, "../shell_scripts/run_pcangd_spatial_pop_sim.sh")
 ```
 
-## Run the shell script for PCAngsd
-
 ``` bash
 nohup bash /workdir/lcwgs-simulation/shell_scripts/run_pcangd_spatial_pop_sim.sh 1 '/workdir/lcwgs-simulation/spatial_pop_sim/' \
 > /workdir/lcwgs-simulation/nohups/run_pcangd_spatial_pop_sim.nohup &
+```
+
+#### Specifying the value of e
+
+``` r
+shell_script <-"#!/bin/bash
+REP_ID=$1
+OUT_DIR_BASE=$2
+E=$3
+BASE_DIR=$OUT_DIR_BASE'rep_'$REP_ID'/'
+for SAMPLE_SIZE in {5,10,20,40,80}; do
+  for COVERAGE in {0.125,0.25,0.5,1,2,4}; do
+      ## Run PCAngsd
+      python2 /workdir/programs/pcangsd/pcangsd.py \\
+      -beagle $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.beagle.gz' \\
+      -minMaf 0.05 \\
+      -threads 16 \\
+      -iter 200 \\
+      -maf_iter 200 \\
+      -e $E \\
+      -o $BASE_DIR'angsd/pcagnsd_bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x_e'$E
+  done
+done"
+write_lines(shell_script, "../shell_scripts/run_pcangd_spatial_pop_sim_manual_e.sh")
+```
+
+``` bash
+## e=8
+nohup bash /workdir/lcwgs-simulation/shell_scripts/run_pcangd_spatial_pop_sim_manual_e.sh \
+1 \
+'/workdir/lcwgs-simulation/spatial_pop_sim/' \
+8 \
+> /workdir/lcwgs-simulation/nohups/run_pcangd_spatial_pop_sim_manual_e8.nohup &
+## e=2
+nohup bash /workdir/lcwgs-simulation/shell_scripts/run_pcangd_spatial_pop_sim_manual_e.sh \
+1 \
+'/workdir/lcwgs-simulation/spatial_pop_sim/' \
+2 \
+> /workdir/lcwgs-simulation/nohups/run_pcangd_spatial_pop_sim_manual_e2.nohup &
 ```
 
 # Uneven coverage
