@@ -773,7 +773,7 @@ fst_plot <- fst_n_ind_final %>%
   fixed_windowed_fst(1000) %>%
   ggplot(aes(x=position/10^6, y=fst)) +
   geom_point(alpha=0.8, size=0.15) +
-  geom_point(data=mutations_final_m2, aes(x=position/10^6, y=1.01), color="red", size=2, shape=16) +
+  geom_point(data=mutations_final_m2, aes(x=position/10^6, y=1.01), color="red", size=2, shape=8) +
   ylim(NA, 1.05) +
   labs(x = "position (in Mbp)", y = expression(F[ST])) + 
   facet_grid(coverage~sample_size) +
@@ -810,7 +810,7 @@ fst_plot_radseq <- maf_final %>%
   mutate(n_rad_tag = n_rad_tag/30) %>%
   ggplot(aes(x=position/10^6, y=fst)) +
   geom_point(alpha=0.8, size=0.5) +
-  geom_point(data=mutations_final_m2, aes(x=position/10^6, y=1.01), color="red", size=2, shape=16) +
+  geom_point(data=mutations_final_m2, aes(x=position/10^6, y=1.01), color="red", size=2, shape=8) +
   ylim(c(NA, 1.05)) +
   facet_grid(n_rad_tag~sample_size) +
   labs(x = "position (in Mbp)", y = expression(F[ST])) + 
