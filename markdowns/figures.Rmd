@@ -176,7 +176,7 @@ frequency_plot_combined <- joined_frequency_final_combined %>%
   geom_hex(bins = 100, size= 0.05, color="white", aes(fill=log(stat(density))), show.legend = T) +
   geom_text(data = joined_summary_table, x = 0.92, aes(label=r_squared, y = 0.15-as.numeric(as.factor(design))/8), fontface = "bold", size=4.8) +
   geom_text(data = joined_summary_table, x = 0.18, aes(label=n, y = 1.08-1/8), fontface = "bold", size = 4.8, show.legend = F, color = "black") +
-  annotate("text", x = 0.92, y = 0.15, label="R^2", parse=T , size=4.8) +
+  annotate("text", x = 0.92, y = 0.15, label="r^2", parse=T , size=4.8) +
   annotate("text", x = 0.18, y = 1.08, label="SNP count", size=4.8) +
   geom_segment(data = tibble(a = 0, b = 1), aes(x=a, y=a, xend=b, yend=b), color = "black") +
   facet_grid(coverage~sample_size) +
