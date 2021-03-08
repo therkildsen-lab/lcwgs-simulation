@@ -24,6 +24,8 @@ Data analysis with simulation of spatial populations
       - [PCA with PCAngsd](#pca-with-pcangsd-1)
       - [PCA with covMat](#pca-with-covmat-1)
       - [PCoA with ibsMat](#pcoa-with-ibsmat-1)
+      - [Assemble plots for batch effect
+        paper](#assemble-plots-for-batch-effect-paper)
 
 ``` r
 library(tidyverse)
@@ -685,13 +687,18 @@ ggplot(pca_table_final,aes(x=PC1, y=PC2, color=population, shape=as.character(co
 ![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-29-1.png)<!-- -->
 
 ``` r
-ggplot(pca_table_final,aes(x=PC1, y=PC2, color=as.character(coverage))) +
+p1 <- pca_table_final %>%
+  mutate(method="PCAngsd") %>%
+  ggplot(aes(x=PC1, y=PC2, color=as.character(coverage))) +
   geom_point() +
-  facet_grid(.~sample_size, scales="free") +
+  facet_grid(method~sample_size, scales="free") +
+  scale_color_viridis_d(name = "coverage", option = "D", begin = 0.75, end = 0.1) +
   theme_bw() +
   theme(panel.grid = element_blank(),
         axis.text = element_blank(),
-        axis.ticks = element_blank())
+        axis.ticks = element_blank(),
+        legend.position = "top")
+p1
 ```
 
 ![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-29-2.png)<!-- -->
@@ -737,13 +744,18 @@ ggplot(pca_table_final,aes(x=PC1, y=PC2, color=population, shape=as.character(co
 ![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-30-1.png)<!-- -->
 
 ``` r
-ggplot(pca_table_final,aes(x=PC1, y=PC2, color=as.character(coverage))) +
+p2 <- pca_table_final %>%
+  mutate(method="ANGSD (-doCov 1)") %>%
+  ggplot(aes(x=PC1, y=PC2, color=as.character(coverage))) +
   geom_point() +
-  facet_grid(.~sample_size, scales="free") +
+  scale_color_viridis_d(name = "coverage", option = "D", begin = 0.75, end = 0.1) +
+  facet_grid(method~sample_size, scales="free") +
   theme_bw() +
   theme(panel.grid = element_blank(),
         axis.text = element_blank(),
-        axis.ticks = element_blank())
+        axis.ticks = element_blank(), 
+        legend.position = "none")
+p2
 ```
 
 ![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-30-2.png)<!-- -->
@@ -788,13 +800,26 @@ ggplot(mds_table_final,aes(x=PCo1, y=PCo2, color=population)) +
 ![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-31-1.png)<!-- -->
 
 ``` r
-ggplot(mds_table_final,aes(x=PCo1, y=PCo2, color=as.character(coverage))) +
+p3 <- mds_table_final %>%
+  mutate(method="ANGSD (-doIBS 2)") %>%
+  ggplot(aes(x=PCo1, y=PCo2, color=as.character(coverage))) +
   geom_point() +
-  facet_grid(.~sample_size, scales="free") +
+  facet_grid(method~sample_size, scales="free") +
+  scale_color_viridis_d(name = "coverage", option = "D", begin = 0.75, end = 0.1) +
   theme_bw() +
   theme(panel.grid = element_blank(),
         axis.text = element_blank(),
-        axis.ticks = element_blank())
+        axis.ticks = element_blank(),
+        legend.position = "none")
+p3
 ```
 
 ![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-31-2.png)<!-- -->
+
+### Assemble plots for batch effect paper
+
+``` r
+cowplot::plot_grid(p1, p2, p3, ncol = 1, rel_heights = c(1.3, 1, 1))
+```
+
+![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-32-1.png)<!-- -->

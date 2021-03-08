@@ -589,7 +589,7 @@ ggplot(dapc_table_final_per_pop, aes(x=LD1_mean, y=LD2_mean, color=population, l
 
 ### PCA with PCAngsd
 
-```{r eval=T, warning=F, message=F, fig.height=2.2, fig.width=15}
+```{r eval=T, warning=F, message=F, fig.height=2.2, fig.width=10}
 i=1
 for (sample_size in c(5,10,20,40,80)){
   pop_label <- read_lines(paste0("../spatial_pop_sim/rep_1/sample_lists/bam_list_",sample_size,"_uneven_coverage.txt")) %>%
@@ -621,18 +621,23 @@ ggplot(pca_table_final,aes(x=PC1, y=PC2, color=population, shape=as.character(co
   theme(panel.grid = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank())
-ggplot(pca_table_final,aes(x=PC1, y=PC2, color=as.character(coverage))) +
+p1 <- pca_table_final %>%
+  mutate(method="PCAngsd") %>%
+  ggplot(aes(x=PC1, y=PC2, color=as.character(coverage))) +
   geom_point() +
-  facet_grid(.~sample_size, scales="free") +
+  facet_grid(method~sample_size, scales="free") +
+  scale_color_viridis_d(name = "coverage", option = "D", begin = 0.75, end = 0.1) +
   theme_bw() +
   theme(panel.grid = element_blank(),
         axis.text = element_blank(),
-        axis.ticks = element_blank())
+        axis.ticks = element_blank(),
+        legend.position = "top")
+p1
 ```
 
 ### PCA with covMat
 
-```{r eval=T, warning=F, message=F, fig.height=2.2, fig.width=15}
+```{r eval=T, warning=F, message=F, fig.height=2, fig.width=10}
 i=1
 for (sample_size in c(5,10,20,40,80)){
   pop_label <- read_lines(paste0("../spatial_pop_sim/rep_1/sample_lists/bam_list_",sample_size,"_uneven_coverage.txt")) %>%
@@ -666,18 +671,23 @@ ggplot(pca_table_final,aes(x=PC1, y=PC2, color=population, shape=as.character(co
   theme(panel.grid = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank())
-ggplot(pca_table_final,aes(x=PC1, y=PC2, color=as.character(coverage))) +
+p2 <- pca_table_final %>%
+  mutate(method="ANGSD (-doCov 1)") %>%
+  ggplot(aes(x=PC1, y=PC2, color=as.character(coverage))) +
   geom_point() +
-  facet_grid(.~sample_size, scales="free") +
+  scale_color_viridis_d(name = "coverage", option = "D", begin = 0.75, end = 0.1) +
+  facet_grid(method~sample_size, scales="free") +
   theme_bw() +
   theme(panel.grid = element_blank(),
         axis.text = element_blank(),
-        axis.ticks = element_blank())
+        axis.ticks = element_blank(), 
+        legend.position = "none")
+p2
 ```
 
 ### PCoA with ibsMat
 
-```{r eval=T, warning=F, message=F, fig.height=2.2, fig.width=15}
+```{r eval=T, warning=F, message=F, fig.height=1.8, fig.width=10}
 i=1
 for (sample_size in c(5,10,20,40,80)){
   pop_label <- read_lines(paste0("../spatial_pop_sim/rep_1/sample_lists/bam_list_",sample_size,"_uneven_coverage.txt")) %>%
@@ -710,11 +720,22 @@ ggplot(mds_table_final,aes(x=PCo1, y=PCo2, color=population)) +
   theme(panel.grid = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank())
-ggplot(mds_table_final,aes(x=PCo1, y=PCo2, color=as.character(coverage))) +
+p3 <- mds_table_final %>%
+  mutate(method="ANGSD (-doIBS 2)") %>%
+  ggplot(aes(x=PCo1, y=PCo2, color=as.character(coverage))) +
   geom_point() +
-  facet_grid(.~sample_size, scales="free") +
+  facet_grid(method~sample_size, scales="free") +
+  scale_color_viridis_d(name = "coverage", option = "D", begin = 0.75, end = 0.1) +
   theme_bw() +
   theme(panel.grid = element_blank(),
         axis.text = element_blank(),
-        axis.ticks = element_blank())
+        axis.ticks = element_blank(),
+        legend.position = "none")
+p3
+```
+
+### Assemble plots for batch effect paper
+
+```{r, fig.width=10, fig.height=6}
+cowplot::plot_grid(p1, p2, p3, ncol = 1, rel_heights = c(1.3, 1, 1))
 ```
