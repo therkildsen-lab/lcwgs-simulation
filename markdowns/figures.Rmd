@@ -40,7 +40,7 @@ joined_frequency_final_pooled_uneven <- read_tsv("../neutral_sim_uneven_input/re
 ```{r eval=F, warning=F, message=F}
 ## combine these
 joined_frequency_final_combined <- bind_rows(joined_frequency_final_even, joined_frequency_final_uneven, joined_frequency_final_pooled_uneven) %>%
-  filter(coverage < 4, sample_size > 5, sample_size < 160)
+  filter(coverage %in% c(0.25, 1, 4), sample_size %in% c(10, 40, 160))
 
 ## get summary stats (number of SNPs, RMSE, R-squared)
 joined_summary_table <- group_by(joined_frequency_final_combined, coverage, sample_size, design) %>%
@@ -61,8 +61,8 @@ error_plot_combined <- joined_frequency_final_combined %>%
   annotate("text", x = 4, y=1, label="SNP count", size=6) +
   facet_grid(coverage~sample_size) +
   scale_x_discrete(labels=seq(0.1, 0.9, 0.2))  +
-  scale_fill_viridis_d(labels=c("LC-WGS with even coverage", "LC-WGS with uneven coverage", "Pool-seq with uneven coverage"), begin = 0, end = 0.75, direction = -1) +
-  scale_color_viridis_d(labels=c("LC-WGS with even coverage", "LC-WGS with uneven coverage", "Pool-seq with uneven coverage"), begin = 0, end = 0.75, direction = -1) +
+  scale_fill_viridis_d(labels=c("lcWGS with even coverage", "lcWGS with uneven coverage", "Pool-seq with uneven coverage"), begin = 0, end = 0.75, direction = -1) +
+  scale_color_viridis_d(labels=c("lcWGS with even coverage", "lcWGS with uneven coverage", "Pool-seq with uneven coverage"), begin = 0, end = 0.75, direction = -1) +
   xlab("true frequency") +
   ylab("error") +
   ylim(c(0,1.02)) +
@@ -70,22 +70,25 @@ error_plot_combined <- joined_frequency_final_combined %>%
   theme(text = element_text(size=20),
         axis.text.x = element_text(angle=0),
         panel.border = element_rect(colour = "black", fill=NA, size=1),
-        legend.position="right")
+        legend.position = "top",
+        legend.title = element_text(size = 15, face = 'bold'),
+        legend.text = element_text(size = 15),
+        legend.key.size = unit(1, 'cm'))
 
 error_plot_combined_grob <- ggplotGrob(error_plot_combined)
 
-error_plot_combined_new <- gtable_add_cols(error_plot_combined_grob, unit(error_plot_combined_grob$widths[[12]], 'cm'), 13)  %>%
+error_plot_combined_new <- gtable_add_cols(error_plot_combined_grob, unit(error_plot_combined_grob$widths[[9]], 'cm'), 10)  %>%
   gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
                        textGrob("coverage", rot = -90, gp = gpar(col = gray(1)))),
-                  8, 14, 14, 14, name = paste(runif(2))) %>%
-  gtable_add_cols(unit(1/8, "line"), 13) %>%
-  gtable_add_rows(unit(error_plot_combined_grob$heights[[7]], 'cm'), 6) %>%
+                  10, 11, 14, 11, name = paste(runif(2))) %>%
+  gtable_add_cols(unit(1/8, "line"), 11) %>%
+  gtable_add_rows(unit(error_plot_combined_grob$heights[[9]], 'cm'), 8) %>%
   gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
                           textGrob("sample size", gp = gpar(col = gray(1)))),
-                     7, 5, 7, 11, name = paste(runif(2))) %>%
-  gtable_add_rows(unit(1/8, "line"), 7)
+                     9, 5, 9, 9, name = paste(runif(2))) %>%
+  gtable_add_rows(unit(1/8, "line"), 9)
 
-ggsave("../figures/error_plot_combined.png", error_plot_combined_new, width = 45, height = 27, units = "cm", pointsize = 20)
+ggsave("../figures/error_plot_combined.png", error_plot_combined_new, width = 12, height = 9, units = "in", pointsize = 20)
 ```
 
 ```{r eval=T, warning=F, message=F}
@@ -117,8 +120,8 @@ error_plot_combined <- joined_frequency_final_combined %>%
   annotate("text", x = 4.1, y = 1, label="SNP count", size=4.8) +
   facet_grid(coverage~sample_size) +
   scale_x_discrete(labels=seq(0.1, 0.9, 0.2))  +
-  scale_fill_viridis_d(labels=c("LC-WGS with even coverage", "LC-WGS with uneven coverage", "Pool-seq with uneven coverage"), begin = 0, end = 0.75, direction = -1) +
-  scale_color_viridis_d(labels=c("LC-WGS with even coverage", "LC-WGS with uneven coverage", "Pool-seq with uneven coverage"), begin = 0, end = 0.75, direction = -1) +
+  scale_fill_viridis_d(labels=c("lcWGS with even coverage", "lcWGS with uneven coverage", "Pool-seq with uneven coverage"), begin = 0, end = 0.75, direction = -1) +
+  scale_color_viridis_d(labels=c("lcWGS with even coverage", "lcWGS with uneven coverage", "Pool-seq with uneven coverage"), begin = 0, end = 0.75, direction = -1) +
   xlab("true frequency of derived allele") +
   ylab("absolute error") +
   ylim(c(0,1.05)) +
@@ -244,8 +247,8 @@ frequency_plot_combined <- joined_frequency_final_combined %>%
   facet_grid(coverage~sample_size) +
   scale_x_continuous(breaks = (0:5)/5) +
   scale_y_continuous(breaks = (0:5)/5) +
-  scale_color_viridis_d(labels=c("LC-WGS with even coverage", "LC-WGS with uneven coverage"), begin = 0.75, end = 0) +
-  scale_fill_viridis_d(labels=c("LC-WGS with even coverage", "LC-WGS with uneven coverage"), begin = 0.75, end = 0) +
+  scale_color_viridis_d(labels=c("lcWGS with even coverage", "lcWGS with uneven coverage"), begin = 0.75, end = 0) +
+  scale_fill_viridis_d(labels=c("lcWGS with even coverage", "lcWGS with uneven coverage"), begin = 0.75, end = 0) +
   xlab("true frequency of derived allele") +
   ylab("estimated frequency") +
   theme_cowplot() +
@@ -308,7 +311,7 @@ ggsave("../figures/spatial_pop_lower_m_genotype_pca.png", pca_plot, width = 5, h
 include_graphics("../figures/spatial_pop_lower_m_genotype_pca.png")
 ```
 
-###### PCA with LC-WGS
+###### PCA with lcWGS
 
 ```{r eval=F, warning=F, message=F}
 i=1
@@ -657,7 +660,7 @@ include_graphics("../figures/true_fst_plot.png")
 ```
 
   
-#### Read in files for LC-WGS
+#### Read in files for lcWGS
 
 ```{r eval=F}
 fst_n_ind_final <- get_estimated_fst("../two_pop_sim_fixed_m2_pos/rep_1/")
@@ -720,11 +723,11 @@ include_graphics("../figures/two_pop_sim_fixed_m2_pos_windowed_fst.png")
 
 ```{R eval=F}
 fst_plot_radseq <- maf_final %>%
-  filter(sample_size > 5, sample_size < 160, n_rad_tag < 1000) %>%
+  filter(sample_size %in% c(10, 40, 160), n_rad_tag %in% c(240, 960, 3840)) %>%
   mutate(n_rad_tag = n_rad_tag/30) %>%
   ggplot(aes(x=position/10^6, y=fst)) +
   geom_point(alpha=0.8, size=1) +
-  geom_point(data=mutations_final_m2, aes(x=position/10^6, y=0.75), color="red", size=2, shape=16) +
+  geom_point(data=mutations_final_m2, aes(x=position/10^6, y=0.76), color="red", size=2, shape=8) +
   facet_grid(n_rad_tag~sample_size) +
   labs(x = "position (in Mbp)", y = expression(F[ST])) + 
   ylim(NA, 0.77) +
@@ -733,17 +736,17 @@ fst_plot_radseq <- maf_final %>%
         panel.border = element_rect(colour = "black", fill=NA, size=1))
 fst_plot_grob <- ggplotGrob(fst_plot_radseq)
 
-fst_plot_new <- gtable_add_cols(fst_plot_grob, unit(fst_plot_grob$widths[[12]], 'cm'), 13)  %>%
+fst_plot_new <- gtable_add_cols(fst_plot_grob, unit(fst_plot_grob$widths[[7]], 'cm'), 10)  %>%
   gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
                        textGrob("number of RAD tags per Mbp", rot = -90, gp = gpar(col = gray(1)))),
-                  8, 14, 14, 14, name = paste(runif(2))) %>%
-  gtable_add_cols(unit(1/8, "line"), 13) %>%
+                  8, 11, 12, 11, name = paste(runif(2))) %>%
+  gtable_add_cols(unit(1/8, "line"), 11) %>%
   gtable_add_rows(unit(fst_plot_grob$heights[[7]], 'cm'), 6) %>%
   gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
                           textGrob("sample size", gp = gpar(col = gray(1)))),
-                     7, 5, 7, 11, name = paste(runif(2))) %>%
+                     7, 5, 7, 9, name = paste(runif(2))) %>%
   gtable_add_rows(unit(1/8, "line"), 7)
-ggsave("../figures/two_pop_sim_fixed_m2_pos_rad_seq_windowed_fst.png", fst_plot_new, width = 15, height = 7, units = "in", pointsize = 20)
+ggsave("../figures/two_pop_sim_fixed_m2_pos_rad_seq_windowed_fst.png", fst_plot_new, width = 12, height = 6, units = "in", pointsize = 20)
 
 fst_plot_radseq_single_row <-  maf_final %>%
   filter(sample_size > 5, sample_size < 160, n_rad_tag == 960) %>%
