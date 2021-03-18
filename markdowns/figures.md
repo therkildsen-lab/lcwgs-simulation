@@ -29,6 +29,9 @@ joined_frequency_final_even <- read_tsv("../neutral_sim/rep_1/angsd/joined_frequ
 joined_frequency_final_uneven <- read_tsv("../neutral_sim_uneven_input/rep_1/angsd/joined_frequency_final.tsv") %>%
   mutate(frequency_bin = cut(frequency, breaks = 0:5/5, include.lowest = T), error=estimated_frequency-frequency) %>%
   transmute(frequency=frequency, frequency_bin = frequency_bin, estimated_frequency=estimated_frequency, error=estimated_frequency-frequency, coverage=coverage, sample_size=sample_size, design="lcwgs_uneven")
+## pool-seq with even contribution
+joined_frequency_final_pooled_even <- read_tsv("../neutral_sim/rep_1/angsd/joined_frequency_final_poolseq.tsv") %>%
+  transmute(frequency=frequency, frequency_bin = cut(frequency, breaks = 0:5/5, include.lowest = T), estimated_frequency=maf, error=estimated_frequency-frequency, coverage=coverage, sample_size=sample_size, design="poolseq_even")
 ## pool-seq with uneven contribution
 joined_frequency_final_pooled_uneven <- read_tsv("../neutral_sim_uneven_input/rep_1/angsd/joined_frequency_final_poolseq.tsv") %>%
   transmute(frequency=frequency, frequency_bin = cut(frequency, breaks = 0:5/5, include.lowest = T), estimated_frequency=maf, error=estimated_frequency-frequency, coverage=coverage, sample_size=sample_size, design="poolseq_uneven")
@@ -96,11 +99,11 @@ include_graphics("../figures/error_plot_combined.png")
 
 ![](../figures/error_plot_combined.png)<!-- -->
 
-#### For the paper, in bins
+#### For the paper, Box 2
 
 ``` r
 ## combine these
-joined_frequency_final_combined <- bind_rows(joined_frequency_final_even, joined_frequency_final_uneven, joined_frequency_final_pooled_uneven) 
+joined_frequency_final_combined <- bind_rows(joined_frequency_final_even, joined_frequency_final_pooled_even) 
 
 ## get summary stats (number of SNPs, RMSE, R-squared)
 joined_summary_table <- group_by(joined_frequency_final_combined, coverage, sample_size, design) %>%
@@ -111,21 +114,18 @@ joined_summary_table <- group_by(joined_frequency_final_combined, coverage, samp
 joined_frequency_final_combined_test <- joined_frequency_final_combined[sample(1:nrow(joined_frequency_final_combined), 1000000),]
 ## make the plot
 error_plot_combined <- joined_frequency_final_combined %>%
-  ggplot(aes(x=frequency_bin, y=abs(error), color=design)) +
-  geom_boxplot(outlier.shape = NA, size = 0.8, notch = F, fatten = 1) +
-  geom_text(data = joined_summary_table, x = 1.7, aes(label=root_mean_error_squared, color = design, y = 1-as.numeric(as.factor(design))/8), fontface = "bold", size=4.8, show.legend = F) +
-  #geom_text(data = joined_summary_table, x = 2.8, aes(label=r_squared, color = design, y = 1-as.numeric(as.factor(design))/14), fontface = "bold", size=5, show.legend = F) +
-  geom_text(data = joined_summary_table, x = 4.1, aes(label=n, color = design, y = 1-as.numeric(as.factor(design))/8), fontface = "bold", size=4.8, show.legend = F) +
-  annotate("text", x = 1.7, y = 1, label="RMSE", size=4.8) +
-  #annotate("text", x = 2.8, y=1.01, label="R^2", parse=T, size=5) +
-  annotate("text", x = 4.1, y = 1, label="SNP count", size=4.8) +
+  ggplot(aes(y=abs(error), fill=design)) +
+  geom_boxplot(outlier.shape = NA, size = 0.8, notch = F, fatten = 1, width=0.5) +
+  geom_text(data = joined_summary_table, y = 0.85, aes(label=root_mean_error_squared, color = design, x = -0.375+as.numeric(as.factor(design))/4), fontface = "bold", size=4.8, show.legend = F) +
+  annotate("text", x = 0.375, y = 0.85, label="RMSE", size=4.8) +
   facet_grid(coverage~sample_size) +
   scale_x_discrete(labels=seq(0.1, 0.9, 0.2))  +
-  scale_fill_viridis_d(labels=c("lcWGS with even coverage", "lcWGS with uneven coverage", "Pool-seq with uneven coverage"), begin = 0, end = 0.75, direction = -1) +
-  scale_color_viridis_d(labels=c("lcWGS with even coverage", "lcWGS with uneven coverage", "Pool-seq with uneven coverage"), begin = 0, end = 0.75, direction = -1) +
-  xlab("true frequency of derived allele") +
+  scale_fill_viridis_d(labels=c("lcWGS", "Pool-seq"), begin = 0.25, end = 0.75, direction = -1) +
+  scale_color_viridis_d(labels=c("lcWGS", "Pool-seq"), begin = 0.25, end = 0.75, direction = -1) +
+  xlab("") +
   ylab("absolute error") +
-  ylim(c(0,1.05)) +
+  ylim(c(0,1)) +
+  coord_flip() +
   theme_cowplot() +
   theme(strip.text = element_text(size=20),
         axis.text.x = element_text(angle=0),
@@ -134,7 +134,7 @@ error_plot_combined <- joined_frequency_final_combined %>%
         legend.title = element_text(size = 20),
         legend.text = element_text(size = 15),
         legend.key.size = unit(1, 'cm')) + 
-  guides(color = guide_legend(override.aes = list(size=2)))
+  guides(color = guide_legend(override.aes = list(size=1)))
 
 error_plot_combined_grob <- ggplotGrob(error_plot_combined)
 
@@ -149,18 +149,73 @@ error_plot_combined_new <- gtable_add_cols(error_plot_combined_grob, unit(error_
                      9, 5, 9, 15, name = paste(runif(2))) %>%
   gtable_add_rows(unit(1/8, "line"), 9)
 
-ggsave("../figures/error_plot_combined_for_paper.png", error_plot_combined_new, width = 42, height = 35, units = "cm", pointsize = 20)
+ggsave("../figures/error_plot_combined_for_box_2.png", error_plot_combined_new, width = 42, height = 25, units = "cm", pointsize = 20)
 ```
 
 ``` r
-include_graphics("../figures/error_plot_combined_for_paper.png")
+include_graphics("../figures/error_plot_combined_for_box_2.png")
 ```
 
-![](../figures/error_plot_combined_for_paper.png)<!-- -->
+![](../figures/error_plot_combined_for_box_2.png)<!-- -->
 
-I also tried to fit a smooth curve to the error plot, but it didn’t work
-very well. It can be found here:
-<https://github.com/therkildsen-lab/lcwgs-simulation/blob/fbe1aa8d9d95342f5aed8c36b3b371e1908a35f4/figures/error_plot_combined_smooth_curve_for_paper.png>
+#### For the paper, supplement
+
+``` r
+## combine these
+joined_frequency_final_combined <- bind_rows(joined_frequency_final_uneven, joined_frequency_final_pooled_uneven) 
+
+## get summary stats (number of SNPs, RMSE, R-squared)
+joined_summary_table <- group_by(joined_frequency_final_combined, coverage, sample_size, design) %>%
+  summarise(r_squared=round(summary(lm(estimated_frequency~frequency))$r.squared,3), 
+            n=n(), 
+            root_mean_error_squared=round(sqrt(mean(error^2)), 3))
+  
+joined_frequency_final_combined_test <- joined_frequency_final_combined[sample(1:nrow(joined_frequency_final_combined), 1000000),]
+## make the plot
+error_plot_combined <- joined_frequency_final_combined %>%
+  ggplot(aes(y=abs(error), fill=design)) +
+  geom_boxplot(outlier.shape = NA, size = 0.8, notch = F, fatten = 1, width=0.5) +
+  geom_text(data = joined_summary_table, y = 0.85, aes(label=root_mean_error_squared, color = design, x = -0.375+as.numeric(as.factor(design))/4), fontface = "bold", size=4.8, show.legend = F) +
+  annotate("text", x = 0.375, y = 0.85, label="RMSE", size=4.8) +
+  facet_grid(coverage~sample_size) +
+  scale_x_discrete(labels=seq(0.1, 0.9, 0.2))  +
+  scale_fill_viridis_d(labels=c("lcWGS with uneven coverage", "Pool-seq with uneven coverage"), begin = 0.25, end = 0.75, direction = -1) +
+  scale_color_viridis_d(labels=c("lcWGS with uneven coverage", "Pool-seq with uneven coverage"), begin = 0.25, end = 0.75, direction = -1) +
+  xlab("") +
+  ylab("absolute error") +
+  ylim(c(0,1)) +
+  coord_flip() +
+  theme_cowplot() +
+  theme(strip.text = element_text(size=20),
+        axis.text.x = element_text(angle=0),
+        panel.border = element_rect(colour = "black", fill=NA, size=1),
+        legend.position = "top",
+        legend.title = element_text(size = 20),
+        legend.text = element_text(size = 15),
+        legend.key.size = unit(1, 'cm')) + 
+  guides(color = guide_legend(override.aes = list(size=1)))
+
+error_plot_combined_grob <- ggplotGrob(error_plot_combined)
+
+error_plot_combined_new <- gtable_add_cols(error_plot_combined_grob, unit(error_plot_combined_grob$widths[[16]], 'cm'), 16)  %>%
+  gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
+                       textGrob("coverage", rot = -90, gp = gpar(col = gray(1)))),
+                  10, 17, 20, 17, name = paste(runif(2))) %>%
+  gtable_add_cols(unit(1/8, "line"), 16) %>%
+  gtable_add_rows(unit(error_plot_combined_grob$heights[[9]], 'cm'), 8) %>%
+  gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
+                          textGrob("sample size", gp = gpar(col = gray(1)))),
+                     9, 5, 9, 15, name = paste(runif(2))) %>%
+  gtable_add_rows(unit(1/8, "line"), 9)
+
+ggsave("../figures/error_plot_combined_for_supplement.png", error_plot_combined_new, width = 42, height = 25, units = "cm", pointsize = 20)
+```
+
+``` r
+include_graphics("../figures/error_plot_combined_for_supplement.png")
+```
+
+![](../figures/error_plot_combined_for_supplement.png)<!-- -->
 
 ## Estimated vs. true allele frequency
 
