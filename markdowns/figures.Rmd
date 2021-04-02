@@ -102,32 +102,46 @@ include_graphics("../figures/error_plot_combined.png")
 
 ```{r eval=F, warning=F, message=F, fig.width=30, fig.height=20}
 ## combine these
-joined_frequency_final_combined <- bind_rows(joined_frequency_final_even, joined_frequency_final_pooled_even) 
+joined_frequency_final_combined <- bind_rows(joined_frequency_final_even, joined_frequency_final_pooled_even) %>%
+  filter(coverage<4, sample_size>10)
+
+## get y position for labels
+y_position <- tibble(sample_size = c(20, 40, 80, 160),
+                     y = c(0.6, 0.42, 0.28, 0.18))
 
 ## get summary stats (number of SNPs, RMSE, R-squared)
 joined_summary_table <- group_by(joined_frequency_final_combined, coverage, sample_size, design) %>%
   summarise(r_squared=round(summary(lm(estimated_frequency~frequency))$r.squared,3), 
             n=n(), 
-            root_mean_error_squared=round(sqrt(mean(error^2)), 3))
+            root_mean_error_squared=round(sqrt(mean(error^2)), 3)) %>%
+  left_join(y_position)
   
-joined_frequency_final_combined_test <- joined_frequency_final_combined[sample(1:nrow(joined_frequency_final_combined), 1000000),]
+joined_frequency_final_summary <- joined_frequency_final_combined %>%
+  mutate(abs_error = abs(error)) %>%
+  group_by(coverage, sample_size, design) %>%
+  summarise(boxplot=list(setNames(boxplot.stats(abs_error)$stats,
+                                      c('lower_whisker','lower_hinge','median','upper_hinge','upper_whisker')))) %>%
+  unnest_wider(boxplot)
+  
 ## make the plot
-error_plot_combined <- joined_frequency_final_combined %>%
-  ggplot(aes(y=abs(error), fill=design)) +
-  geom_boxplot(outlier.shape = NA, size = 0.8, notch = F, fatten = 1, width=0.5) +
-  geom_text(data = joined_summary_table, y = 0.85, aes(label=root_mean_error_squared, color = design, x = -0.375+as.numeric(as.factor(design))/4), fontface = "bold", size=4.8, show.legend = F) +
-  annotate("text", x = 0.375, y = 0.85, label="RMSE", size=4.8) +
-  facet_grid(coverage~sample_size) +
-  scale_x_discrete(labels=seq(0.1, 0.9, 0.2))  +
-  scale_fill_viridis_d(labels=c("lcWGS", "Pool-seq"), begin = 0.25, end = 0.75, direction = -1) +
-  scale_color_viridis_d(labels=c("lcWGS", "Pool-seq"), begin = 0.25, end = 0.75, direction = -1) +
+error_plot_combined <- joined_frequency_final_summary %>%
+  ggplot() +
+  geom_boxplot(mapping = aes(lower=lower_hinge, upper=upper_hinge, middle=median, ymin=lower_whisker, ymax=upper_whisker, fill=design, x=0), 
+               size = 0.8, notch = F, fatten = 1, width=0.5, stat="identity") +
+  geom_text(data = joined_summary_table, aes(y=y, label=root_mean_error_squared, color = design, x = -0.375+as.numeric(as.factor(design))/4), fontface = "bold", size=6, show.legend = F) +
+  geom_text(data = joined_summary_table, aes(y=y), x = 0.375, size=6, label = "RMSE", show.legend = F) +
+  facet_grid(coverage~sample_size, scales = "free") +
+  scale_x_discrete()  +
+  scale_fill_viridis_d(labels=c("lcWGS", "Pool-seq"), begin = 0.4, end = 0.8, direction = -1) +
+  scale_color_viridis_d(labels=c("lcWGS", "Pool-seq"), begin = 0.4, end = 0.8, direction = -1) +
   xlab("") +
   ylab("absolute error") +
-  ylim(c(0,1)) +
+  scale_y_continuous(expand=expand_scale(c(0.05, 0.18), 0)) +
   coord_flip() +
   theme_cowplot() +
   theme(strip.text = element_text(size=20),
-        axis.text.x = element_text(angle=0),
+        axis.title = element_text(size=20),
+        axis.text  = element_text(size=18),
         panel.border = element_rect(colour = "black", fill=NA, size=1),
         legend.position = "top",
         legend.title = element_text(size = 20),
@@ -137,18 +151,19 @@ error_plot_combined <- joined_frequency_final_combined %>%
 
 error_plot_combined_grob <- ggplotGrob(error_plot_combined)
 
-error_plot_combined_new <- gtable_add_cols(error_plot_combined_grob, unit(error_plot_combined_grob$widths[[16]], 'cm'), 16)  %>%
+error_plot_combined_new <- gtable_add_cols(error_plot_combined_grob, unit(error_plot_combined_grob$widths[[11]], 'cm'), 13)  %>%
   gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
                        textGrob("coverage", rot = -90, gp = gpar(col = gray(1)))),
-                  10, 17, 20, 17, name = paste(runif(2))) %>%
-  gtable_add_cols(unit(1/8, "line"), 16) %>%
+                  10, 14, 16, 14, name = paste(runif(2))) %>%
+  gtable_add_cols(unit(1/8, "line"), 13) %>%
   gtable_add_rows(unit(error_plot_combined_grob$heights[[9]], 'cm'), 8) %>%
   gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
                           textGrob("sample size", gp = gpar(col = gray(1)))),
-                     9, 5, 9, 15, name = paste(runif(2))) %>%
+                     9, 5, 9, 11, name = paste(runif(2))) %>%
   gtable_add_rows(unit(1/8, "line"), 9)
 
 ggsave("../figures/error_plot_combined_for_box_2.png", error_plot_combined_new, width = 42, height = 25, units = "cm", pointsize = 20)
+ggsave("../figures/error_plot_combined_for_box_2.pdf", error_plot_combined_new, width = 42, height = 25, units = "cm", pointsize = 20)
 ```
 
 ```{r eval=T, warning=F, message=F}
@@ -159,32 +174,46 @@ include_graphics("../figures/error_plot_combined_for_box_2.png")
 
 ```{r eval=F, warning=F, message=F, fig.width=30, fig.height=20}
 ## combine these
-joined_frequency_final_combined <- bind_rows(joined_frequency_final_uneven, joined_frequency_final_pooled_uneven) 
+joined_frequency_final_combined <- bind_rows(joined_frequency_final_uneven, joined_frequency_final_pooled_uneven) %>%
+  filter(coverage<4, sample_size>10)
+
+## get y position for labels
+y_position <- tibble(sample_size = c(20, 40, 80, 160),
+                     y = c(0.6, 0.42, 0.28, 0.18))
 
 ## get summary stats (number of SNPs, RMSE, R-squared)
 joined_summary_table <- group_by(joined_frequency_final_combined, coverage, sample_size, design) %>%
   summarise(r_squared=round(summary(lm(estimated_frequency~frequency))$r.squared,3), 
             n=n(), 
-            root_mean_error_squared=round(sqrt(mean(error^2)), 3))
+            root_mean_error_squared=round(sqrt(mean(error^2)), 3)) %>%
+  left_join(y_position)
   
-joined_frequency_final_combined_test <- joined_frequency_final_combined[sample(1:nrow(joined_frequency_final_combined), 1000000),]
+joined_frequency_final_summary <- joined_frequency_final_combined %>%
+  mutate(abs_error = abs(error)) %>%
+  group_by(coverage, sample_size, design) %>%
+  summarise(boxplot=list(setNames(boxplot.stats(abs_error)$stats,
+                                      c('lower_whisker','lower_hinge','median','upper_hinge','upper_whisker')))) %>%
+  unnest_wider(boxplot)
+  
 ## make the plot
-error_plot_combined <- joined_frequency_final_combined %>%
-  ggplot(aes(y=abs(error), fill=design)) +
-  geom_boxplot(outlier.shape = NA, size = 0.8, notch = F, fatten = 1, width=0.5) +
-  geom_text(data = joined_summary_table, y = 0.85, aes(label=root_mean_error_squared, color = design, x = -0.375+as.numeric(as.factor(design))/4), fontface = "bold", size=4.8, show.legend = F) +
-  annotate("text", x = 0.375, y = 0.85, label="RMSE", size=4.8) +
-  facet_grid(coverage~sample_size) +
-  scale_x_discrete(labels=seq(0.1, 0.9, 0.2))  +
-  scale_fill_viridis_d(labels=c("lcWGS with uneven coverage", "Pool-seq with uneven coverage"), begin = 0.25, end = 0.75, direction = -1) +
-  scale_color_viridis_d(labels=c("lcWGS with uneven coverage", "Pool-seq with uneven coverage"), begin = 0.25, end = 0.75, direction = -1) +
+error_plot_combined <- joined_frequency_final_summary %>%
+  ggplot() +
+  geom_boxplot(mapping = aes(lower=lower_hinge, upper=upper_hinge, middle=median, ymin=lower_whisker, ymax=upper_whisker, fill=design, x=0), 
+               size = 0.8, notch = F, fatten = 1, width=0.5, stat="identity") +
+  geom_text(data = joined_summary_table, aes(y=y, label=root_mean_error_squared, color = design, x = -0.375+as.numeric(as.factor(design))/4), fontface = "bold", size=6, show.legend = F) +
+  geom_text(data = joined_summary_table, aes(y=y), x = 0.375, size=6, label = "RMSE", show.legend = F) +
+  facet_grid(coverage~sample_size, scales = "free") +
+  scale_x_discrete()  +
+  scale_fill_viridis_d(labels=c("lcWGS with uneven coverage", "Pool-seq with uneven coverage"), begin = 0.4, end = 0.8, direction = -1) +
+  scale_color_viridis_d(labels=c("lcWGS with uneven coverage", "Pool-seq with uneven coverage"), begin = 0.4, end = 0.8, direction = -1) +
   xlab("") +
   ylab("absolute error") +
-  ylim(c(0,1)) +
+  scale_y_continuous(expand=expand_scale(c(0.05, 0.18), 0)) +
   coord_flip() +
   theme_cowplot() +
   theme(strip.text = element_text(size=20),
-        axis.text.x = element_text(angle=0),
+        axis.title = element_text(size=20),
+        axis.text  = element_text(size=18),
         panel.border = element_rect(colour = "black", fill=NA, size=1),
         legend.position = "top",
         legend.title = element_text(size = 20),
@@ -194,15 +223,15 @@ error_plot_combined <- joined_frequency_final_combined %>%
 
 error_plot_combined_grob <- ggplotGrob(error_plot_combined)
 
-error_plot_combined_new <- gtable_add_cols(error_plot_combined_grob, unit(error_plot_combined_grob$widths[[16]], 'cm'), 16)  %>%
+error_plot_combined_new <- gtable_add_cols(error_plot_combined_grob, unit(error_plot_combined_grob$widths[[11]], 'cm'), 13)  %>%
   gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
                        textGrob("coverage", rot = -90, gp = gpar(col = gray(1)))),
-                  10, 17, 20, 17, name = paste(runif(2))) %>%
-  gtable_add_cols(unit(1/8, "line"), 16) %>%
+                  10, 14, 16, 14, name = paste(runif(2))) %>%
+  gtable_add_cols(unit(1/8, "line"), 13) %>%
   gtable_add_rows(unit(error_plot_combined_grob$heights[[9]], 'cm'), 8) %>%
   gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
                           textGrob("sample size", gp = gpar(col = gray(1)))),
-                     9, 5, 9, 15, name = paste(runif(2))) %>%
+                     9, 5, 9, 11, name = paste(runif(2))) %>%
   gtable_add_rows(unit(1/8, "line"), 9)
 
 ggsave("../figures/error_plot_combined_for_supplement.png", error_plot_combined_new, width = 42, height = 25, units = "cm", pointsize = 20)
