@@ -273,6 +273,7 @@ frequency_plot_combined_new <- gtable_add_cols(frequency_plot_combined_grob, uni
   gtable_add_rows(unit(1/8, "line"), 9)
 
 ggsave("../figures/frequency_plot_even_coverage_for_paper.png", frequency_plot_combined_new, width = 42, height = 40, units = "cm", pointsize = 20)
+ggsave("../figures/frequency_plot_even_coverage_for_paper.pdf", frequency_plot_combined_new, width = 42, height = 40, units = "cm", pointsize = 20)
 ```
 
 ``` r
@@ -368,6 +369,7 @@ pca_plot <- eigen_vec %>%
         axis.line = element_blank(),
         axis.title = element_blank())
 ggsave("../figures/spatial_pop_lower_m_genotype_pca.png", pca_plot, width = 5, height = 3, units = "cm")
+ggsave("../figures/spatial_pop_lower_m_genotype_pca.pdf", pca_plot, width = 5, height = 3, units = "cm")
 ```
 
 ``` r
@@ -445,6 +447,7 @@ pca_plot_new <- gtable_add_cols(pca_plot_grob, unit(pca_plot_grob$widths[[14]], 
   gtable_add_rows(unit(1/8, "line"), 7)
 
 ggsave("../figures/spatial_pop_lower_m_cov_mat_pca.png", pca_plot_new, width = 28, height = 8, units = "cm", pointsize = 20)
+ggsave("../figures/spatial_pop_lower_m_cov_mat_pca.pdf", pca_plot_new, width = 28, height = 8, units = "cm", pointsize = 20)
 ```
 
 ``` r
@@ -475,6 +478,7 @@ pca_plot <- eigen_vec %>%
         axis.line = element_blank(),
         axis.title = element_blank())
 ggsave("../figures/spatial_pop_genotype_pca.png", pca_plot, width = 5, height = 3, units = "cm")
+ggsave("../figures/spatial_pop_genotype_pca.pdf", pca_plot, width = 5, height = 3, units = "cm")
 ```
 
 ``` r
@@ -553,6 +557,7 @@ pca_plot_new <- gtable_add_cols(pca_plot_grob, unit(pca_plot_grob$widths[[14]], 
   gtable_add_rows(unit(1/8, "line"), 7)
 
 ggsave("../figures/spatial_pop_cov_mat_pca.png", pca_plot_new, width = 28, height = 18.5, units = "cm", pointsize = 20)
+ggsave("../figures/spatial_pop_cov_mat_pca.pdf", pca_plot_new, width = 28, height = 18.5, units = "cm", pointsize = 20)
 ```
 
 ``` r
@@ -727,6 +732,7 @@ true_fst_plot <- ggplot(mutations_final_m1, aes(x=position/10^6, y=fst)) +
   theme(text = element_text(size=20),
         panel.border = element_rect(colour = "black", fill=NA, size=1))
 ggsave("../figures/true_fst_plot.png", true_fst_plot, width = 42, height = 5, units = "cm", pointsize = 20)
+ggsave("../figures/true_fst_plot.pdf", true_fst_plot, width = 42, height = 5, units = "cm", pointsize = 20)
 ```
 
 ``` r
@@ -885,6 +891,7 @@ fst_plot_new <- gtable_add_cols(fst_plot_grob, unit(fst_plot_grob$widths[[16]], 
   gtable_add_rows(unit(1/8, "line"), 7)
 
 ggsave("../figures/two_pop_sim_fixed_m2_pos_windowed_fst_for_paper.png", fst_plot_new, width = 42, height = 21, units = "cm", pointsize = 20)
+ggsave("../figures/two_pop_sim_fixed_m2_pos_windowed_fst_for_paper.pdf", fst_plot_new, width = 42, height = 21, units = "cm", pointsize = 20)
 ```
 
 ``` r
@@ -918,6 +925,7 @@ fst_plot_new <- gtable_add_cols(fst_plot_grob, unit(fst_plot_grob$widths[[16]], 
                      7, 5, 7, 16, name = paste(runif(2))) %>%
   gtable_add_rows(unit(1/8, "line"), 7)
 ggsave("../figures/two_pop_sim_fixed_m2_pos_rad_seq_fst_for_paper.png", fst_plot_new, width = 42, height = 21, units = "cm", pointsize = 20)
+ggsave("../figures/two_pop_sim_fixed_m2_pos_rad_seq_fst_for_paper.pdf", fst_plot_new, width = 42, height = 21, units = "cm", pointsize = 20)
 ```
 
 ``` r
