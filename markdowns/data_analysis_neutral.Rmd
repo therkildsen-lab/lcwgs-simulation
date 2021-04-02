@@ -505,15 +505,18 @@ ld_for_plotting <- estimated_decay_rate_final %>%
          estimated_ld_l = get_ld(decay_rate_l*position, sample_size),
          estimated_ld_u = get_ld(decay_rate_u*position, sample_size),
          true_ld = get_ld(4*1000*250e-8*position, sample_size))
+estimated_ne <- estimated_decay_rate_final %>%
+  mutate(ne = decay_rate / 4 / 2.5e-8)
 ld_for_plotting %>%
   ggplot(aes(x=position/1000)) +
   geom_line(aes(y=true_ld), color = "red", size=1.5, alpha=0.8) +
   geom_line(aes(y=estimated_ld), color = "blue", ) +
   geom_line(aes(y=estimated_ld_l), color = "blue", linetype="dashed") +
   geom_line(aes(y=estimated_ld_u), color = "blue", linetype="dashed") +
+  geom_text(data = estimated_ne, aes(label=str_c("Ne =", format(round(ne), big.mark = ","))), x = 4, y = 0.5) +
   facet_grid(coverage ~ sample_size) +
   cowplot::theme_cowplot() +
-  labs(x = "position (in kb)", y = "r-squared") +
+  labs(x = "physical distance (in kb)", y = "r-squared") +
   theme(strip.text = element_text(size=20),
         axis.text.x = element_text(angle=0),
         panel.border = element_rect(colour = "black", fill=NA, size=1)) 
@@ -524,11 +527,12 @@ ld_for_plotting %>%
 ```{r eval=FALSE}
 i=1
 for (sample_size in c(5, 10, 20, 40, 80, 160)) {
+  print(sample_size)
   for (coverage in c(0.25, 0.5, 1, 2, 4, 8)) {
     estimated_ld <- read_tsv(str_c("../neutral_sim/rep_1/angsd/bam_list_", sample_size, "_", coverage, "x.ld"), col_names =FALSE) %>%
       transmute(position=X5, ld=X9) %>%
       group_by(position) %>%
-      summarise(mean_ld=mean(ld), ld_l=quantile(ld, 0.025), ld_u=quantile(ld, 0.975)) %>%
+      summarise(mean_ld=mean(ld), ld_l=quantile(ld, 0.25), ld_u=quantile(ld, 0.75)) %>%
       mutate(sample_size = sample_size, coverage = coverage)
     if(i==1){
       estimated_ld_final <- estimated_ld
@@ -548,14 +552,13 @@ estimated_ld %>%
   mutate(c = 4*1000*250e-8*position,
          expected_ld = ((10+c) / ((2+c)*(11+c)))*(1+((3+c)*(12+12*c+c^2))/(sample_size*(2+c)*(11+c)))
          ) %>%
-  ggplot(aes(x = position)) +
-  geom_line(aes(y = expected_ld), color = "red", size = 1) +
-  #geom_line(aes(y = ld_u), size=1, color="gray") +
-  #geom_line(aes(y = ld_l), size=1, color="gray") +
-  geom_line(aes(y = mean_ld), size=1, color="blue", alpha=0.5) +
+  ggplot(aes(x = position/1000)) +
+  geom_ribbon(aes(ymax = ld_u, ymin=ld_l), fill="blue", alpha=0.1) +
+  geom_line(aes(y = expected_ld), color = "red", size = 1.5) +
+  geom_line(aes(y = mean_ld), size=0.8, color="blue", alpha=0.8) +
   facet_grid(coverage ~ sample_size) +
   cowplot::theme_cowplot() +
-  labs(x = "position (in kb)", y = "r-squared") +
+  labs(x = "physical distance (in kb)", y = "r-squared") +
   theme(strip.text = element_text(size=20),
         axis.text.x = element_text(angle=0),
         panel.border = element_rect(colour = "black", fill=NA, size=1)) 
