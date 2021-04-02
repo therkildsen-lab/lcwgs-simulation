@@ -391,6 +391,42 @@ filter(thetas_final, summary_stats =="tajima_d") %>%
 
 I will annonate each figure with the chromosome average statistics later on.
 
+## Compare GATK model with SamTools model
+
+```{r, fig.height=8, fig.width=15}
+samtools_thetas <- read_tsv("../neutral_sim/rep_1/angsd/thetas.tsv")
+thetas_combined <- mutate(thetas_final, model="GATK") %>%
+  bind_rows(mutate(samtools_thetas, model="Samtools"))
+thetas_combined %>%
+  filter(summary_stats != "tajima_d") %>%
+  ggplot(aes(x=summary_stats, y=value, fill=model)) +
+  geom_hline(yintercept=0.004, color = "red", size = 1, linetype=1) +
+  geom_boxplot(outlier.alpha = 0, width=0.6) +
+  scale_fill_viridis_d(begin = 0.5) +
+  facet_grid(coverage ~ sample_size) +
+  scale_y_continuous(breaks=(1:3)/500, limits = c(0.0016, 0.0062)) +
+  ylab("estimated value in 10kb windows") +
+  coord_flip() +
+  theme_cowplot() +
+  theme(strip.text = element_text(size=20),
+        axis.text.x = element_text(angle=0),
+        panel.border = element_rect(colour = "black", fill=NA, size=1)) 
+
+thetas_combined %>%
+  filter(summary_stats == "tajima_d") %>%
+  ggplot(aes(x=summary_stats, y=value, fill=model)) +
+  geom_hline(yintercept=0, color = "red", size = 1, linetype=1) +
+  geom_boxplot(outlier.alpha = 0, width=0.6) +
+  scale_fill_viridis_d(begin = 0.5) +  
+  ylab("estimated value in 10kb windows") +
+  facet_grid(coverage ~ sample_size) +
+  coord_flip() +
+  theme_cowplot() +
+  theme(strip.text = element_text(size=20),
+        axis.text.x = element_text(angle=0),
+        panel.border = element_rect(colour = "black", fill=NA, size=1)) 
+```
+
 # Compare individual barcoding with Pool-seq
 
 I assumed equal sequencing output from all individuals in this step. This is highly unlikely when no individual barcode is given, but it represents the best case scenario for Pool-seq.

@@ -40,6 +40,8 @@ Data analysis with neutral simulation
       - [Plot Watterson’s estimator and Tajima’s estimator of theta and
         Tajima’s D in 10,000bp fixed
         windows](#plot-wattersons-estimator-and-tajimas-estimator-of-theta-and-tajimas-d-in-10000bp-fixed-windows)
+      - [Compare GATK model with SamTools
+        model](#compare-gatk-model-with-samtools-model)
   - [Compare individual barcoding with
     Pool-seq](#compare-individual-barcoding-with-pool-seq)
       - [Get minor allele frequencies estimated from
@@ -513,6 +515,60 @@ filter(thetas_final, summary_stats =="tajima_d") %>%
 
 I will annonate each figure with the chromosome average statistics later
 on.
+
+## Compare GATK model with SamTools model
+
+``` r
+samtools_thetas <- read_tsv("../neutral_sim/rep_1/angsd/thetas.tsv")
+```
+
+    ## Parsed with column specification:
+    ## cols(
+    ##   position = col_double(),
+    ##   coverage = col_double(),
+    ##   sample_size = col_double(),
+    ##   summary_stats = col_character(),
+    ##   value = col_double()
+    ## )
+
+``` r
+thetas_combined <- mutate(thetas_final, model="GATK") %>%
+  bind_rows(mutate(samtools_thetas, model="Samtools"))
+thetas_combined %>%
+  filter(summary_stats != "tajima_d") %>%
+  ggplot(aes(x=summary_stats, y=value, fill=model)) +
+  geom_hline(yintercept=0.004, color = "red", size = 1, linetype=1) +
+  geom_boxplot(outlier.alpha = 0, width=0.6) +
+  scale_fill_viridis_d(begin = 0.5) +
+  facet_grid(coverage ~ sample_size) +
+  ylim(c(0.002, 0.006)) +
+  coord_flip() +
+  theme_cowplot() +
+  theme(strip.text = element_text(size=20),
+        axis.text.x = element_text(angle=0),
+        panel.border = element_rect(colour = "black", fill=NA, size=1)) 
+```
+
+    ## Warning: Removed 11073 rows containing non-finite values (stat_boxplot).
+
+![](data_analysis_neutral_gatk_files/figure-gfm/unnamed-chunk-25-1.png)<!-- -->
+
+``` r
+thetas_combined %>%
+  filter(summary_stats == "tajima_d") %>%
+  ggplot(aes(x=summary_stats, y=value, fill=model)) +
+  geom_hline(yintercept=0, color = "red", size = 1, linetype=1) +
+  geom_boxplot(outlier.alpha = 0, width=0.6) +
+  scale_fill_viridis_d(begin = 0.5) +
+  facet_grid(coverage ~ sample_size) +
+  coord_flip() +
+  theme_cowplot() +
+  theme(strip.text = element_text(size=20),
+        axis.text.x = element_text(angle=0),
+        panel.border = element_rect(colour = "black", fill=NA, size=1)) 
+```
+
+![](data_analysis_neutral_gatk_files/figure-gfm/unnamed-chunk-25-2.png)<!-- -->
 
 # Compare individual barcoding with Pool-seq
 
