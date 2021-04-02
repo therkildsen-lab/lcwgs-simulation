@@ -541,7 +541,8 @@ thetas_combined %>%
   geom_boxplot(outlier.alpha = 0, width=0.6) +
   scale_fill_viridis_d(begin = 0.5) +
   facet_grid(coverage ~ sample_size) +
-  ylim(c(0.002, 0.006)) +
+  scale_y_continuous(breaks=(1:3)/500, limits = c(0.0016, 0.0062)) +
+  ylab("estimated value in 10kb windows") +
   coord_flip() +
   theme_cowplot() +
   theme(strip.text = element_text(size=20),
@@ -549,7 +550,7 @@ thetas_combined %>%
         panel.border = element_rect(colour = "black", fill=NA, size=1)) 
 ```
 
-    ## Warning: Removed 11073 rows containing non-finite values (stat_boxplot).
+    ## Warning: Removed 1322 rows containing non-finite values (stat_boxplot).
 
 ![](data_analysis_neutral_gatk_files/figure-gfm/unnamed-chunk-25-1.png)<!-- -->
 
@@ -559,7 +560,8 @@ thetas_combined %>%
   ggplot(aes(x=summary_stats, y=value, fill=model)) +
   geom_hline(yintercept=0, color = "red", size = 1, linetype=1) +
   geom_boxplot(outlier.alpha = 0, width=0.6) +
-  scale_fill_viridis_d(begin = 0.5) +
+  scale_fill_viridis_d(begin = 0.5) +  
+  ylab("estimated value in 10kb windows") +
   facet_grid(coverage ~ sample_size) +
   coord_flip() +
   theme_cowplot() +
