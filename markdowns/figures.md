@@ -63,8 +63,8 @@ error_plot_combined <- joined_frequency_final_combined %>%
   annotate("text", x = 4, y=1, label="SNP count", size=6) +
   facet_grid(coverage~sample_size) +
   scale_x_discrete(labels=seq(0.1, 0.9, 0.2))  +
-  scale_fill_viridis_d(labels=c("lcWGS with even coverage", "lcWGS with uneven coverage", "Pool-seq with uneven coverage"), begin = 0, end = 0.75, direction = -1) +
-  scale_color_viridis_d(labels=c("lcWGS with even coverage", "lcWGS with uneven coverage", "Pool-seq with uneven coverage"), begin = 0, end = 0.75, direction = -1) +
+  scale_fill_manual(labels=c("lcWGS with even coverage", "lcWGS with uneven coverage", "Pool-seq with uneven coverage"), values = c("#941100", "#FFB900", "#005493")) +
+  scale_color_manual(labels=c("lcWGS with even coverage", "lcWGS with uneven coverage", "Pool-seq with uneven coverage"), values = c("#941100", "#FFB900", "#005493")) +
   xlab("true frequency") +
   ylab("error") +
   ylim(c(0,1.02)) +
@@ -104,7 +104,8 @@ include_graphics("../figures/error_plot_combined.png")
 ``` r
 ## combine these
 joined_frequency_final_combined <- bind_rows(joined_frequency_final_even, joined_frequency_final_pooled_even) %>%
-  filter(coverage<4, sample_size>10)
+  filter(coverage<4, sample_size>10) %>%
+  mutate(design=fct_relevel(design, "poolseq_even", "lcwgs_even"))
 
 ## get y position for labels
 y_position <- tibble(sample_size = c(20, 40, 80, 160),
@@ -133,8 +134,8 @@ error_plot_combined <- joined_frequency_final_summary %>%
   geom_text(data = joined_summary_table, aes(y=y), x = 0.375, size=6, label = "RMSE", show.legend = F) +
   facet_grid(coverage~sample_size, scales = "free") +
   scale_x_discrete()  +
-  scale_fill_viridis_d(labels=c("lcWGS", "Pool-seq"), begin = 0.4, end = 0.8, direction = -1) +
-  scale_color_viridis_d(labels=c("lcWGS", "Pool-seq"), begin = 0.4, end = 0.8, direction = -1) +
+  scale_fill_manual(labels=c("Pool-seq", "lcWGS"), values = c("#005493", "#FFB900"), guide = guide_legend(reverse = TRUE)) +
+  scale_color_manual(labels=c("Pool-seq", "lcWGS"), values = c("#005493", "#FFB900"), guide = guide_legend(reverse = TRUE)) +
   xlab("") +
   ylab("absolute error") +
   scale_y_continuous(expand=expand_scale(c(0.05, 0.18), 0)) +
@@ -154,7 +155,7 @@ error_plot_combined_grob <- ggplotGrob(error_plot_combined)
 
 error_plot_combined_new <- gtable_add_cols(error_plot_combined_grob, unit(error_plot_combined_grob$widths[[11]], 'cm'), 13)  %>%
   gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
-                       textGrob("coverage", rot = -90, gp = gpar(col = gray(1)))),
+                       textGrob("coverage per sample", rot = -90, gp = gpar(col = gray(1)))),
                   10, 14, 16, 14, name = paste(runif(2))) %>%
   gtable_add_cols(unit(1/8, "line"), 13) %>%
   gtable_add_rows(unit(error_plot_combined_grob$heights[[9]], 'cm'), 8) %>%
@@ -178,7 +179,8 @@ include_graphics("../figures/error_plot_combined_for_box_2.png")
 ``` r
 ## combine these
 joined_frequency_final_combined <- bind_rows(joined_frequency_final_uneven, joined_frequency_final_pooled_uneven) %>%
-  filter(coverage<4, sample_size>10)
+  filter(coverage<4, sample_size>10) %>%
+  mutate(design=fct_relevel(design, "poolseq_uneven", "lcwgs_uneven"))
 
 ## get y position for labels
 y_position <- tibble(sample_size = c(20, 40, 80, 160),
@@ -207,8 +209,8 @@ error_plot_combined <- joined_frequency_final_summary %>%
   geom_text(data = joined_summary_table, aes(y=y), x = 0.375, size=6, label = "RMSE", show.legend = F) +
   facet_grid(coverage~sample_size, scales = "free") +
   scale_x_discrete()  +
-  scale_fill_viridis_d(labels=c("lcWGS with uneven coverage", "Pool-seq with uneven coverage"), begin = 0.4, end = 0.8, direction = -1) +
-  scale_color_viridis_d(labels=c("lcWGS with uneven coverage", "Pool-seq with uneven coverage"), begin = 0.4, end = 0.8, direction = -1) +
+  scale_fill_manual(labels=c("Pool-seq with uneven coverage", "lcWGS with uneven coverage"), values = c("#005493", "#FFB900"), guide = guide_legend(reverse = TRUE)) +
+  scale_color_manual(labels=c("Pool-seq with uneven coverage", "lcWGS with uneven coverage"), values = c("#005493", "#FFB900"), guide = guide_legend(reverse = TRUE)) +
   xlab("") +
   ylab("absolute error") +
   scale_y_continuous(expand=expand_scale(c(0.05, 0.18), 0)) +
@@ -228,7 +230,7 @@ error_plot_combined_grob <- ggplotGrob(error_plot_combined)
 
 error_plot_combined_new <- gtable_add_cols(error_plot_combined_grob, unit(error_plot_combined_grob$widths[[11]], 'cm'), 13)  %>%
   gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
-                       textGrob("coverage", rot = -90, gp = gpar(col = gray(1)))),
+                       textGrob("coverage per sample", rot = -90, gp = gpar(col = gray(1)))),
                   10, 14, 16, 14, name = paste(runif(2))) %>%
   gtable_add_cols(unit(1/8, "line"), 13) %>%
   gtable_add_rows(unit(error_plot_combined_grob$heights[[9]], 'cm'), 8) %>%
@@ -292,7 +294,7 @@ frequency_plot_combined_grob <- ggplotGrob(frequency_plot_combined)
 
 frequency_plot_combined_new <- gtable_add_cols(frequency_plot_combined_grob, unit(frequency_plot_combined_grob$widths[[16]], 'cm'), 16)  %>%
   gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
-                       textGrob("coverage", rot = -90, gp = gpar(col = gray(1)))),
+                       textGrob("coverage per sample", rot = -90, gp = gpar(col = gray(1)))),
                   10, 17, 20, 17, name = paste(runif(2))) %>%
   gtable_add_cols(unit(1/8, "line"), 16) %>%
   gtable_add_rows(unit(frequency_plot_combined_grob$heights[[9]], 'cm'), 8) %>%
@@ -311,7 +313,7 @@ include_graphics("../figures/frequency_plot_even_coverage_for_paper.png")
 
 ![](../figures/frequency_plot_even_coverage_for_paper.png)<!-- -->
 
-#### LCWGS vs pool-seq, for the paper
+#### LCWGS vs pool-seq, testing
 
 ``` r
 ## combine these
@@ -471,7 +473,7 @@ pca_plot_new <- gtable_add_cols(pca_plot_grob, unit(pca_plot_grob$widths[[14]], 
   gtable_add_cols(unit(1/8, "line"), 15) %>%
   gtable_add_rows(unit(pca_plot_grob$heights[[7]], 'cm'), 6) %>%
   gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
-                          textGrob("sample size", gp = gpar(col = gray(1)))),
+                          textGrob("sample size per population", gp = gpar(col = gray(1)))),
                      7, 5, 7, 13, name = paste(runif(2))) %>%
   gtable_add_rows(unit(1/8, "line"), 7)
 
@@ -576,12 +578,12 @@ pca_plot_grob <- ggplotGrob(pca_plot)
 
 pca_plot_new <- gtable_add_cols(pca_plot_grob, unit(pca_plot_grob$widths[[14]], 'cm'), 15)  %>%
   gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
-                       textGrob("coverage", rot = -90, gp = gpar(col = gray(1)))),
+                       textGrob("coverage per sample", rot = -90, gp = gpar(col = gray(1)))),
                   8, 16, 18, 16, name = paste(runif(2))) %>%
   gtable_add_cols(unit(1/8, "line"), 15) %>%
   gtable_add_rows(unit(pca_plot_grob$heights[[7]], 'cm'), 6) %>%
   gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
-                          textGrob("sample size", gp = gpar(col = gray(1)))),
+                          textGrob("sample size per population", gp = gpar(col = gray(1)))),
                      7, 5, 7, 13, name = paste(runif(2))) %>%
   gtable_add_rows(unit(1/8, "line"), 7)
 
@@ -815,12 +817,12 @@ fst_plot_grob <- ggplotGrob(fst_plot)
 
 fst_plot_new <- gtable_add_cols(fst_plot_grob, unit(fst_plot_grob$widths[[12]], 'cm'), 13)  %>%
   gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
-                       textGrob("coverage", rot = -90, gp = gpar(col = gray(1)))),
+                       textGrob("coverage per sample", rot = -90, gp = gpar(col = gray(1)))),
                   8, 14, 14, 14, name = paste(runif(2))) %>%
   gtable_add_cols(unit(1/8, "line"), 13) %>%
   gtable_add_rows(unit(fst_plot_grob$heights[[7]], 'cm'), 6) %>%
   gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
-                          textGrob("sample size", gp = gpar(col = gray(1)))),
+                          textGrob("sample size per population", gp = gpar(col = gray(1)))),
                      7, 5, 7, 11, name = paste(runif(2))) %>%
   gtable_add_rows(unit(1/8, "line"), 7)
 
@@ -855,7 +857,7 @@ fst_plot_new <- gtable_add_cols(fst_plot_grob, unit(fst_plot_grob$widths[[7]], '
   gtable_add_cols(unit(1/8, "line"), 11) %>%
   gtable_add_rows(unit(fst_plot_grob$heights[[7]], 'cm'), 6) %>%
   gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
-                          textGrob("sample size", gp = gpar(col = gray(1)))),
+                          textGrob("sample size per population", gp = gpar(col = gray(1)))),
                      7, 5, 7, 9, name = paste(runif(2))) %>%
   gtable_add_rows(unit(1/8, "line"), 7)
 ggsave("../figures/two_pop_sim_fixed_m2_pos_rad_seq_windowed_fst.png", fst_plot_new, width = 12, height = 6, units = "in", pointsize = 20)
@@ -910,12 +912,12 @@ fst_plot_grob <- ggplotGrob(fst_plot)
 
 fst_plot_new <- gtable_add_cols(fst_plot_grob, unit(fst_plot_grob$widths[[16]], 'cm'), 16)  %>%
   gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
-                       textGrob("coverage", rot = -90, gp = gpar(col = gray(1)))),
+                       textGrob("coverage per sample", rot = -90, gp = gpar(col = gray(1)))),
                   8, 17, 18, 17, name = paste(runif(2))) %>%
   gtable_add_cols(unit(1/8, "line"), 13) %>%
   gtable_add_rows(unit(fst_plot_grob$heights[[7]], 'cm'), 6) %>%
   gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
-                          textGrob("sample size", gp = gpar(col = gray(1)))),
+                          textGrob("sample size per population", gp = gpar(col = gray(1)))),
                      7, 5, 7, 16, name = paste(runif(2))) %>%
   gtable_add_rows(unit(1/8, "line"), 7)
 
@@ -950,7 +952,7 @@ fst_plot_new <- gtable_add_cols(fst_plot_grob, unit(fst_plot_grob$widths[[16]], 
   gtable_add_cols(unit(1/8, "line"), 13) %>%
   gtable_add_rows(unit(fst_plot_grob$heights[[7]], 'cm'), 6) %>%
   gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
-                          textGrob("sample size", gp = gpar(col = gray(1)))),
+                          textGrob("sample size per population", gp = gpar(col = gray(1)))),
                      7, 5, 7, 16, name = paste(runif(2))) %>%
   gtable_add_rows(unit(1/8, "line"), 7)
 ggsave("../figures/two_pop_sim_fixed_m2_pos_rad_seq_fst_for_paper.png", fst_plot_new, width = 42, height = 21, units = "cm", pointsize = 20)
