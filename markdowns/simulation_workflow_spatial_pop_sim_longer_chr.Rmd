@@ -445,9 +445,10 @@ Note: there are more NAs in these covariance matrices compared to the covariance
 
 #### PC1 vs. PC2
 
-```{r pca_cov_mat, eval=T, warning=F, message=F, fig.height=6, fig.width=2.5}
+```{r pca_cov_mat, eval=T, warning=F, message=F, fig.height=12, fig.width=3}
 ggplot(pca_table_final,aes(x=PC1, y=PC2, color=population)) +
   geom_point() +
+  scale_color_viridis_d() +
   facet_grid(coverage~sample_size, scales="free") +
   theme_bw() +
   theme(panel.grid = element_blank(),

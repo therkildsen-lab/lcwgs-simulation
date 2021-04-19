@@ -63,7 +63,7 @@ for (coverage in c(0.125,0.25,0.5,1,2,4)){
                   newdata = pca_table[,1:(5+1)])
     prop.lda <- fit$svd^2/sum(fit$svd^2)
     dapc_table <- data.frame(group = pca_table[,1], lda = plda$x) %>%
-      transmute(population=population, LD1=rescale(lda.LD1,c(-1,1)), LD2=rescale(lda.LD2, c(-1,1)), coverage=coverage, sample_size=sample_size)
+      transmute(population=group, LD1=rescale(lda.LD1,c(-1,1)), LD2=rescale(lda.LD2, c(-1,1)), coverage=coverage, sample_size=sample_size)
     ## Bind PCA tables and DAPC tables for all sample size and coverage combinations
     if (i==1){
       pca_table_final <- pca_table
@@ -96,6 +96,7 @@ dapc_table_final_per_pop <- group_by(dapc_table_final, population, coverage, sam
 ```{r eval=T, warning=F, message=F, fig.height=12, fig.width=15}
 ggplot(pca_table_final,aes(x=PC1, y=PC2, color=population)) +
   geom_point() +
+  scale_color_viridis_d() +
   facet_grid(coverage~sample_size, scales="free") +
   theme_bw() +
   theme(panel.grid = element_blank(),
@@ -176,7 +177,7 @@ for (coverage in c(0.125,0.25,0.5,1,2,4)){
                   newdata = pca_table[,1:(5+1)])
     prop.lda <- fit$svd^2/sum(fit$svd^2)
     dapc_table <- data.frame(group = pca_table[,1], lda = plda$x) %>%
-      transmute(population=population, LD1=rescale(lda.LD1,c(-1,1)), LD2=rescale(lda.LD2, c(-1,1)), coverage=coverage, sample_size=sample_size)
+      transmute(population=group, LD1=rescale(lda.LD1,c(-1,1)), LD2=rescale(lda.LD2, c(-1,1)), coverage=coverage, sample_size=sample_size)
     ## Bind PCA tables and DAPC tables for all sample size and coverage combinations
     if (i==1){
       pca_table_final <- pca_table
@@ -292,7 +293,7 @@ for (coverage in c(0.125,0.25,0.5,1,2,4)){
                   newdata = mds_table[,1:(5+1)])
     prop.lda <- fit$svd^2/sum(fit$svd^2)
     dapc_table <- data.frame(group = mds_table[,1], lda = plda$x) %>%
-      transmute(population=population, LD1=rescale(lda.LD1,c(-1,1)), LD2=rescale(lda.LD2, c(-1,1)), coverage=coverage, sample_size=sample_size)
+      transmute(population=group, LD1=rescale(lda.LD1,c(-1,1)), LD2=rescale(lda.LD2, c(-1,1)), coverage=coverage, sample_size=sample_size)
     ## Bind PCoA tables and DAPC tables for all sample size and coverage combinations
     if (i==1){
       mds_table_final <- mds_table

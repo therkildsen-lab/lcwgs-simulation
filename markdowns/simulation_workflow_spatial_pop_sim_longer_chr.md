@@ -478,6 +478,7 @@ covariance matrices generated from PCAngsd.
 ``` r
 ggplot(pca_table_final,aes(x=PC1, y=PC2, color=population)) +
   geom_point() +
+  scale_color_viridis_d() +
   facet_grid(coverage~sample_size, scales="free") +
   theme_bw() +
   theme(panel.grid = element_blank(),
