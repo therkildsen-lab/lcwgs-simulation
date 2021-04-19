@@ -69,8 +69,8 @@ Data analysis with simulation of divergent selection on two populations
           - [Plot the estimated per-SNP Fst (with no minimum individual
             filter)](#plot-the-estimated-per-snp-fst-with-no-minimum-individual-filter-1)
           - [Compute and plot the estimated windowed Fst (with no
-            minimum individual filter and 1,000bp fixed
-            windows)](#compute-and-plot-the-estimated-windowed-fst-with-no-minimum-individual-filter-and-1000bp-fixed-windows-1)
+            minimum individual filter and 5,000bp fixed
+            windows)](#compute-and-plot-the-estimated-windowed-fst-with-no-minimum-individual-filter-and-5000bp-fixed-windows)
           - [Selection scan using
             PCAngsd](#selection-scan-using-pcangsd-1)
       - [Inference based on GATK’s GL
@@ -131,7 +131,7 @@ get_mutations <- function(x){
     filter(generation==max(generation)) %>%
     ungroup() %>%
     left_join(ancestral, by="position") %>%
-    select(-generation) %>%
+    dplyr::select(-generation) %>%
     filter(base!=ancestral) %>%
     gather(key=population, value=frequency, 4:5) %>%
     arrange(position)
@@ -303,7 +303,7 @@ get_sample_allele_count_per_pop <- function(x){
         i <- i+1
       }
       if (sample_id %in% c(5,10,20,40,80,160)){
-        write_tsv(bind_cols(select(sequence, -base), allele_count_final), paste0(x,"slim/p", p, "_", sample_id, "_base_count.tsv")) 
+        write_tsv(bind_cols(dplyr::select(sequence, -base), allele_count_final), paste0(x,"slim/p", p, "_", sample_id, "_base_count.tsv")) 
       }
     }
   }
@@ -504,39 +504,19 @@ filter(fst, lg=="LG03") %>%
 ggplot(aes(x=position, y=fst)) +
   geom_point(size=0.02, alpha=0.5) +
   theme_cowplot()
-```
-
-![](data_analysis_two_pop_fixed_m2_pos_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
-
-``` r
 ## LG08
 filter(fst, lg=="LG08") %>%
 ggplot(aes(x=position, y=fst)) +
   geom_point(size=0.02, alpha=0.5) +
   theme_cowplot()
-```
-
-![](data_analysis_two_pop_fixed_m2_pos_files/figure-gfm/unnamed-chunk-6-2.png)<!-- -->
-
-``` r
 ## LG19
 filter(fst, lg=="LG19") %>%
 ggplot(aes(x=position, y=fst)) +
   geom_point(size=0.02, alpha=0.5) +
   theme_cowplot()
-```
-
-![](data_analysis_two_pop_fixed_m2_pos_files/figure-gfm/unnamed-chunk-6-3.png)<!-- -->
-
-``` r
 ## Mean Fst at LG19
 filter(fst, lg=="LG19") %>% summarise(mean_fst_neutral=sum(alpha)/sum(beta))
 ```
-
-    ## # A tibble: 1 x 1
-    ##   mean_fst_neutral
-    ##              <dbl>
-    ## 1           0.0136
 
 ## Inference with Samtool’s GL model
 
@@ -955,6 +935,8 @@ group_by(maf_final, sample_size, n_rad_tag) %>%
   kable()
 ```
 
+    ## `summarise()` regrouping output by 'sample_size' (override with `.groups` argument)
+
 | n\_rad\_tag |         5 |        10 |        20 |        40 |        80 |       160 |
 | ----------: | --------: | --------: | --------: | --------: | --------: | --------: |
 |           4 | 0.0033753 | 0.0035577 | 0.0036674 | 0.0037537 | 0.0038450 | 0.0038126 |
@@ -973,6 +955,8 @@ filter(maf_final, p1 > 0, p1 < 1) %>%
   pivot_wider(names_from = sample_size, values_from = theta_w) %>%
   kable()
 ```
+
+    ## `summarise()` regrouping output by 'sample_size' (override with `.groups` argument)
 
 | n\_rad\_tag |         5 |        10 |        20 |        40 |        80 |       160 |
 | ----------: | --------: | --------: | --------: | --------: | --------: | --------: |
@@ -1043,10 +1027,15 @@ mean_neutral_fst_weighted
     ## [1] 0.03674846
 
 ``` r
-ggplot(mutations_final_m1, aes(x=position, y=fst, color=type)) +
-  geom_point(size=0.002, alpha=0.2) +
-  geom_point(data=mutations_final_m2, aes(x=position, y=fst, color=type)) +
-  theme_cowplot()
+ggplot(mutations_final_m1, aes(x=position/10^6, y=fst)) +
+  geom_point(size=0.02, alpha=0.5) +
+  geom_point(data=mutations_final_m2, color="red") +
+  labs(x = "position (in Mbp)", y = expression(F[ST])) + 
+  xlim(c(0, 30)) +
+  ylim(c(0, 1)) +
+  theme_cowplot() +
+  theme(text = element_text(size=20),
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
 ```
 
 ![](data_analysis_two_pop_fixed_m2_pos_files/figure-gfm/unnamed-chunk-41-1.png)<!-- -->
@@ -1107,16 +1096,19 @@ include_graphics("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_fst_raw.pn
 
 ![](../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_fst_raw.png)<!-- -->
 
-### Compute and plot the estimated windowed Fst (with no minimum individual filter and 1,000bp fixed windows)
+### Compute and plot the estimated windowed Fst (with no minimum individual filter and 5,000bp fixed windows)
 
 ``` r
 windowed_fst_plot <- fixed_windowed_fst(fst_n_ind_final, 5000) %>%
   ggplot(aes(x=position, y=fst)) +
-    geom_point(alpha=0.5, size=0.1) +
-    geom_point(data=mutations_final_m2, aes(x=position, y=1.01), color="red", size=0.2, shape=8) +
+    geom_point(alpha=0.8, size=0.15) +
+    geom_point(data=mutations_final_m2, aes(x=position, y=1.01), color="red", size=2, shape=8) +
+    ylim(NA, 1.05) +
     facet_grid(coverage~sample_size) +
-    theme_cowplot()
-ggsave("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_windowed_fst_raw.png", windowed_fst_plot, height = 8, width=15, units = "in")
+    theme_cowplot() +
+    theme(text = element_text(size=20),
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
+ggsave("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_windowed_fst_raw.png", windowed_fst_plot, width = 42, height = 21, units = "cm", pointsize = 20)
 ```
 
 ``` r
@@ -1370,6 +1362,8 @@ group_by(maf_final, sample_size, n_rad_tag) %>%
   kable()
 ```
 
+    ## `summarise()` regrouping output by 'sample_size' (override with `.groups` argument)
+
 | n\_rad\_tag |         5 |        10 |        20 |        40 |        80 |       160 |
 | ----------: | --------: | --------: | --------: | --------: | --------: | --------: |
 |           4 | 0.0006854 | 0.0007307 | 0.0007570 | 0.0007569 | 0.0007707 | 0.0007692 |
@@ -1389,6 +1383,8 @@ filter(maf_final, p1 > 0, p1 < 1) %>%
   kable()
 ```
 
+    ## `summarise()` regrouping output by 'sample_size' (override with `.groups` argument)
+
 | n\_rad\_tag |         5 |        10 |        20 |        40 |        80 |       160 |
 | ----------: | --------: | --------: | --------: | --------: | --------: | --------: |
 |           4 | 0.0007218 | 0.0007311 | 0.0008044 | 0.0007577 | 0.0007815 | 0.0007394 |
@@ -1404,10 +1400,13 @@ filter(maf_final, p1 > 0, p1 < 1) %>%
 mutate(maf_final, coverage="RAD") %>%
   filter(maf_mean>0.05, maf_mean < 0.95) %>%
   ggplot(aes(x=position, y=fst)) +
-    geom_point(alpha=0.5, size=0.2) +
-    geom_point(data=mutations_final_m2, aes(x=position, y=1.01), color="red", size=0.2, shape=8) +
+    geom_point(alpha=0.8, size=0.15) +
+    geom_point(data=mutations_final_m2, aes(x=position, y=1.01), color="red", size=2, shape=8) +
+    ylim(NA, 1.05) +
     facet_grid(n_rad_tag~sample_size) +
-    theme_cowplot()
+    theme_cowplot() +
+    theme(text = element_text(size=20),
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
 ```
 
 ![](data_analysis_two_pop_fixed_m2_pos_files/figure-gfm/unnamed-chunk-63-1.png)<!-- -->

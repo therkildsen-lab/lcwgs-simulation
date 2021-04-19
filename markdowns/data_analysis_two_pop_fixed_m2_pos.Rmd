@@ -44,7 +44,7 @@ get_mutations <- function(x){
     filter(generation==max(generation)) %>%
     ungroup() %>%
     left_join(ancestral, by="position") %>%
-    select(-generation) %>%
+    dplyr::select(-generation) %>%
     filter(base!=ancestral) %>%
     gather(key=population, value=frequency, 4:5) %>%
     arrange(position)
@@ -216,7 +216,7 @@ get_sample_allele_count_per_pop <- function(x){
         i <- i+1
       }
       if (sample_id %in% c(5,10,20,40,80,160)){
-        write_tsv(bind_cols(select(sequence, -base), allele_count_final), paste0(x,"slim/p", p, "_", sample_id, "_base_count.tsv")) 
+        write_tsv(bind_cols(dplyr::select(sequence, -base), allele_count_final), paste0(x,"slim/p", p, "_", sample_id, "_base_count.tsv")) 
       }
     }
   }
@@ -343,7 +343,7 @@ arrange(mutations_final_m2, desc(fst))
 
 ### Plot Fst from the Greenland cod project as a comparison
 
-```{r eval=T, warning=F, message=F, fig.height=2, fig.width=10}
+```{r eval=FALSE, warning=F, message=F, fig.height=2, fig.width=10}
 fst <- read_tsv("../../cod/greenland-cod/angsd/popminind2/ILU2011_UUM2010_bam_list_realigned_mindp161_maxdp768_minind97_minq20_popminind2.fst", col_names = F) %>%
   rename(lg=X1, position=X2, alpha=X3, beta=X4, fst=X5)
 ## LG03
@@ -753,16 +753,21 @@ tibble(theta = c("tajima", "watterson"), p1=c(real_theta_t_p1, real_theta_w_p1),
 
 ### Plot Fst
 
-```{r eval=T, warning=F, message=F, fig.height=2, fig.width=10}
+```{r eval=T, warning=F, message=F, fig.height=2, fig.width=16.5}
 mutations_final_m1 <- filter(mutations_final, type=="m1")
 mutations_final_m2 <- filter(mutations_final, type=="m2")
 mean_neutral_fst_weighted <- sum(mutations_final_m1$h_t-mutations_final_m1$h_s)/sum(mutations_final_m1$h_t)
 mean_neutral_fst_weighted
 
-ggplot(mutations_final_m1, aes(x=position, y=fst, color=type)) +
-  geom_point(size=0.002, alpha=0.2) +
-  geom_point(data=mutations_final_m2, aes(x=position, y=fst, color=type)) +
-  theme_cowplot()
+ggplot(mutations_final_m1, aes(x=position/10^6, y=fst)) +
+  geom_point(size=0.02, alpha=0.5) +
+  geom_point(data=mutations_final_m2, color="red") +
+  labs(x = "position (in Mbp)", y = expression(F[ST])) + 
+  xlim(c(0, 30)) +
+  ylim(c(0, 1)) +
+  theme_cowplot() +
+  theme(text = element_text(size=20),
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
 
 arrange(mutations_final, desc(fst)) %>%
   head()
@@ -792,16 +797,19 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_fst_raw.png", fst_pl
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_fst_raw.png")
 ```
 
-### Compute and plot the estimated windowed Fst (with no minimum individual filter and 1,000bp fixed windows)
+### Compute and plot the estimated windowed Fst (with no minimum individual filter and 5,000bp fixed windows)
 
 ```{r eval=F, warning=F, message=F, fig.height=8, fig.width=15}
 windowed_fst_plot <- fixed_windowed_fst(fst_n_ind_final, 5000) %>%
   ggplot(aes(x=position, y=fst)) +
-    geom_point(alpha=0.5, size=0.1) +
-    geom_point(data=mutations_final_m2, aes(x=position, y=1.01), color="red", size=0.2, shape=8) +
+    geom_point(alpha=0.8, size=0.15) +
+    geom_point(data=mutations_final_m2, aes(x=position, y=1.01), color="red", size=2, shape=8) +
+    ylim(NA, 1.05) +
     facet_grid(coverage~sample_size) +
-    theme_cowplot()
-ggsave("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_windowed_fst_raw.png", windowed_fst_plot, height = 8, width=15, units = "in")
+    theme_cowplot() +
+    theme(text = element_text(size=20),
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
+ggsave("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_windowed_fst_raw.png", windowed_fst_plot, width = 42, height = 21, units = "cm", pointsize = 20)
 ```
 
 ```{r}
@@ -1011,12 +1019,15 @@ filter(maf_final, p1 > 0, p1 < 1) %>%
 
 ### Plot per SNP Fst
 
-```{r eval=T, warning=F, message=F, fig.height=8, fig.width=15}
+```{r eval=T, warning=F, message=F, fig.width=16.5, fig.height=8.3}
 mutate(maf_final, coverage="RAD") %>%
   filter(maf_mean>0.05, maf_mean < 0.95) %>%
   ggplot(aes(x=position, y=fst)) +
-    geom_point(alpha=0.5, size=0.2) +
-    geom_point(data=mutations_final_m2, aes(x=position, y=1.01), color="red", size=0.2, shape=8) +
+    geom_point(alpha=0.8, size=0.15) +
+    geom_point(data=mutations_final_m2, aes(x=position, y=1.01), color="red", size=2, shape=8) +
+    ylim(NA, 1.05) +
     facet_grid(n_rad_tag~sample_size) +
-    theme_cowplot()
+    theme_cowplot() +
+    theme(text = element_text(size=20),
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
 ```
