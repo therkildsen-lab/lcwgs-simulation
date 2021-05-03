@@ -55,6 +55,13 @@ Data analysis with neutral simulation
       - [Plot absolute values of error vs. true allele frequency in bins
         (this includes the false positives but not the false
         negatives)](#plot-absolute-values-of-error-vs.-true-allele-frequency-in-bins-this-includes-the-false-positives-but-not-the-false-negatives)
+  - [LD estimation](#ld-estimation)
+      - [Estimate LD and LD decay with
+        ngsLD](#estimate-ld-and-ld-decay-with-ngsld)
+      - [When fitting an LD decay model to the estimated LD
+        result](#when-fitting-an-ld-decay-model-to-the-estimated-ld-result)
+      - [Average r-squared per position vs. Theoretical
+        expectation](#average-r-squared-per-position-vs.-theoretical-expectation)
 
 ``` r
 library(tidyverse)
@@ -665,3 +672,100 @@ include_graphics("../figures/neutral_error_vs_true_frequency_pool_bin_gatk.png")
 ```
 
 ![](../figures/neutral_error_vs_true_frequency_pool_bin_gatk.png)<!-- -->
+
+# LD estimation
+
+## Estimate LD and LD decay with ngsLD
+
+``` bash
+nohup bash /workdir/lcwgs-simulation/shell_scripts/run_ngsld_gatk.sh > /workdir/lcwgs-simulation/nohups/run_ngsld_gatk.nohup &
+nohup bash /workdir/lcwgs-simulation/shell_scripts/ld_decay_gatk.sh > /workdir/lcwgs-simulation/nohups/ld_decay_gatk.nohup &
+```
+
+## When fitting an LD decay model to the estimated LD result
+
+``` r
+library(tidyverse)
+get_ld <- function(c, n) {
+  return(((10+c) / ((2+c)*(11+c)))*(1+((3+c)*(12+12*c+c^2))/(n*(2+c)*(11+c))))
+}
+for (sample_size in c(5, 10, 20, 40, 80, 160)) {
+  estimated_decay_rate <- read_delim(str_c("/workdir/lcwgs-simulation/neutral_sim/rep_1/angsd_gatk/ld_decay_", sample_size, ".out"), skip = 3, col_names = FALSE, delim = " ", n_max = 6)[1:6,] %>%
+    transmute(decay_rate = X4, decay_rate_l = X8, decay_rate_u = X7) %>%
+    mutate(coverage = c(0.25, 0.5, 1, 2, 4, 8), sample_size = sample_size)
+  if (sample_size == 5) {
+    estimated_decay_rate_final <- estimated_decay_rate
+  } else {
+    estimated_decay_rate_final <- bind_rows(estimated_decay_rate_final, estimated_decay_rate)
+  }
+}
+ld_for_plotting <- estimated_decay_rate_final %>%
+  type_convert(col_types = cols(decay_rate_l = col_double(),
+                                decay_rate_u = col_double())) %>%
+  crossing(tibble(position=(0:100)*50)) %>%
+  mutate(estimated_ld = get_ld(decay_rate*position, sample_size),
+         estimated_ld_l = get_ld(decay_rate_l*position, sample_size),
+         estimated_ld_u = get_ld(decay_rate_u*position, sample_size),
+         true_ld = get_ld(4*1000*250e-8*position, sample_size))
+estimated_ne <- estimated_decay_rate_final %>%
+  mutate(ne = decay_rate / 4 / 2.5e-8)
+ld_for_plotting %>%
+  ggplot(aes(x=position/1000)) +
+  geom_line(aes(y=true_ld), color = "red", size=1.5, alpha=0.8) +
+  geom_line(aes(y=estimated_ld), color = "blue", ) +
+  geom_line(aes(y=estimated_ld_l), color = "blue", linetype="dashed") +
+  geom_line(aes(y=estimated_ld_u), color = "blue", linetype="dashed") +
+  geom_text(data = estimated_ne, aes(label=str_c("Ne =", format(round(ne), big.mark = ","))), x = 4, y = 0.5) +
+  facet_grid(coverage ~ sample_size) +
+  cowplot::theme_cowplot() +
+  labs(x = "physical distance (in kb)", y = "r-squared") +
+  theme(strip.text = element_text(size=20),
+        axis.text.x = element_text(angle=0),
+        panel.border = element_rect(colour = "black", fill=NA, size=1)) 
+```
+
+![](data_analysis_neutral_gatk_files/figure-gfm/unnamed-chunk-35-1.png)<!-- -->
+
+## Average r-squared per position vs. Theoretical expectation
+
+``` r
+i=1
+for (sample_size in c(5, 10, 20, 40, 80, 160)) {
+  print(sample_size)
+  for (coverage in c(0.25, 0.5, 1, 2, 4, 8)) {
+    estimated_ld <- read_tsv(str_c("../neutral_sim/rep_1/angsd_gatk/bam_list_", sample_size, "_", coverage, "x.ld"), col_names =FALSE) %>%
+      transmute(position=X5, ld=X9) %>%
+      group_by(position) %>%
+      summarise(mean_ld=mean(ld), ld_l=quantile(ld, 0.25), ld_u=quantile(ld, 0.75)) %>%
+      mutate(sample_size = sample_size, coverage = coverage)
+    if(i==1){
+      estimated_ld_final <- estimated_ld
+    } else {
+      estimated_ld_final <- bind_rows(estimated_ld_final, estimated_ld)
+    }
+    i <- i + 1
+  }
+}
+write_tsv(estimated_ld_final, "../neutral_sim/rep_1/angsd_gatk/mean_ld_per_position.tsv")
+```
+
+``` r
+estimated_ld <- read_tsv("../neutral_sim/rep_1/angsd_gatk/mean_ld_per_position.tsv")
+estimated_ld %>%
+  #filter(sample_size > 5 | coverage > 0.25) %>%
+  mutate(c = 4*1000*250e-8*position,
+         expected_ld = ((10+c) / ((2+c)*(11+c)))*(1+((3+c)*(12+12*c+c^2))/(sample_size*(2+c)*(11+c)))
+         ) %>%
+  ggplot(aes(x = position/1000)) +
+  geom_ribbon(aes(ymax = ld_u, ymin=ld_l), fill="blue", alpha=0.1) +
+  geom_line(aes(y = expected_ld), color = "red", size = 1.5) +
+  geom_line(aes(y = mean_ld), size=0.8, color="blue", alpha=0.8) +
+  facet_grid(coverage ~ sample_size) +
+  cowplot::theme_cowplot() +
+  labs(x = "physical distance (in kb)", y = "r-squared") +
+  theme(strip.text = element_text(size=20),
+        axis.text.x = element_text(angle=0),
+        panel.border = element_rect(colour = "black", fill=NA, size=1)) 
+```
+
+![](data_analysis_neutral_gatk_files/figure-gfm/unnamed-chunk-37-1.png)<!-- -->
