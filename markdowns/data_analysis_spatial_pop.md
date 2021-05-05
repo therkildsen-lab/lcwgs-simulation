@@ -20,6 +20,12 @@ Data analysis with simulation of spatial populations
       - [Plot PCoA centroid](#plot-pcoa-centroid)
       - [Plot DAPC](#plot-dapc-2)
       - [Plot DAPC centroid](#plot-dapc-centroid-2)
+  - [PCA with covMat and GATK’s GL
+    model](#pca-with-covmat-and-gatks-gl-model)
+      - [Plot PCA](#plot-pca-2)
+  - [PCoA with ibsMat and GATK’s GL
+    model](#pcoa-with-ibsmat-and-gatks-gl-model)
+      - [Plot PCoA](#plot-pcoa-1)
   - [PCA with uneven coverage](#pca-with-uneven-coverage)
       - [PCA with PCAngsd](#pca-with-pcangsd-1)
       - [PCA with covMat](#pca-with-covmat-1)
@@ -647,6 +653,143 @@ ggplot(dapc_table_final_per_pop, aes(x=LD1_mean, y=LD2_mean, color=population, l
 
 ![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-28-1.png)<!-- -->
 
+## PCA with covMat and GATK’s GL model
+
+``` r
+i=1
+for (coverage in c(0.125,0.25,0.5,1,2,4)){
+  for (sample_size in c(5,10,20,40,80)){
+    pop_label <- read_lines(paste0("../spatial_pop_sim/rep_1/sample_lists/bam_list_",sample_size,"_",coverage,"x.txt")) %>%
+      str_extract('p[1-9]')
+    ## Read covariance matrix
+    cov_matrix <- read_tsv(paste0("../spatial_pop_sim/rep_1/angsd_gatk/bam_list_",sample_size,"_",coverage,"x.covMat"), col_names = F) %>%
+      as.matrix() %>%
+      .[,-(sample_size*9+1)]
+    cov_matrix[is.na(cov_matrix)]<- median(cov_matrix, na.rm = T)
+    ## Perform eigen decomposition
+    e <- eigen(cov_matrix)
+    e_value<-e$values
+    x_variance<-e_value[1]/sum(e_value)*100
+    y_variance<-e_value[2]/sum(e_value)*100
+    e_vector <- as.data.frame(e$vectors)[,1:5]
+    pca_table <- bind_cols(pop_label=pop_label, e_vector) %>%
+      transmute(population=pop_label, PC1=rescale(V1, c(-1, 1)), PC2=rescale(V2, c(-1, 1)), PC3=rescale(V3, c(-1, 1)), PC4=rescale(V3, c(-1, 1)), PC5=rescale(V5, c(-1, 1)), coverage=coverage, sample_size=sample_size)
+    ## Perform DAPC
+    fit <- lda(population ~ ., data=pca_table[,1:(5+1)], na.action="na.omit", CV=F, output = "Scatterplot")
+    plda <- predict(object = fit,
+                  newdata = pca_table[,1:(5+1)])
+    prop.lda <- fit$svd^2/sum(fit$svd^2)
+    dapc_table <- data.frame(population = pca_table[,1], lda = plda$x) %>%
+      transmute(population=population, LD1=rescale(lda.LD1,c(-1,1)), LD2=rescale(lda.LD2, c(-1,1)), coverage=coverage, sample_size=sample_size)
+    ## Bind PCA tables and DAPC tables for all sample size and coverage combinations
+    if (i==1){
+      pca_table_final <- pca_table
+      dapc_table_final <- dapc_table
+    } else {
+      pca_table_final <- bind_rows(pca_table_final,pca_table)
+      dapc_table_final <- bind_rows(dapc_table_final,dapc_table)
+    }
+    i=i+1
+  }
+}
+## Get mean PC values per population
+pca_table_final_per_pop <- group_by(pca_table_final, population, coverage, sample_size) %>%
+  summarise(PC1_mean=mean(PC1), PC2_mean=mean(PC2), PC3_mean=mean(PC3), PC1_sd=sd(PC1), PC2_sd=sd(PC2), PC3_sd=sd(PC3)) %>%
+  ungroup() %>%
+  group_by(coverage, sample_size) %>%
+  mutate(PC1_mean=rescale(PC1_mean, c(-1,1)), PC2_mean=rescale(PC2_mean, c(-1,1)), PC3_mean=rescale(PC3_mean, c(-1,1)))
+## Get mean LD values per population
+dapc_table_final_per_pop <- group_by(dapc_table_final, population, coverage, sample_size) %>%
+  summarise(LD1_mean=mean(LD1), LD2_mean=mean(LD2), LD1_sd=sd(LD1), LD2_sd=sd(LD2)) %>%
+  ungroup() %>%
+  group_by(coverage, sample_size) %>%
+  mutate(LD1_mean=rescale(LD1_mean, c(-1,1)), LD2_mean=rescale(LD2_mean, c(-1,1)))
+```
+
+Note: there are more NAs in these covariance matrices compared to the
+covariance matrices generated from PCAngsd.
+
+### Plot PCA
+
+``` r
+ggplot(pca_table_final,aes(x=PC1, y=PC2, color=population)) +
+  geom_point() +
+  facet_grid(coverage~sample_size, scales="free") +
+  theme_bw() +
+  theme(panel.grid = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank())
+```
+
+![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-30-1.png)<!-- -->
+
+## PCoA with ibsMat and GATK’s GL model
+
+``` r
+i=1
+for (coverage in c(0.125,0.25,0.5,1,2,4)){
+  for (sample_size in c(5,10,20,40,80)){
+    pop_label <- read_lines(paste0("../spatial_pop_sim/rep_1/sample_lists/bam_list_",sample_size,"_",coverage,"x.txt")) %>%
+      str_extract('p[1-9]')
+    ## Read covariance matrix
+    dist_matrix <- read_tsv(paste0("../spatial_pop_sim/rep_1/angsd_gatk/bam_list_",sample_size,"_",coverage,"x.ibsMat"), col_names = F) %>%
+      as.matrix() %>%
+      .[,-(sample_size*9+1)]
+    dist_matrix[is.na(dist_matrix)] <- mean(dist_matrix, na.rm = T)
+    ## Perform MDS
+    mds <- cmdscale(as.dist(dist_matrix), k=5) %>%
+      as.data.frame() 
+    mds_table <- bind_cols(pop_label=pop_label, mds) %>%
+      transmute(population=pop_label, PCo1=rescale(V1, c(-1, 1)), PCo2=rescale(V2, c(-1, 1)), PCo3=rescale(V3, c(-1, 1)), PCo4=rescale(V4, c(-1, 1)), PCo5=rescale(V5, c(-1, 1)), coverage=coverage, sample_size=sample_size)
+    eigen_value <- cmdscale(as.dist(dist_matrix), k=5, eig = T)$eig
+    var_explained <- round(eigen_value/sum(eigen_value)*100, 2)
+
+    ## Perform DAPC
+    fit <- lda(population ~ ., data=mds_table[,1:(5+1)], na.action="na.omit", CV=F, output = "Scatterplot")
+    plda <- predict(object = fit,
+                  newdata = mds_table[,1:(5+1)])
+    prop.lda <- fit$svd^2/sum(fit$svd^2)
+    dapc_table <- data.frame(population = mds_table[,1], lda = plda$x) %>%
+      transmute(population=population, LD1=rescale(lda.LD1,c(-1,1)), LD2=rescale(lda.LD2, c(-1,1)), coverage=coverage, sample_size=sample_size)
+    ## Bind PCoA tables and DAPC tables for all sample size and coverage combinations
+    if (i==1){
+      mds_table_final <- mds_table
+      dapc_table_final <- dapc_table
+    } else {
+      mds_table_final <- bind_rows(mds_table_final,mds_table)
+      dapc_table_final <- bind_rows(dapc_table_final,dapc_table)
+    }
+    i=i+1
+  }
+}
+## Get mean PCo values per population
+mds_table_final_per_pop <- group_by(mds_table_final, population, coverage, sample_size) %>%
+  summarise(PCo1_mean=mean(PCo1), PCo2_mean=mean(PCo2), PCo3_mean=mean(PCo3), PCo1_sd=sd(PCo1), PCo2_sd=sd(PCo2), PCo3_sd=sd(PCo3)) %>%
+  ungroup() %>%
+  group_by(coverage, sample_size) %>%
+  mutate(PCo1_mean=rescale(PCo1_mean, c(-1,1)), PCo2_mean=rescale(PCo2_mean, c(-1,1)), PCo3_mean=rescale(PCo3_mean, c(-1,1)))
+## Get mean LD values per population
+dapc_table_final_per_pop <- group_by(dapc_table_final, population, coverage, sample_size) %>%
+  summarise(LD1_mean=mean(LD1), LD2_mean=mean(LD2), LD1_sd=sd(LD1), LD2_sd=sd(LD2)) %>%
+  ungroup() %>%
+  group_by(coverage, sample_size) %>%
+  mutate(LD1_mean=rescale(LD1_mean, c(-1,1)), LD2_mean=rescale(LD2_mean, c(-1,1)))
+```
+
+### Plot PCoA
+
+``` r
+ggplot(mds_table_final,aes(x=PCo1, y=PCo2, color=population)) +
+  geom_point() +
+  facet_grid(coverage~sample_size, scales="free") +
+  theme_bw() +
+  theme(panel.grid = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank())
+```
+
+![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-32-1.png)<!-- -->
+
 ## PCA with uneven coverage
 
 ### PCA with PCAngsd
@@ -685,7 +828,7 @@ ggplot(pca_table_final,aes(x=PC1, y=PC2, color=population, shape=as.character(co
         axis.ticks = element_blank())
 ```
 
-![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-29-1.png)<!-- -->
+![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-33-1.png)<!-- -->
 
 ``` r
 p1 <- pca_table_final %>%
@@ -702,7 +845,7 @@ p1 <- pca_table_final %>%
 p1
 ```
 
-![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-29-2.png)<!-- -->
+![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-33-2.png)<!-- -->
 
 ### PCA with covMat
 
@@ -742,7 +885,7 @@ ggplot(pca_table_final,aes(x=PC1, y=PC2, color=population, shape=as.character(co
         axis.ticks = element_blank())
 ```
 
-![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-30-1.png)<!-- -->
+![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-34-1.png)<!-- -->
 
 ``` r
 p2 <- pca_table_final %>%
@@ -759,7 +902,7 @@ p2 <- pca_table_final %>%
 p2
 ```
 
-![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-30-2.png)<!-- -->
+![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-34-2.png)<!-- -->
 
 ### PCoA with ibsMat
 
@@ -798,7 +941,7 @@ ggplot(mds_table_final,aes(x=PCo1, y=PCo2, color=population)) +
         axis.ticks = element_blank())
 ```
 
-![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-31-1.png)<!-- -->
+![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-35-1.png)<!-- -->
 
 ``` r
 p3 <- mds_table_final %>%
@@ -815,7 +958,7 @@ p3 <- mds_table_final %>%
 p3
 ```
 
-![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-31-2.png)<!-- -->
+![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-35-2.png)<!-- -->
 
 ### Assemble plots for batch effect paper
 
@@ -823,4 +966,4 @@ p3
 cowplot::plot_grid(p1, p2, p3, ncol = 1, rel_heights = c(1.3, 1, 1))
 ```
 
-![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-32-1.png)<!-- -->
+![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-36-1.png)<!-- -->
