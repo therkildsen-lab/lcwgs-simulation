@@ -17,7 +17,7 @@ for SAMPLE_SIZE in {5,10,20,40,80,160}; do
       -GL 1 \
       -P 8 \
       -doCounts 1 \
-      -setMinDepth 2 &
+      -setMinDepth `awk "BEGIN {print $SAMPLE_SIZE*$COVERAGE}"` &
     COUNT=$(( COUNT + 1 ))
     if [ $COUNT == $N_CORE_MAX ]; then
       wait
@@ -58,7 +58,7 @@ for SAMPLE_SIZE in {5,10,20,40,80,160}; do
       -GL 1 \
       -P 8 \
       -doCounts 1 \
-      -setMinDepth 2 &
+      -setMinDepth `awk "BEGIN {print $SAMPLE_SIZE*$COVERAGE}"` &
     COUNT=$(( COUNT + 1 ))
     if [ $COUNT == $N_CORE_MAX ]; then
       wait

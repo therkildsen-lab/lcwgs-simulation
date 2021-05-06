@@ -292,6 +292,9 @@ nohup bash /workdir/lcwgs-simulation/shell_scripts/snp_calling_neutral_sim.sh \
 
 ## Get shell script for estimating thetas and Tajima’s D
 
+A more stringent mininum depth filter, which equals to `sample_size *
+coverage`, is used in this step.
+
 ``` r
 shell_script <- "#!/bin/bash
 REP_ID=$1
@@ -312,7 +315,7 @@ for SAMPLE_SIZE in {5,10,20,40,80,160}; do
       -GL 1 \\
       -P 8 \\
       -doCounts 1 \\
-      -setMinDepth 2 &
+      -setMinDepth `awk \"BEGIN {print $SAMPLE_SIZE*$COVERAGE}\"` &
     COUNT=$(( COUNT + 1 ))
     if [ $COUNT == $N_CORE_MAX ]; then
       wait
@@ -353,7 +356,7 @@ for SAMPLE_SIZE in {5,10,20,40,80,160}; do
       -GL 1 \\
       -P 8 \\
       -doCounts 1 \\
-      -setMinDepth 2 &
+      -setMinDepth `awk \"BEGIN {print $SAMPLE_SIZE*$COVERAGE}\"` &
     COUNT=$(( COUNT + 1 ))
     if [ $COUNT == $N_CORE_MAX ]; then
       wait
@@ -428,7 +431,7 @@ coverage.
 ## With minimal filtering
 
 ``` bash
-mkdir /workdir/lcwgs-simulation/neutral_sim/rep_1/angsd_gatk
+cd /workdir/lcwgs-simulation/neutral_sim/rep_1/angsd_gatk
 ## Estimate GL and MAF using -GL 2
 BASE_DIR=/workdir/lcwgs-simulation/neutral_sim/rep_1/
 
@@ -451,7 +454,7 @@ done
 ## Get SFS from saf 
 /workdir/programs/angsd0.931/angsd/misc/realSFS \
   $BASE_DIR'angsd_gatk/gatk_ml_test.saf.idx' \
-  -P 16 \
+  -P 28 \
   > $BASE_DIR'angsd_gatk/gatk_ml_test.sfs' &
 
 ## Estimate theta
@@ -499,7 +502,7 @@ done
 
 /workdir/programs/angsd0.931/angsd/misc/realSFS \
   $BASE_DIR'angsd_gatk/gatk_ml_test_mindepth_40.saf.idx' \
-  -P 16 \
+  -P 28 \
   -tole 1e-07 \
   > $BASE_DIR'angsd_gatk/gatk_ml_test_mindepth_40.sfs' &
 
@@ -564,16 +567,16 @@ gatk_theta <- read_tsv("../neutral_sim/rep_1/angsd_gatk/gatk_ml_test.average_the
 gatk_theta_mindepth_40 <- read_tsv("../neutral_sim/rep_1/angsd_gatk/gatk_ml_test_mindepth_40.average_thetas.idx.pestPG") %>%
   transmute(t_w = tW/nSites, t_p = tP/nSites, method = "GATK (MinDepth=40)")
 samtools_theta <- read_tsv("../neutral_sim/rep_1/angsd/bam_list_40_1x.average_thetas.idx.pestPG") %>%
-  transmute(t_w = tW/nSites, t_p = tP/nSites, method = "Samtools (MinDepth=2)")
+  transmute(t_w = tW/nSites, t_p = tP/nSites, method = "Samtools (MinDepth=40)")
 bind_rows(gatk_theta, gatk_theta_mindepth_40, samtools_theta) %>%
   knitr::kable()
 ```
 
-|      t\_w |      t\_p | method                |
-| --------: | --------: | :-------------------- |
-| 0.0034298 | 0.0039302 | GATK (MinDepth=2)     |
-| 0.0039491 | 0.0039437 | GATK (MinDepth=40)    |
-| 0.0027483 | 0.0037527 | Samtools (MinDepth=2) |
+|      t\_w |      t\_p | method                 |
+| --------: | --------: | :--------------------- |
+| 0.0036970 | 0.0039376 | GATK (MinDepth=2)      |
+| 0.0039716 | 0.0039438 | GATK (MinDepth=40)     |
+| 0.0028292 | 0.0037775 | Samtools (MinDepth=40) |
 
 The GATK model does a better job. The depth filtering also makes a big
 difference. I will therefore run the entire process (starting from SNP

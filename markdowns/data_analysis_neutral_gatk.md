@@ -557,7 +557,7 @@ thetas_combined %>%
         panel.border = element_rect(colour = "black", fill=NA, size=1)) 
 ```
 
-    ## Warning: Removed 1322 rows containing non-finite values (stat_boxplot).
+    ## Warning: Removed 1760 rows containing non-finite values (stat_boxplot).
 
 ![](data_analysis_neutral_gatk_files/figure-gfm/unnamed-chunk-25-1.png)<!-- -->
 
