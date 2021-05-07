@@ -15,9 +15,11 @@
 
 ## divergent selection
 
-[simulation workflow with divergent selection and fixed m2 positions](https://github.com/therkildsen-lab/lcwgs-simulation/blob/master/markdowns/simulation_workflow_two_pop_sim_fixed_m2_pos.md)
+[simulation workflow with divergent selection](https://github.com/therkildsen-lab/lcwgs-simulation/blob/master/markdowns/simulation_workflow_two_pop_sim_fixed_m2_pos.md)
 
-[data analysis with divergent selection simulation and fixed m2 positions (including RAD-seq comparison)](https://github.com/therkildsen-lab/lcwgs-simulation/blob/master/markdowns/data_analysis_two_pop_fixed_m2_pos.md)
+[data analysis with divergent selection simulation (including RAD-seq comparison)](https://github.com/therkildsen-lab/lcwgs-simulation/blob/master/markdowns/data_analysis_two_pop_fixed_m2_pos.md)
+
+[data analysis with divergent selection simulation with a smaller population (including RAD-seq comparison)](https://github.com/therkildsen-lab/lcwgs-simulation/blob/master/markdowns/data_analysis_two_pop_lower_s_lower_r.md)
 
 ## spatially structured populations
 
