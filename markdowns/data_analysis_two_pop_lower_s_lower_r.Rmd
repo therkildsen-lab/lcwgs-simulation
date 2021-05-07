@@ -1,0 +1,186 @@
+---
+title: "Data analysis with simulation of divergent selection on two smaller populations"
+output: 
+  github_document: 
+    toc: true
+    toc_depth: 4
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r eval=T, warning=F, message=F}
+library(tidyverse)
+library(cowplot)
+library(knitr)
+library(data.table)
+library(RcppCNPy)
+```
+
+# Define all relevant functions
+
+```{r eval=T, warning=F, message=F}
+source("../misc/two_pop_functions.R")
+```
+
+# Two populations with divergent selection, with smaller population size ( Ne~10,000 in each population)
+
+The same population size is simulated, but I've scaled down mutation rate, recombination rate, migration rate. The selection coefficient is unchanged. (Ignore the directory name. I'm just using it for convenience.)
+
+## The model
+
+### Read in the ancestral states
+
+```{r eval=T, warning=F, message=F}
+ancestral <- get_ancestral("../two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/")
+```
+
+### Read mutation and substitution file
+
+```{r eval=T, warning=F, message=F}
+mutations_final <- get_mutations("../two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/")
+real_theta_t_p1 <- sum(2*mutations_final$p1*(1-mutations_final$p1))/30000000
+real_theta_t_p2 <- sum(2*mutations_final$p2*(1-mutations_final$p2))/30000000
+real_theta_w_p1 <- filter(mutations_final, p1 > 0, p1 < 1) %>%
+  nrow() %>% `/`(30000000*sum(1/(1:(5000*2-1))))
+real_theta_w_p2 <- filter(mutations_final, p2 > 0, p2 < 1) %>%
+  nrow() %>% `/`(30000000*sum(1/(1:(5000*2-1))))
+tibble(theta = c("tajima", "watterson"), p1=c(real_theta_t_p1, real_theta_w_p1), p2=c(real_theta_t_p2,real_theta_w_p2))
+```
+
+### Plot Fst
+
+```{r eval=T, warning=F, message=F, fig.height=2, fig.width=16.5}
+mutations_final_m1 <- filter(mutations_final, type=="m1")
+mutations_final_m2 <- filter(mutations_final, type=="m2")
+mean_neutral_fst_weighted <- sum(mutations_final_m1$h_t-mutations_final_m1$h_s)/sum(mutations_final_m1$h_t)
+mean_neutral_fst_weighted
+
+ggplot(mutations_final_m1, aes(x=position/10^6, y=fst)) +
+  geom_point(size=0.02, alpha=0.5) +
+  geom_point(data=mutations_final_m2, color="red") +
+  labs(x = "position (in Mbp)", y = expression(F[ST])) + 
+  xlim(c(0, 30)) +
+  ylim(c(0, 1)) +
+  theme_cowplot() +
+  theme(text = element_text(size=20),
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
+
+arrange(mutations_final, desc(fst)) %>%
+  head()
+arrange(mutations_final_m2, desc(fst))
+```
+
+## Inference based on Samtool's GL model
+
+### Read in read depth and estimated Fst
+
+```{r eval=F, warning=F, message=F}
+fst_n_ind_final <- get_estimated_fst("../two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/")
+```
+
+### Plot the estimated per-SNP Fst (with no minimum individual filter)
+
+```{r eval=F, warning=F, message=F, fig.height=8, fig.width=15}
+fst_plot <- ggplot(fst_n_ind_final, aes(x=position, y=fst)) +
+  geom_point(alpha=0.1, size=0.1) +
+  geom_point(data=mutations_final_m2, aes(x=position, y=1.01), color="red", size=0.2, shape=8) +
+  facet_grid(coverage~sample_size) +
+  theme_cowplot()
+ggsave("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_fst_raw.png", fst_plot, height = 8, width=15, units = "in")
+```
+
+```{r}
+include_graphics("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_fst_raw.png")
+```
+
+### Compute and plot the estimated windowed Fst (with no minimum individual filter and 5,000bp fixed windows)
+
+```{r eval=F, warning=F, message=F, fig.height=8, fig.width=15}
+windowed_fst_plot <- fixed_windowed_fst(fst_n_ind_final, 5000) %>%
+  ggplot(aes(x=position, y=fst)) +
+    geom_point(alpha=0.8, size=0.15) +
+    geom_point(data=mutations_final_m2, aes(x=position, y=1.01), color="red", size=2, shape=8) +
+    ylim(NA, 1.05) +
+    facet_grid(coverage~sample_size) +
+    theme_cowplot() +
+    theme(text = element_text(size=20),
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
+ggsave("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_windowed_fst_raw.png", windowed_fst_plot, width = 42, height = 21, units = "cm", pointsize = 20)
+```
+
+```{r}
+include_graphics("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_windowed_fst_raw.png")
+```
+
+### Selection scan using PCAngsd
+
+```{r eval=F, warning=F, message=F}
+selection_scan <- get_selection_scan("/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/")
+selection_scan_summary <- group_by(selection_scan, coverage, sample_size) %>%
+  summarize(n_snp = n(), log_p_cutoff = -log(0.05/n_snp))
+selection_scan_plot <- ggplot(selection_scan, aes(x = pos, y = neg_log_p_value)) +
+  geom_point(alpha=0.5, size=0.1) +
+  geom_point(data=mutations_final_m2, aes(x=position, y=16), color="red", size=0.2, shape=8) +
+  geom_hline(data = selection_scan_summary, aes(yintercept = log_p_cutoff), linetype = "dashed") +
+  facet_grid(coverage ~ sample_size) +
+  theme_cowplot()
+ggsave("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_selection_scan.png", selection_scan_plot, height = 8, width=15, units = "in")
+```
+
+```{r}
+include_graphics("../figures/two_pop_sim_fixed_m2_pos_lower_s_lower_r_selection_scan.png")
+```
+
+## RAD seq simulation and inference 
+
+To simulate RAD-seq, I assumed that the genotype calling is perfectly accurate (i.e. sequence depth is high). I then took random samples along the chromosome representing RAD tags.  
+
+### Get true sample allele count
+
+```{r eval=F, warning=F, message=F}
+get_sample_allele_count_per_pop("../two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/")
+fst_all_snps <- allele_count_to_fst("/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/")
+write_tsv(fst_all_snps, "/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/slim/fst_all_snps.tsv")
+```
+
+### Read in true sample allele count and Fst
+
+```{r eval=T, warning=F, message=F}
+fst_all_snps <- read_tsv("/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_r/rep_1/slim/fst_all_snps.tsv")
+```
+
+### Get sample true MAF and Fst from allele counts
+
+Each RAD tag is 150 bp. Note that `n_rad_tag` are numbers of RAD tags per Mbp. According to the "Breaking RAD" paper, the median RAD tag density that they've found in studies published by then is 4.08. A few studies had up to 20 tags per Mbp, three had up to 110 per Mbp, and one had 362 tags per Mbp.
+
+```{r eval=T, warning=F, message=F}
+i <- 1
+for (n in c(1,2,4,8,16,32)*120){
+  maf <- subset_fst(n_rad_tag = n, combined_fst = fst_all_snps) %>%
+    mutate(n_rad_tag = n/30)
+  if (i == 1){
+    maf_final <- maf
+  } else {
+    maf_final <- bind_rows(maf_final, maf)
+  }
+  i <- i + 1
+}
+```
+
+
+### Plot per SNP Fst
+
+```{r eval=T, warning=F, message=F, fig.width=16.5, fig.height=8.3}
+mutate(maf_final, coverage="RAD") %>%
+  filter(maf_mean>0.05, maf_mean < 0.95) %>%
+  ggplot(aes(x=position, y=fst)) +
+    geom_point(alpha=0.8, size=0.15) +
+    geom_point(data=mutations_final_m2, aes(x=position, y=1.01), color="red", size=2, shape=8) +
+    ylim(NA, 1.05) +
+    facet_grid(n_rad_tag~sample_size) +
+    theme_cowplot() +
+    theme(text = element_text(size=20),
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
+```

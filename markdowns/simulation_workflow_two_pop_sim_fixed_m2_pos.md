@@ -23,33 +23,11 @@ selection at fixed positions
       - [Make bam lists](#make-bam-lists)
       - [Index the ancestral fasta
         file](#index-the-ancestral-fasta-file)
-      - [Get shell script for SNP
-        calling](#get-shell-script-for-snp-calling)
-      - [Run the shell script for SNP
-        calling](#run-the-shell-script-for-snp-calling)
-      - [Get shell script writing SNP
-        lists](#get-shell-script-writing-snp-lists)
-      - [Run shell script to get SNP
-        list](#run-shell-script-to-get-snp-list)
-      - [Get shell script for per population MAF
-        estimation](#get-shell-script-for-per-population-maf-estimation)
-      - [Run the shell script for MAF](#run-the-shell-script-for-maf)
-      - [Get Fst between the two
-        populations](#get-fst-between-the-two-populations)
-      - [Run the shell script for Fst](#run-the-shell-script-for-fst)
-      - [Get shell script for per population SAF estimation using GATK’s
-        GL
-        model](#get-shell-script-for-per-population-saf-estimation-using-gatks-gl-model)
-      - [Run the shell script for SAF with GATK’s GL
-        model](#run-the-shell-script-for-saf-with-gatks-gl-model)
-      - [Get Fst between the two populations with GATK’s GL
-        model](#get-fst-between-the-two-populations-with-gatks-gl-model)
-      - [Run the shell script for Fst with
-        GATK](#run-the-shell-script-for-fst-with-gatk)
-      - [Get shell script to estimate theta in p1 with GATK’s GL
-        model](#get-shell-script-to-estimate-theta-in-p1-with-gatks-gl-model)
-      - [Run the shell script for theta with GATK’s GL
-        model](#run-the-shell-script-for-theta-with-gatks-gl-model)
+      - [Get Fst with Samtool’s GL
+        model](#get-fst-with-samtools-gl-model)
+      - [Theta and neutrality stats with Samtools GL model in population
+        1](#theta-and-neutrality-stats-with-samtools-gl-model-in-population-1)
+      - [Testing GATK’s GL model](#testing-gatks-gl-model)
       - [Get shell script for running selection scan using
         PCAngsd](#get-shell-script-for-running-selection-scan-using-pcangsd)
       - [Run the shell script for selection scan using
@@ -73,15 +51,11 @@ selection at fixed positions
       - [Index the ancestral fasta
         file](#index-the-ancestral-fasta-file-1)
       - [Run the shell script for SNP
-        calling](#run-the-shell-script-for-snp-calling-1)
+        calling](#run-the-shell-script-for-snp-calling-2)
       - [Run the shell script to get SNP
         lists](#run-the-shell-script-to-get-snp-lists)
-      - [Run the shell script for MAF](#run-the-shell-script-for-maf-1)
-      - [Run the shell script for Fst](#run-the-shell-script-for-fst-1)
-      - [Run the shell script for SAF with GATK’s GL
-        model](#run-the-shell-script-for-saf-with-gatks-gl-model-1)
-      - [Run the shell script for theta with GATK’s GL
-        model](#run-the-shell-script-for-theta-with-gatks-gl-model-1)
+      - [Run the shell script for MAF](#run-the-shell-script-for-maf-2)
+      - [Run the shell script for Fst](#run-the-shell-script-for-fst-2)
       - [Run the shell script for selection scan using
         PCAngsd](#run-the-shell-script-for-selection-scan-using-pcangsd-1)
 
@@ -352,13 +326,17 @@ for REP_ID in 1; do
 done
 ```
 
-## Get shell script for SNP calling
+## Get Fst with Samtool’s GL model
+
+#### Get shell script for SNP calling
 
 ``` r
 ## Note that I used -doMajorMinor 5, using the ancestral sequence to determine major and minor alleles
 shell_script <-"#!/bin/bash
 REP_ID=$1
 OUT_DIR_BASE=$2
+SUBDIR=${3:-angsd}
+GL_MODEL=${4:-1}
 BASE_DIR=$OUT_DIR_BASE'rep_'$REP_ID'/'
 N_JOB_MAX=6
 COUNT=0
@@ -368,8 +346,8 @@ for SAMPLE_SIZE in {5,10,20,40,80,160}; do
     /workdir/programs/angsd0.931/angsd/angsd \\
     -b $BASE_DIR'sample_lists/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.txt' \\
     -anc $BASE_DIR'slim/ancestral.fasta' \\
-    -out $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x' \\
-    -dosaf 1 -GL 1 -doGlf 2 -doMaf 1 -doMajorMinor 5 \\
+    -out $BASE_DIR$SUBDIR'/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x' \\
+    -dosaf 1 -GL $GL_MODEL -doGlf 2 -doMaf 1 -doMajorMinor 5 \\
     -doCounts 1 -doDepth 1 -dumpCounts 1 \\
     -P 6 -SNP_pval 1e-6 -rmTriallelic 1e-6 \\
     -setMinDepth 2 -minInd 1 -minMaf 0.0005 -minQ 20 &
@@ -384,27 +362,28 @@ done"
 write_lines(shell_script, "../shell_scripts/snp_calling_two_pop_sim_fixed_m2_pos.sh")
 ```
 
-## Run the shell script for SNP calling
+#### Run the shell script for SNP calling
 
 ``` bash
 nohup bash /workdir/lcwgs-simulation/shell_scripts/snp_calling_two_pop_sim_fixed_m2_pos.sh 1 '/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos/' \
 > /workdir/lcwgs-simulation/nohups/snp_calling_two_pop_sim_fixed_m2_pos.nohup &
 ```
 
-## Get shell script writing SNP lists
+#### Get shell script writing SNP lists
 
 ``` r
 shell_script <-"#!/bin/bash
 REP_ID=$1
 OUT_DIR_BASE=$2
+SUBDIR=${3:-angsd}
 BASE_DIR=$OUT_DIR_BASE'rep_'$REP_ID'/'
 N_JOB_MAX=16
 COUNT=0
 ## Create SNP lists
 for SAMPLE_SIZE in {5,10,20,40,80,160}; do
   for COVERAGE in {0.25,0.5,1,2,4,8}; do
-    gunzip -c $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.mafs.gz' | cut -f 1,2,3,4 | tail -n +2 > \\
-    $BASE_DIR'angsd/global_snp_list_bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.txt' &
+    gunzip -c $BASE_DIR$SUBDIR'/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.mafs.gz' | cut -f 1,2,3,4 | tail -n +2 > \\
+    $BASE_DIR$SUBDIR'/global_snp_list_bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.txt' &
     ## Submit sixteen jobs at a time
     COUNT=$(( COUNT + 1 ))
     if [ $COUNT == $N_JOB_MAX ]; then
@@ -419,7 +398,7 @@ COUNT=0
 for SAMPLE_SIZE in {5,10,20,40,80,160}; do
   for COVERAGE in {0.25,0.5,1,2,4,8}; do
     /workdir/programs/angsd0.931/angsd/angsd sites index \\
-    $BASE_DIR'angsd/global_snp_list_bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.txt' &
+    $BASE_DIR$SUBDIR'/global_snp_list_bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.txt' &
     ## Submit sixteen jobs at a time
     COUNT=$(( COUNT + 1 ))
     if [ $COUNT == $N_JOB_MAX ]; then
@@ -431,21 +410,23 @@ done"
 write_lines(shell_script, "../shell_scripts/get_snp_list_two_pop_sim_fixed_m2_pos.sh")
 ```
 
-## Run shell script to get SNP list
+#### Run shell script to get SNP list
 
 ``` bash
 bash /workdir/lcwgs-simulation/shell_scripts/get_snp_list_two_pop_sim_fixed_m2_pos.sh 1 '/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos/'
 ```
 
-## Get shell script for per population MAF estimation
+#### Get shell script for per population MAF estimation
 
 ``` r
 ## Note that I used -doMajorMinor 5, using the ancestral sequence to determine major and minor alleles
 shell_script <-"#!/bin/bash
 REP_ID=$1
 OUT_DIR_BASE=$2
+SUBDIR=${3:-angsd}
+GL_MODEL=${4:-1}
 BASE_DIR=$OUT_DIR_BASE'rep_'$REP_ID'/'
-N_JOB_MAX=16
+N_JOB_MAX=12
 COUNT=0
 for SAMPLE_SIZE in {5,10,20,40,80,160}; do
   for COVERAGE in {0.25,0.5,1,2,4,8}; do
@@ -454,9 +435,9 @@ for SAMPLE_SIZE in {5,10,20,40,80,160}; do
       /workdir/programs/angsd0.931/angsd/angsd \\
       -b $BASE_DIR'sample_lists/bam_list_p'$POP'_'$SAMPLE_SIZE'_'$COVERAGE'x.txt' \\
       -anc $BASE_DIR'slim/ancestral.fasta' \\
-      -out $BASE_DIR'angsd/bam_list_p'$POP'_'$SAMPLE_SIZE'_'$COVERAGE'x' \\
-      -sites $BASE_DIR'angsd/global_snp_list_bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.txt' \\
-      -dosaf 1 -GL 1 -doGlf 2 -doMaf 1 -doMajorMinor 5 \\
+      -out $BASE_DIR$SUBDIR'/bam_list_p'$POP'_'$SAMPLE_SIZE'_'$COVERAGE'x' \\
+      -sites $BASE_DIR$SUBDIR'/global_snp_list_bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.txt' \\
+      -dosaf 1 -GL $GL_MODEL -doGlf 2 -doMaf 1 -doMajorMinor 5 \\
       -doCounts 1 -doDepth 1 -dumpCounts 1 \\
       -P 2 \\
       -setMinDepth 1 -minInd 1 -minQ 20 & 
@@ -472,19 +453,20 @@ done"
 write_lines(shell_script, "../shell_scripts/get_maf_two_pop_sim_fixed_m2_pos.sh")
 ```
 
-## Run the shell script for MAF
+#### Run the shell script for MAF
 
 ``` bash
 nohup bash /workdir/lcwgs-simulation/shell_scripts/get_maf_two_pop_sim_fixed_m2_pos.sh 1 '/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos/' \
 > /workdir/lcwgs-simulation/nohups/get_maf_two_pop_sim_fixed_m2_pos.nohup &
 ```
 
-## Get Fst between the two populations
+#### Get Fst between the two populations
 
 ``` r
 shell_script <-"#!/bin/bash
 REP_ID=$1
 OUT_DIR_BASE=$2
+SUBDIR=${3:-angsd}
 BASE_DIR=$OUT_DIR_BASE'rep_'$REP_ID'/'
 N_JOB_MAX=2
 COUNT=0
@@ -492,10 +474,10 @@ COUNT=0
 for SAMPLE_SIZE in {5,10,20,40,80,160}; do
   for COVERAGE in {0.25,0.5,1,2,4,8}; do
         /workdir/programs/angsd0.931/angsd/misc/realSFS \\
-    $BASE_DIR'angsd/bam_list_p1_'$SAMPLE_SIZE'_'$COVERAGE'x.saf.idx' \\
-    $BASE_DIR'angsd/bam_list_p2_'$SAMPLE_SIZE'_'$COVERAGE'x.saf.idx' \\
+    $BASE_DIR$SUBDIR'/bam_list_p1_'$SAMPLE_SIZE'_'$COVERAGE'x.saf.idx' \\
+    $BASE_DIR$SUBDIR'/bam_list_p2_'$SAMPLE_SIZE'_'$COVERAGE'x.saf.idx' \\
     -P 8 \\
-    > $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.2dSFS' & 
+    > $BASE_DIR$SUBDIR'/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.2dSFS' & 
     ## Submit two jobs at a time
     COUNT=$(( COUNT + 1 ))
     if [ $COUNT == $N_JOB_MAX ]; then
@@ -510,11 +492,11 @@ COUNT=0
 for SAMPLE_SIZE in {5,10,20,40,80,160}; do
   for COVERAGE in {0.25,0.5,1,2,4,8}; do
         /workdir/programs/angsd0.931/angsd/misc/realSFS fst index \\
-    $BASE_DIR'angsd/bam_list_p1_'$SAMPLE_SIZE'_'$COVERAGE'x.saf.idx' \\
-    $BASE_DIR'angsd/bam_list_p2_'$SAMPLE_SIZE'_'$COVERAGE'x.saf.idx' \\
+    $BASE_DIR$SUBDIR'/bam_list_p1_'$SAMPLE_SIZE'_'$COVERAGE'x.saf.idx' \\
+    $BASE_DIR$SUBDIR'/bam_list_p2_'$SAMPLE_SIZE'_'$COVERAGE'x.saf.idx' \\
     -P 8 \\
-    -sfs $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.2dSFS' \\
-    -fstout $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.alpha_beta' &
+    -sfs $BASE_DIR$SUBDIR'/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.2dSFS' \\
+    -fstout $BASE_DIR$SUBDIR'/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.alpha_beta' &
     ## Submit two jobs at a time
     COUNT=$(( COUNT + 1 ))
     if [ $COUNT == $N_JOB_MAX ]; then
@@ -528,8 +510,8 @@ wait
 for SAMPLE_SIZE in {5,10,20,40,80,160}; do
   for COVERAGE in {0.25,0.5,1,2,4,8}; do
         /workdir/programs/angsd0.931/angsd/misc/realSFS fst print \\
-    $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.alpha_beta.fst.idx' \\
-    > $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.alpha_beta.txt' &
+    $BASE_DIR$SUBDIR'/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.alpha_beta.fst.idx' \\
+    > $BASE_DIR$SUBDIR'/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.alpha_beta.txt' &
   done
 done
 wait
@@ -537,14 +519,14 @@ wait
 for SAMPLE_SIZE in {5,10,20,40,80,160}; do
   for COVERAGE in {0.25,0.5,1,2,4,8}; do
         awk '{ print $0 \"\t\" $3 / $4 }' \\
-    $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.alpha_beta.txt' \\
-    > $BASE_DIR'angsd/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.fst' &
+    $BASE_DIR$SUBDIR'/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.alpha_beta.txt' \\
+    > $BASE_DIR$SUBDIR'/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.fst' &
   done
 done"
 write_lines(shell_script, "../shell_scripts/get_fst_two_pop_sim_fixed_m2_pos.sh")
 ```
 
-## Run the shell script for Fst
+#### Run the shell script for Fst
 
 ``` bash
 nohup bash /workdir/lcwgs-simulation/shell_scripts/get_fst_two_pop_sim_fixed_m2_pos.sh \
@@ -553,205 +535,188 @@ nohup bash /workdir/lcwgs-simulation/shell_scripts/get_fst_two_pop_sim_fixed_m2_
 > /workdir/lcwgs-simulation/nohups/get_fst_two_pop_sim_fixed_m2_pos.nohup &
 ```
 
-## Get shell script for per population SAF estimation using GATK’s GL model
+## Theta and neutrality stats with Samtools GL model in population 1
 
-For this step, I used GATK’s GL model (`-GL 2`), and applied a minimum
-depth filter but no SNP p-value or MAF filter.
-
-``` r
-## Note that I used -doMajorMinor 5, using the ancestral sequence to determine major and minor alleles
-shell_script <-"#!/bin/bash
-REP_ID=$1
-OUT_DIR_BASE=$2
-BASE_DIR=$OUT_DIR_BASE'rep_'$REP_ID'/'
-N_JOB_MAX=4
-COUNT=0
-for SAMPLE_SIZE in {5,10,20,40,80,160}; do
-  for COVERAGE in {0.25,0.5,1,2,4,8}; do
-      for POP in {1,2}; do
-      ## Get SAF
-      /workdir/programs/angsd0.931/angsd/angsd \\
-      -bam $BASE_DIR'sample_lists/bam_list_p'$POP'_'$SAMPLE_SIZE'_'$COVERAGE'x.txt' \\
-      -out $BASE_DIR'angsd_gatk/bam_list_p'$POP'_'$SAMPLE_SIZE'_'$COVERAGE'x' \\
-      -doSaf 1 \\
-      -anc $BASE_DIR'slim/ancestral.fasta' \\
-      -GL 2 \\
-      -P 4 \\
-      -doCounts 1 \\
-      -setMinDepth `awk \"BEGIN {print $SAMPLE_SIZE*$COVERAGE}\"` & 
-      ## Submit four jobs at a time
-      COUNT=$(( COUNT + 1 ))
-      if [ $COUNT == $N_JOB_MAX ]; then
-       wait
-       COUNT=0
-      fi
-    done
-  done
-done"
-write_lines(shell_script, "../shell_scripts/get_saf_gatk_two_pop_sim_fixed_m2_pos.sh")
-```
-
-## Run the shell script for SAF with GATK’s GL model
-
-``` bash
-nohup bash /workdir/lcwgs-simulation/shell_scripts/get_saf_gatk_two_pop_sim_fixed_m2_pos.sh \
-1 \
-'/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos/' \
-> /workdir/lcwgs-simulation/nohups/get_saf_gatk_two_pop_sim_fixed_m2_pos.nohup &
-```
-
-## Get Fst between the two populations with GATK’s GL model
+#### Create shell scripts to estimated theta and neutrality stats
 
 ``` r
-shell_script <-"#!/bin/bash
+shell_script <- "#!/bin/bash
 REP_ID=$1
-OUT_DIR_BASE=$2
-BASE_DIR=$OUT_DIR_BASE'rep_'$REP_ID'/'
-N_JOB_MAX=2
+DIR=${2:-/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos/}
+SUBDIR=${3:-angsd}
+GL_MODEL=${4:-1}
+POP=${5:-1}
+
+BASE_DIR=$DIR'rep_'$REP_ID'/'
+N_CORE_MAX=6
+
+## Get saf file
 COUNT=0
-# Generate the 2dSFS to be used as a prior for Fst estimation (and individual plots)                
-for SAMPLE_SIZE in {5,10,20,40,80,160}; do
-  for COVERAGE in {0.25,0.5,1,2,4,8}; do
-        /workdir/programs/angsd0.931/angsd/misc/realSFS \\
-    $BASE_DIR'angsd_gatk/bam_list_p1_'$SAMPLE_SIZE'_'$COVERAGE'x.saf.idx' \\
-    $BASE_DIR'angsd_gatk/bam_list_p2_'$SAMPLE_SIZE'_'$COVERAGE'x.saf.idx' \\
-    -P 16 -tole 3.16e-07 -maxIter 500 \\
-    > $BASE_DIR'angsd_gatk/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.2dSFS' &
-    ## Submit two jobs at a time
-    COUNT=$(( COUNT + 1 ))
-    if [ $COUNT == $N_JOB_MAX ]; then
-     wait
-     COUNT=0
-    fi
-  done
-done
-wait
-# Get alpha_beta
-for SAMPLE_SIZE in {5,10,20,40,80,160}; do
-  for COVERAGE in {0.25,0.5,1,2,4,8}; do
-        /workdir/programs/angsd0.931/angsd/misc/realSFS fst index \\
-    $BASE_DIR'angsd_gatk/bam_list_p1_'$SAMPLE_SIZE'_'$COVERAGE'x.saf.idx' \\
-    $BASE_DIR'angsd_gatk/bam_list_p2_'$SAMPLE_SIZE'_'$COVERAGE'x.saf.idx' \\
-    -sfs $BASE_DIR'angsd_gatk/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.2dSFS' \\
-    -fstout $BASE_DIR'angsd_gatk/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.alpha_beta' &
-  done
-done
-wait
-# Get alpha_beta.txt
-for SAMPLE_SIZE in {5,10,20,40,80,160}; do
-  for COVERAGE in {0.25,0.5,1,2,4,8}; do
-        /workdir/programs/angsd0.931/angsd/misc/realSFS fst print \\
-    $BASE_DIR'angsd_gatk/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.alpha_beta.fst.idx' \\
-    > $BASE_DIR'angsd_gatk/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.alpha_beta.txt' &
-  done
-done
-wait
-# Get fst
-for SAMPLE_SIZE in {5,10,20,40,80,160}; do
-  for COVERAGE in {0.25,0.5,1,2,4,8}; do
-        awk '{ print $0 \"\t\" $3 / $4 }' \\
-    $BASE_DIR'angsd_gatk/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.alpha_beta.txt' \\
-    > $BASE_DIR'angsd_gatk/bam_list_'$SAMPLE_SIZE'_'$COVERAGE'x.fst' &
-  done
-done"
-write_lines(shell_script, "../shell_scripts/get_fst_gatk_two_pop_sim_fixed_m2_pos.sh")
-```
-
-## Run the shell script for Fst with GATK
-
-``` bash
-nohup bash /workdir/lcwgs-simulation/shell_scripts/get_fst_gatk_two_pop_sim_fixed_m2_pos.sh \
-1 \
-'/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos/' \
-> /workdir/lcwgs-simulation/nohups/get_fst_gatk_two_pop_sim_fixed_m2_pos.nohup &
-```
-
-## Get shell script to estimate theta in p1 with GATK’s GL model
-
-``` r
-shell_script <-"#!/bin/bash
-REP_ID=$1
-OUT_DIR_BASE=$2
-BASE_DIR=$OUT_DIR_BASE'rep_'$REP_ID'/'
-N_JOB_MAX=1
-COUNT=0
-# Generate SFS based on SAF         
-for SAMPLE_SIZE in {5,10,20,40,80,160}; do
-  for COVERAGE in {0.25,0.5,1,2,4,8}; do
-        /workdir/programs/angsd0.931/angsd/misc/realSFS \\
-    $BASE_DIR'angsd_gatk/bam_list_p1_'$SAMPLE_SIZE'_'$COVERAGE'x.saf.idx' \\
-    -P 32 \\
-    -tole 1e-08 \\
-    -maxIter 1000 \\
-    > $BASE_DIR'angsd_gatk/bam_list_p1_'$SAMPLE_SIZE'_'$COVERAGE'x.sfs' &
-    ## Submit two jobs at a time
-    COUNT=$(( COUNT + 1 ))
-    if [ $COUNT == $N_JOB_MAX ]; then
-     wait
-     COUNT=0
-    fi
-  done
-done
-wait
-# Estimate theta
 for SAMPLE_SIZE in {5,10,20,40,80,160}; do
   for COVERAGE in {0.25,0.5,1,2,4,8}; do
     /workdir/programs/angsd0.931/angsd/angsd \\
-      -bam $BASE_DIR'sample_lists/bam_list_p1_'$SAMPLE_SIZE'_'$COVERAGE'x.txt' \\
-      -out $BASE_DIR'angsd_gatk/bam_list_p1_'$SAMPLE_SIZE'_'$COVERAGE'x' \\
-      -doThetas 1 \\
+      -bam $BASE_DIR'sample_lists/bam_list_p'$POP'_'$SAMPLE_SIZE'_'$COVERAGE'x.txt' \\
+      -out $BASE_DIR$SUBDIR'/bam_list_p'$POP'_'$SAMPLE_SIZE'_'$COVERAGE'x_all_sites' \\
       -doSaf 1 \\
-      -pest $BASE_DIR'angsd_gatk/bam_list_p1_'$SAMPLE_SIZE'_'$COVERAGE'x.sfs' \\
       -anc $BASE_DIR'slim/ancestral.fasta' \\
-      -GL 2 \\
-      -P 32 \\
+      -GL $GL_MODEL \\
+      -P 6 \\
       -doCounts 1 \\
       -setMinDepth `awk \"BEGIN {print $SAMPLE_SIZE*$COVERAGE}\"` &
     COUNT=$(( COUNT + 1 ))
-    if [ $COUNT == $N_JOB_MAX ]; then
+    if [ $COUNT == $N_CORE_MAX ]; then
       wait
       COUNT=0
     fi
-    done
-done
-wait
-# Print per-SNP theta
-for SAMPLE_SIZE in {5,10,20,40,80,160}; do
-  for COVERAGE in {0.25,0.5,1,2,4,8}; do
-    /workdir/programs/angsd0.931/angsd/misc/thetaStat print \\
-    $BASE_DIR'angsd_gatk/bam_list_p1_'$SAMPLE_SIZE'_'$COVERAGE'x.thetas.idx' \\
-    > $BASE_DIR'angsd_gatk/bam_list_p1_'$SAMPLE_SIZE'_'$COVERAGE'x.thetas.tsv'
   done
 done
 wait
-# Do fixed window theta
+## Get SFS from saf (this need to be broken up into two separate runs due to memory limiations)
+COUNT=0
+N_CORE_MAX=1
+for SAMPLE_SIZE in {5,10,20,40,80,160}; do
+  for COVERAGE in {0.25,0.5,1,2,4,8}; do
+    /workdir/programs/angsd0.931/angsd/misc/realSFS \\
+      $BASE_DIR$SUBDIR'/bam_list_p'$POP'_'$SAMPLE_SIZE'_'$COVERAGE'x_all_sites.saf.idx' \\
+      -P 30 \\
+      -tole 1e-08 \\
+      -maxIter 1000 \\
+      > $BASE_DIR$SUBDIR'/bam_list_p'$POP'_'$SAMPLE_SIZE'_'$COVERAGE'x_all_sites.sfs' &
+    COUNT=$(( COUNT + 1 ))
+    if [ $COUNT == $N_CORE_MAX ]; then
+      wait
+      COUNT=0
+    fi
+  done
+done
+wait
+## Estimate theta
+COUNT=0
+N_CORE_MAX=6
+for SAMPLE_SIZE in {5,10,20,40,80,160}; do
+  for COVERAGE in {0.25,0.5,1,2,4,8}; do
+    /workdir/programs/angsd0.931/angsd/angsd \\
+      -bam $BASE_DIR'sample_lists/bam_list_p'$POP'_'$SAMPLE_SIZE'_'$COVERAGE'x.txt' \\
+      -out $BASE_DIR$SUBDIR'/bam_list_p'$POP'_'$SAMPLE_SIZE'_'$COVERAGE'x_all_sites' \\
+      -doThetas 1 \\
+      -doSaf 1 \\
+      -pest $BASE_DIR$SUBDIR'/bam_list_p'$POP'_'$SAMPLE_SIZE'_'$COVERAGE'x_all_sites.sfs' \\
+      -anc $BASE_DIR'slim/ancestral.fasta' \\
+      -GL $GL_MODEL \\
+      -P 6 \\
+      -doCounts 1 \\
+      -setMinDepth `awk \"BEGIN {print $SAMPLE_SIZE*$COVERAGE}\"` &
+    COUNT=$(( COUNT + 1 ))
+    if [ $COUNT == $N_CORE_MAX ]; then
+      wait
+      COUNT=0
+    fi
+  done
+done
+wait
+## Print per-SNP theta
+COUNT=0
+for SAMPLE_SIZE in {5,10,20,40,80,160}; do
+  for COVERAGE in {0.25,0.5,1,2,4,8}; do
+    /workdir/programs/angsd0.931/angsd/misc/thetaStat print \\
+      $BASE_DIR$SUBDIR'/bam_list_p'$POP'_'$SAMPLE_SIZE'_'$COVERAGE'x_all_sites.thetas.idx' \\
+      > $BASE_DIR$SUBDIR'/bam_list_p'$POP'_'$SAMPLE_SIZE'_'$COVERAGE'x_all_sites.thetas.tsv' &
+    COUNT=$(( COUNT + 1 ))
+    if [ $COUNT == $N_CORE_MAX ]; then
+      wait
+      COUNT=0
+    fi
+  done
+done
+wait
+## Do fixed window theta
+COUNT=0
 for SAMPLE_SIZE in {5,10,20,40,80,160}; do
   for COVERAGE in {0.25,0.5,1,2,4,8}; do
     /workdir/programs/angsd0.931/angsd/misc/thetaStat do_stat \\
-    $BASE_DIR'angsd_gatk/bam_list_p1_'$SAMPLE_SIZE'_'$COVERAGE'x.thetas.idx' \\
-    -win 10000 -step 10000 \\
-    -outnames $BASE_DIR'angsd_gatk/bam_list_p1_'$SAMPLE_SIZE'_'$COVERAGE'x.windowed_thetas.idx'
+      $BASE_DIR$SUBDIR'/bam_list_p'$POP'_'$SAMPLE_SIZE'_'$COVERAGE'x_all_sites.thetas.idx' \\
+      -win 10000 -step 10000 \\
+      -outnames $BASE_DIR$SUBDIR'/bam_list_p'$POP'_'$SAMPLE_SIZE'_'$COVERAGE'x_all_sites.windowed_thetas.idx' &
+    COUNT=$(( COUNT + 1 ))
+    if [ $COUNT == $N_CORE_MAX ]; then
+      wait
+      COUNT=0
+    fi
   done
 done
 wait
 ## Do per-chromosome average theta
+COUNT=0
 for SAMPLE_SIZE in {5,10,20,40,80,160}; do
   for COVERAGE in {0.25,0.5,1,2,4,8}; do
     /workdir/programs/angsd0.931/angsd/misc/thetaStat do_stat \\
-    $BASE_DIR'angsd_gatk/bam_list_p1_'$SAMPLE_SIZE'_'$COVERAGE'x.thetas.idx' \\
-    -outnames $BASE_DIR'angsd_gatk/bam_list_p1_'$SAMPLE_SIZE'_'$COVERAGE'x.average_thetas.idx' 
+      $BASE_DIR$SUBDIR'/bam_list_p'$POP'_'$SAMPLE_SIZE'_'$COVERAGE'x_all_sites.thetas.idx' \\
+      -outnames $BASE_DIR$SUBDIR'/bam_list_p'$POP'_'$SAMPLE_SIZE'_'$COVERAGE'x_all_sites.average_thetas.idx' &
+    COUNT=$(( COUNT + 1 ))
+    if [ $COUNT == $N_CORE_MAX ]; then
+      wait
+      COUNT=0
+    fi
   done
 done"
-write_lines(shell_script, "../shell_scripts/get_theta_gatk_two_pop_sim_fixed_m2_pos_p1.sh")
+write_lines(shell_script, "../shell_scripts/estimate_theta_two_populations.sh")
 ```
 
-## Run the shell script for theta with GATK’s GL model
+#### Run shell scripts to estimated theta and neutrality stats with Samtools’ GL model in p1
 
 ``` bash
-nohup bash /workdir/lcwgs-simulation/shell_scripts/get_theta_gatk_two_pop_sim_fixed_m2_pos_p1.sh \
+nohup bash /workdir/lcwgs-simulation/shell_scripts/estimate_theta_two_populations.sh \
+1 \
+/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos/ \
+angsd \
+1 \
+1 \
+> /workdir/lcwgs-simulation/nohups/estimate_theta_two_pop_sim_fixed_m2_pos_p1.nohup &
+```
+
+## Testing GATK’s GL model
+
+For this step, I used GATK’s GL model (`-GL 2`).
+
+#### Run the shell script for SNP calling
+
+``` bash
+nohup bash /workdir/lcwgs-simulation/shell_scripts/snp_calling_two_pop_sim_fixed_m2_pos.sh \
 1 \
 '/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos/' \
-> /workdir/lcwgs-simulation/nohups/get_theta_gatk_two_pop_sim_fixed_m2_pos_p1.nohup &
+angsd_gatk \
+2 \
+> /workdir/lcwgs-simulation/nohups/snp_calling_gatk_two_pop_sim_fixed_m2_pos.nohup &
+```
+
+#### Run shell script to get SNP list
+
+``` bash
+bash /workdir/lcwgs-simulation/shell_scripts/get_snp_list_two_pop_sim_fixed_m2_pos.sh \
+1 \
+'/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos/' \
+angsd_gatk
+```
+
+#### Run the shell script for MAF
+
+``` bash
+nohup bash /workdir/lcwgs-simulation/shell_scripts/get_maf_two_pop_sim_fixed_m2_pos.sh \
+1 \
+'/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos/' \
+angsd_gatk \
+2 \
+> /workdir/lcwgs-simulation/nohups/get_maf_gatk_two_pop_sim_fixed_m2_pos.nohup &
+```
+
+#### Run the shell script for Fst
+
+``` bash
+nohup bash /workdir/lcwgs-simulation/shell_scripts/get_fst_two_pop_sim_fixed_m2_pos.sh \
+1 \
+'/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos/' \
+angsd_gatk \
+> /workdir/lcwgs-simulation/nohups/get_fst_two_pop_sim_fixed_m2_pos.nohup &
 ```
 
 ## Get shell script for running selection scan using PCAngsd
@@ -938,24 +903,6 @@ nohup bash /workdir/lcwgs-simulation/shell_scripts/get_maf_two_pop_sim_fixed_m2_
 ``` bash
 nohup bash /workdir/lcwgs-simulation/shell_scripts/get_fst_two_pop_sim_fixed_m2_pos.sh 1 '/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_r/' \
 > /workdir/lcwgs-simulation/nohups/get_fst_two_pop_sim_fixed_m2_pos_lower_s_lower_r.nohup &
-```
-
-## Run the shell script for SAF with GATK’s GL model
-
-``` bash
-nohup bash /workdir/lcwgs-simulation/shell_scripts/get_saf_gatk_two_pop_sim_fixed_m2_pos.sh \
-1 \
-'/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_r/' \
-> /workdir/lcwgs-simulation/nohups/get_saf_gatk_two_pop_sim_fixed_m2_pos_lower_s_lower_r.nohup &
-```
-
-## Run the shell script for theta with GATK’s GL model
-
-``` bash
-nohup bash /workdir/lcwgs-simulation/shell_scripts/get_theta_gatk_two_pop_sim_fixed_m2_pos_p1.sh \
-1 \
-'/workdir/lcwgs-simulation/two_pop_sim_fixed_m2_pos_lower_s_lower_r/' \
-> /workdir/lcwgs-simulation/nohups/get_theta_gatk_two_pop_sim_fixed_m2_pos_lower_s_lower_r_p1.nohup &
 ```
 
 ## Run the shell script for selection scan using PCAngsd
