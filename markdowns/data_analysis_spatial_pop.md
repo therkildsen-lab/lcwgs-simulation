@@ -122,14 +122,28 @@ dapc_table_final_per_pop <- group_by(dapc_table_final, population, coverage, sam
 #### PC1 vs. PC2
 
 ``` r
-ggplot(pca_table_final,aes(x=PC1, y=PC2, color=population)) +
+pca_table_final_summary <- group_by(pca_table_final, population, coverage, sample_size) %>%
+  summarise(pc1_mean = mean(PC1), pc2_mean = mean(PC2)) %>%
+  ungroup() %>%
+  pivot_wider(names_from = population, values_from = c(pc1_mean, pc2_mean)) %>%
+  transmute(coverage = coverage, sample_size = sample_size, invert_pc1 = pc1_mean_p1 > pc1_mean_p9, invert_pc2 = pc2_mean_p3 < pc2_mean_p7)
+## Flip PC1 and PC2 axes when needed 
+pca_table_final_flipped <- left_join(pca_table_final, pca_table_final_summary, 
+                                     by=c("coverage", "sample_size")) %>%
+  mutate(PC1 = ifelse(invert_pc1==TRUE, -PC1, PC1),
+         PC2 = ifelse(invert_pc2==TRUE, -PC2, PC2))
+ggplot(pca_table_final_flipped,aes(x=PC1, y=PC2, color=population)) +
   geom_point() +
   scale_color_viridis_d() +
   facet_grid(coverage~sample_size, scales="free") +
-  theme_bw() +
-  theme(panel.grid = element_blank(),
+  theme_cowplot() +
+  theme(text = element_text(size=20),
+        panel.grid = element_blank(),
         axis.text = element_blank(),
-        axis.ticks = element_blank())
+        axis.ticks = element_blank(),
+        axis.line = element_blank(),
+        panel.border = element_rect(colour = "black", fill=NA, size=1),
+        legend.position="none")
 ```
 
 ![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
@@ -405,13 +419,30 @@ covariance matrices generated from PCAngsd.
 #### PC1 vs. PC2
 
 ``` r
-ggplot(pca_table_final,aes(x=PC1, y=PC2, color=population)) +
+pca_table_final_summary <- group_by(pca_table_final, population, coverage, sample_size) %>%
+  summarise(pc1_mean = mean(PC1), pc2_mean = mean(PC2)) %>%
+  ungroup() %>%
+  pivot_wider(names_from = population, values_from = c(pc1_mean, pc2_mean)) %>%
+  transmute(coverage = coverage, sample_size = sample_size, invert_pc1 = pc1_mean_p1 > pc1_mean_p9, invert_pc2 = pc2_mean_p3 < pc2_mean_p7)
+## Flip PC1 and PC2 axes when needed 
+pca_table_final_flipped <- left_join(pca_table_final, pca_table_final_summary, 
+                                     by=c("coverage", "sample_size")) %>%
+  mutate(PC1 = ifelse(invert_pc1==TRUE, -PC1, PC1),
+         PC2 = ifelse(invert_pc2==TRUE, -PC2, PC2))
+ggplot(pca_table_final_flipped,aes(x=PC1, y=PC2, color=population)) +
   geom_point() +
+  scale_color_viridis_d() +
+  ggtitle("PCA with the Samtools genotype likelihood model") +
   facet_grid(coverage~sample_size, scales="free") +
-  theme_bw() +
-  theme(panel.grid = element_blank(),
+  theme_cowplot() +
+  theme(text = element_text(size=20),
+        title = element_text(size=15),
+        panel.grid = element_blank(),
         axis.text = element_blank(),
-        axis.ticks = element_blank())
+        axis.ticks = element_blank(),
+        axis.line = element_blank(),
+        panel.border = element_rect(colour = "black", fill=NA, size=1),
+        legend.position="none")
 ```
 
 ![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
@@ -712,13 +743,30 @@ covariance matrices generated from PCAngsd.
 ### Plot PCA
 
 ``` r
-ggplot(pca_table_final,aes(x=PC1, y=PC2, color=population)) +
+pca_table_final_summary <- group_by(pca_table_final, population, coverage, sample_size) %>%
+  summarise(pc1_mean = mean(PC1), pc2_mean = mean(PC2)) %>%
+  ungroup() %>%
+  pivot_wider(names_from = population, values_from = c(pc1_mean, pc2_mean)) %>%
+  transmute(coverage = coverage, sample_size = sample_size, invert_pc1 = pc1_mean_p1 > pc1_mean_p9, invert_pc2 = pc2_mean_p3 < pc2_mean_p7)
+## Flip PC1 and PC2 axes when needed 
+pca_table_final_flipped <- left_join(pca_table_final, pca_table_final_summary, 
+                                     by=c("coverage", "sample_size")) %>%
+  mutate(PC1 = ifelse(invert_pc1==TRUE, -PC1, PC1),
+         PC2 = ifelse(invert_pc2==TRUE, -PC2, PC2))
+ggplot(pca_table_final_flipped,aes(x=PC1, y=PC2, color=population)) +
   geom_point() +
+  scale_color_viridis_d() +
+  ggtitle("PCA with the GATK genotype likelihood model") +
   facet_grid(coverage~sample_size, scales="free") +
-  theme_bw() +
-  theme(panel.grid = element_blank(),
+  theme_cowplot() +
+  theme(text = element_text(size=20),
+        title = element_text(size=15),
+        panel.grid = element_blank(),
         axis.text = element_blank(),
-        axis.ticks = element_blank())
+        axis.ticks = element_blank(),
+        axis.line = element_blank(),
+        panel.border = element_rect(colour = "black", fill=NA, size=1),
+        legend.position="none")
 ```
 
 ![](data_analysis_spatial_pop_files/figure-gfm/unnamed-chunk-30-1.png)<!-- -->
