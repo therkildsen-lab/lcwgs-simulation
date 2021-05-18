@@ -35,6 +35,7 @@ Data analysis with simulation of divergent selection on two populations
               - [Genome wide stats](#genome-wide-stats)
               - [Window-based stats](#window-based-stats)
       - [Inference with GATK’s GL model](#inference-with-gatks-gl-model)
+          - [Chromosome-average Fst](#chromosome-average-fst)
           - [Fst in 1000bp windows](#fst-in-1000bp-windows)
       - [RAD seq simulation and
         inference](#rad-seq-simulation-and-inference)
@@ -82,6 +83,8 @@ The target theta is \~ 0.004.
 
 ``` r
 mutations_final <- get_mutations("../two_pop_sim_fixed_m2_pos/rep_1/")
+mutations_final_m1 <- filter(mutations_final, type=="m1")
+mutations_final_m2 <- filter(mutations_final, type=="m2")
 real_theta_t_p1 <- sum(2*mutations_final$p1*(1-mutations_final$p1))/30000000
 real_theta_t_p2 <- sum(2*mutations_final$p2*(1-mutations_final$p2))/30000000
 real_theta_t_combined <- sum(2*mutations_final$frequency_mean*(1-mutations_final$frequency_mean))/30000000
@@ -144,8 +147,6 @@ I used `mean(h_s)/mean(h_t)` to calculate average Fst. I am not sure if
 this estimator is biased though.
 
 ``` r
-mutations_final_m1 <- filter(mutations_final, type=="m1")
-mutations_final_m2 <- filter(mutations_final, type=="m2")
 ## genome-wide mean fst
 summarise(mutations_final, average_fst = 1-mean(h_s)/mean(h_t))
 ```
@@ -243,9 +244,10 @@ fst_n_ind_final <- get_estimated_fst("../two_pop_sim_fixed_m2_pos/rep_1/")
 group_by(fst_n_ind_final, sample_size, coverage) %>%
   count() %>%
   pivot_wider(names_from = sample_size, values_from = n)
-average_fst_plot <- fst_n_ind_final %>%
+average_fst <- fst_n_ind_final %>%
   group_by(coverage, sample_size) %>%
-  summarise(average_fst = sum(alpha)/sum(beta)) %>%
+  summarise(average_fst = sum(alpha)/sum(beta)) 
+average_fst_plot <- average_fst %>%
   ggplot(aes(x=as.factor(sample_size), y=as.factor(coverage), fill=average_fst, label=round(average_fst, 4))) +
   geom_tile() +
   geom_text() +
@@ -344,11 +346,17 @@ include_graphics("../figures/two_pop_sim_fixed_m2_pos_filtered_fst_raw.png")
 
 ``` r
 windowed_fst_plot <- fixed_windowed_fst(fst_n_ind_final, 1000) %>%
-  ggplot(aes(x=position, y=fst)) +
-    geom_point(alpha=0.5, size=0.1) +
-    geom_point(data=mutations_final_m2, aes(x=position, y=1.01), color="red", size=0.2, shape=8) +
-    facet_grid(coverage~sample_size) +
-    theme_cowplot()
+  ggplot(aes(x=position/10^6, y=fst)) +
+  geom_point(alpha=0.5, size=0.1) +
+  geom_point(data=mutations_final_m2, aes(x=position/10^6, y=1.01), color="red", size=2, shape=8) +
+  geom_text(data=average_fst,x=27, y=0.8, aes(label=round(average_fst,3))) +
+  ylim(NA, 1.05) +
+  labs(x = "position (in Mbp)", y = expression(F[ST])) + 
+  facet_grid(coverage~sample_size) +
+  ggtitle(expression(paste(F[ST], " in 1kb windows with the Samtools genotype likelihood model"))) +
+  theme_cowplot() +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        title = element_text(size=15)) 
 ggsave("../figures/two_pop_sim_fixed_m2_pos_windowed_fst_raw.png", windowed_fst_plot, height = 8, width=15, units = "in")
 ```
 
@@ -468,12 +476,18 @@ higher coverage.
 
 ``` r
 p1_tajima_plot <- p1_neutrality_stats %>%
-  ggplot(aes(x = pos, y = tajima)) +
-  geom_vline(data=mutations_final_m2, aes(xintercept=position), color="red", size=2, alpha=0.5) +
-  geom_point(alpha=1, size=0.1) +
-  facet_wrap(coverage ~ sample_size, scales = "free_y") +
-  theme_cowplot()
-ggsave("../figures/two_pop_sim_fixed_m2_pos_p1_tajima_d.png", p1_tajima_plot, height = 10, width=15, units = "in")
+  arrange(coverage, sample_size) %>%
+  #mutate(coverage=str_c("coverage = ", coverage), sample_size=str_c("sample size = ", sample_size)) %>%
+  mutate(design=str_c(coverage, "x coverage, ", sample_size, " samples")) %>%
+  mutate(design=as_factor(design)) %>%
+  ggplot(aes(x = pos/10^6, y = tajima)) +
+  geom_vline(data=mutations_final_m2, aes(xintercept=position/10^6), color="red", size=1, alpha=0.5) +
+  geom_point(alpha=1, size=1) +
+  facet_wrap(~ design, scales = "free_y", nrow = 6) +
+  theme_cowplot() +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1)) +
+  labs(x="position (in Mbp)", y="Tajima's D")
+ggsave("../figures/two_pop_sim_fixed_m2_pos_p1_tajima_d.png", p1_tajima_plot, height = 10, width=17, units = "in")
 ```
 
 ``` r
@@ -486,12 +500,18 @@ include_graphics("../figures/two_pop_sim_fixed_m2_pos_p1_tajima_d.png")
 
 ``` r
 p1_fayh_plot <- p1_neutrality_stats %>%
-  ggplot(aes(x = pos, y = fayh)) +
-  geom_vline(data=mutations_final_m2, aes(xintercept=position), color="red", size=2, alpha=0.5) +
-  geom_point(size=0.1) +
-  facet_wrap(coverage ~ sample_size, scales = "free_y") +
-  theme_cowplot()
-ggsave("../figures/two_pop_sim_fixed_m2_pos_p1_fay_h.png", p1_fayh_plot, height = 10, width=15, units = "in")
+  arrange(coverage, sample_size) %>%
+  #mutate(coverage=str_c("coverage = ", coverage), sample_size=str_c("sample size = ", sample_size)) %>%
+  mutate(design=str_c(coverage, "x coverage, ", sample_size, " samples")) %>%
+  mutate(design=as_factor(design)) %>%
+  ggplot(aes(x = pos/10^6, y = fayh)) +
+  geom_vline(data=mutations_final_m2, aes(xintercept=position/10^6), color="red", size=1, alpha=0.5) +
+  geom_point(alpha=1, size=1) +
+  facet_wrap(~ design, scales = "free_y", nrow = 6) +
+  theme_cowplot() +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1)) +
+  labs(x="position (in Mbp)", y="Fay and Wu's H")
+ggsave("../figures/two_pop_sim_fixed_m2_pos_p1_fay_h.png", p1_fayh_plot, height = 10, width=17, units = "in")
 ```
 
 ``` r
@@ -502,36 +522,14 @@ include_graphics("../figures/two_pop_sim_fixed_m2_pos_p1_fay_h.png")
 
 ## Inference with GATK’s GL model
 
-### Fst in 1000bp windows
-
-Note that these saf files were generated without a minMaf or a snp\_pval
-filter, but a minDepth filters.
-
-##### Read in per-SNP Fst and caculate average in 1000bp windows
+#### Chromosome-average Fst
 
 ``` r
 fst_windowed_final_gatk <- get_estimated_windowed_fst_gatk("../two_pop_sim_fixed_m2_pos/rep_1/", 1000)
-windowed_fst_plot <- fst_windowed_final_gatk %>%
-  ggplot(aes(x=position, y=fst)) +
-    geom_point(alpha=0.5, size=0.1) +
-    geom_point(data=mutations_final_m2, aes(x=position, y=1.01), color="red", size=0.2, shape=8) +
-    facet_grid(coverage~sample_size) +
-    theme_cowplot()
-ggsave("../figures/two_pop_sim_fixed_m2_pos_windowed_fst_gatk.png", windowed_fst_plot, height = 8, width=15, units = "in")
-```
-
-``` r
-include_graphics("../figures/two_pop_sim_fixed_m2_pos_windowed_fst_gatk.png")
-```
-
-![](../figures/two_pop_sim_fixed_m2_pos_windowed_fst_gatk.png)<!-- -->
-
-##### Chromosome-average Fst
-
-``` r
-average_fst_gatk_plot <- fst_windowed_final_gatk %>%
+average_fst_gatk <- fst_windowed_final_gatk %>%
   group_by(coverage, sample_size) %>%
-  summarize(average_fst = sum(alpha) / sum(beta)) %>%
+  summarize(average_fst = sum(alpha) / sum(beta)) 
+average_fst_gatk_plot <- average_fst_gatk %>%
   ggplot(aes(x=as.factor(sample_size), y=as.factor(coverage), fill=average_fst, label=round(average_fst, 4))) +
   geom_tile() +
   geom_text() +
@@ -545,6 +543,30 @@ include_graphics("../figures/two_pop_sim_fixed_m2_pos_average_fst_gatk.png")
 ```
 
 ![](../figures/two_pop_sim_fixed_m2_pos_average_fst_gatk.png)<!-- -->
+
+#### Fst in 1000bp windows
+
+``` r
+windowed_fst_plot <- fst_windowed_final_gatk %>%
+  ggplot(aes(x=position/10^6, y=fst)) +
+  geom_point(alpha=0.5, size=0.1) +
+  geom_point(data=mutations_final_m2, aes(x=position/10^6, y=1.01), color="red", size=2, shape=8) +
+  geom_text(data=average_fst_gatk,x=27, y=0.8, aes(label=round(average_fst,3))) +
+  ylim(NA, 1.05) +
+  labs(x = "position (in Mbp)", y = expression(F[ST])) + 
+  facet_grid(coverage~sample_size) +
+  ggtitle(expression(paste(F[ST], " in 1kb windows with the GATK genotype likelihood model"))) +
+  theme_cowplot() +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        title = element_text(size=15)) 
+ggsave("../figures/two_pop_sim_fixed_m2_pos_windowed_fst_gatk.png", windowed_fst_plot, height = 8, width=15, units = "in")
+```
+
+``` r
+include_graphics("../figures/two_pop_sim_fixed_m2_pos_windowed_fst_gatk.png")
+```
+
+![](../figures/two_pop_sim_fixed_m2_pos_windowed_fst_gatk.png)<!-- -->
 
 In general, these Fst results are very similar to those from the
 Samtools GL model.

@@ -515,9 +515,11 @@ ld_for_plotting %>%
   geom_line(aes(y=estimated_ld_u), color = "blue", linetype="dashed") +
   geom_text(data = estimated_ne, aes(label=str_c("Ne =", format(round(ne), big.mark = ","))), x = 4, y = 0.5) +
   facet_grid(coverage ~ sample_size) +
+  ggtitle("Fitted linkage decay model using ngsLD with the Samtools genotype likelihood model") +
   cowplot::theme_cowplot() +
   labs(x = "physical distance (in kb)", y = "r-squared") +
-  theme(strip.text = element_text(size=20),
+  theme(title = element_text(size=15), 
+        strip.text = element_text(size=20),
         axis.text.x = element_text(angle=0),
         panel.border = element_rect(colour = "black", fill=NA, size=1)) 
 ```
@@ -557,6 +559,7 @@ estimated_ld %>%
   geom_line(aes(y = expected_ld), color = "red", size = 1.5) +
   geom_line(aes(y = mean_ld), size=0.8, color="blue", alpha=0.8) +
   facet_grid(coverage ~ sample_size) +
+  ggtitle("Linkage disequilibrium estimated using ngsLD with the Samtools genotype likelihood model") +
   cowplot::theme_cowplot() +
   labs(x = "physical distance (in kb)", y = "r-squared") +
   theme(strip.text = element_text(size=20),
