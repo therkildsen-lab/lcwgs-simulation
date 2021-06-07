@@ -334,8 +334,23 @@ p1_tajima_plot <- p1_neutrality_stats %>%
 ggsave("../figures/two_pop_sim_fixed_m2_pos_p1_tajima_d.png", p1_tajima_plot, height = 10, width=17, units = "in")
 ```
 
-```{r}
+```{r, fig.height=6, fig.width=11}
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_p1_tajima_d.png")
+## for presentation
+p1_neutrality_stats %>%
+  filter(sample_size %in% c(10, 20, 40, 80), 
+         coverage %in% c(0.25, 0.5, 1, 2)) %>%
+  arrange(coverage, sample_size) %>%
+  #mutate(coverage=str_c("coverage = ", coverage), sample_size=str_c("sample size = ", sample_size)) %>%
+  mutate(design=str_c(coverage, "x coverage, ", sample_size, " samples")) %>%
+  mutate(design=as_factor(design)) %>%
+  ggplot(aes(x = pos/10^6, y = tajima)) +
+  geom_vline(data=mutations_final_m2, aes(xintercept=position/10^6), color="red", size=1, alpha=0.5) +
+  geom_point(alpha=1, size=1) +
+  facet_wrap(~ design, scales = "free_y", nrow = 4) +
+  theme_cowplot() +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1)) +
+  labs(x="position (in Mbp)", y="Tajima's D")
 ```
 
 ###### Plot Fay and Wu's H

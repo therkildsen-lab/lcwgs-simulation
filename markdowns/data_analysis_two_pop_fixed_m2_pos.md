@@ -195,16 +195,16 @@ arrange(mutations_final_m2, desc(fst))
 ```
 
     ## # A tibble: 8 x 9
-    ##   type  position ancestral     p1      p2 frequency_mean    h_t    h_s    fst
-    ##   <chr>    <dbl> <chr>      <dbl>   <dbl>          <dbl>  <dbl>  <dbl>  <dbl>
-    ## 1 m2    17500001 A         0.918  0.0071          0.462  0.497  0.0827 0.834 
-    ## 2 m2     7500001 A         0.904  0.0119          0.458  0.496  0.0987 0.801 
-    ## 3 m2     2500001 G         0.841  0.0055          0.423  0.488  0.139  0.715 
-    ## 4 m2    22500001 G         0.823  0.0052          0.414  0.485  0.151  0.689 
-    ## 5 m2    10000001 G         0.791  0.00930         0.400  0.480  0.174  0.637 
-    ## 6 m2    20000001 G         0.762  0.0061          0.384  0.473  0.187  0.604 
-    ## 7 m2     5000001 G         0.665  0.0067          0.336  0.446  0.229  0.486 
-    ## 8 m2    27500001 C         0.0268 0               0.0134 0.0264 0.0261 0.0136
+    ##   type  position ancestral     p1     p2 frequency_mean    h_t    h_s    fst
+    ##   <chr>    <dbl> <chr>      <dbl>  <dbl>          <dbl>  <dbl>  <dbl>  <dbl>
+    ## 1 m2    17500001 A         0.918  0.0071         0.462  0.497  0.0827 0.834 
+    ## 2 m2     7500001 A         0.904  0.0119         0.458  0.496  0.0987 0.801 
+    ## 3 m2     2500001 G         0.841  0.0055         0.423  0.488  0.139  0.715 
+    ## 4 m2    22500001 G         0.823  0.0052         0.414  0.485  0.151  0.689 
+    ## 5 m2    10000001 G         0.791  0.0093         0.400  0.480  0.174  0.637 
+    ## 6 m2    20000001 G         0.762  0.0061         0.384  0.473  0.187  0.604 
+    ## 7 m2     5000001 G         0.665  0.0067         0.336  0.446  0.229  0.486 
+    ## 8 m2    27500001 C         0.0268 0              0.0134 0.0264 0.0261 0.0136
 
 ### Plot Fst from the Greenland cod project as a comparison
 
@@ -260,7 +260,7 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_average_fst_raw.png", average_fst_pl
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_average_fst_raw.png")
 ```
 
-![](../figures/two_pop_sim_fixed_m2_pos_average_fst_raw.png)<!-- -->
+<img src="../figures/two_pop_sim_fixed_m2_pos_average_fst_raw.png" width="1800" />
 
   - Although Fst is quite consistently estimated, these estimations are
     much higher than the true value (\~0.013). This may cause problems
@@ -293,7 +293,7 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_fst_raw.png", fst_plot, height = 8, 
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_fst_raw.png")
 ```
 
-![](../figures/two_pop_sim_fixed_m2_pos_fst_raw.png)<!-- -->
+<img src="../figures/two_pop_sim_fixed_m2_pos_fst_raw.png" width="4500" />
 
 ### Plot genome-wide average Fst (with minimum individual filter)
 
@@ -322,7 +322,7 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_filtered_average_fst_raw.png", avera
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_filtered_average_fst_raw.png")
 ```
 
-![](../figures/two_pop_sim_fixed_m2_pos_filtered_average_fst_raw.png)<!-- -->
+<img src="../figures/two_pop_sim_fixed_m2_pos_filtered_average_fst_raw.png" width="1800" />
 
 ### Plot the estimated per-SNP Fst (with minimum individual filter)
 
@@ -340,7 +340,7 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_filtered_fst_raw.png", filtered_fst_
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_filtered_fst_raw.png")
 ```
 
-![](../figures/two_pop_sim_fixed_m2_pos_filtered_fst_raw.png)<!-- -->
+<img src="../figures/two_pop_sim_fixed_m2_pos_filtered_fst_raw.png" width="4500" />
 
 ### Compute and plot the estimated windowed Fst (with no minimum individual filter and 1,000bp fixed windows)
 
@@ -364,7 +364,7 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_windowed_fst_raw.png", windowed_fst_
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_windowed_fst_raw.png")
 ```
 
-![](../figures/two_pop_sim_fixed_m2_pos_windowed_fst_raw.png)<!-- -->
+<img src="../figures/two_pop_sim_fixed_m2_pos_windowed_fst_raw.png" width="4500" />
 
 ### Selection scan using PCAngsd
 
@@ -385,7 +385,7 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_selection_scan.png", selection_scan_
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_selection_scan.png")
 ```
 
-![](../figures/two_pop_sim_fixed_m2_pos_selection_scan.png)<!-- -->
+<img src="../figures/two_pop_sim_fixed_m2_pos_selection_scan.png" width="4500" />
 
 ### Selection scan using neutrality test stats
 
@@ -494,7 +494,27 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_p1_tajima_d.png", p1_tajima_plot, he
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_p1_tajima_d.png")
 ```
 
-![](../figures/two_pop_sim_fixed_m2_pos_p1_tajima_d.png)<!-- -->
+<img src="../figures/two_pop_sim_fixed_m2_pos_p1_tajima_d.png" width="5100" />
+
+``` r
+## for presentation
+p1_neutrality_stats %>%
+  filter(sample_size %in% c(10, 20, 40, 80), 
+         coverage %in% c(0.25, 0.5, 1, 2)) %>%
+  arrange(coverage, sample_size) %>%
+  #mutate(coverage=str_c("coverage = ", coverage), sample_size=str_c("sample size = ", sample_size)) %>%
+  mutate(design=str_c(coverage, "x coverage, ", sample_size, " samples")) %>%
+  mutate(design=as_factor(design)) %>%
+  ggplot(aes(x = pos/10^6, y = tajima)) +
+  geom_vline(data=mutations_final_m2, aes(xintercept=position/10^6), color="red", size=1, alpha=0.5) +
+  geom_point(alpha=1, size=1) +
+  facet_wrap(~ design, scales = "free_y", nrow = 4) +
+  theme_cowplot() +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1)) +
+  labs(x="position (in Mbp)", y="Tajima's D")
+```
+
+![](data_analysis_two_pop_fixed_m2_pos_files/figure-gfm/unnamed-chunk-25-2.png)<!-- -->
 
 ###### Plot Fay and Wu’s H
 
@@ -518,7 +538,7 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_p1_fay_h.png", p1_fayh_plot, height 
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_p1_fay_h.png")
 ```
 
-![](../figures/two_pop_sim_fixed_m2_pos_p1_fay_h.png)<!-- -->
+<img src="../figures/two_pop_sim_fixed_m2_pos_p1_fay_h.png" width="5100" />
 
 ## Inference with GATK’s GL model
 
@@ -542,7 +562,7 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_average_fst_gatk.png", average_fst_g
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_average_fst_gatk.png")
 ```
 
-![](../figures/two_pop_sim_fixed_m2_pos_average_fst_gatk.png)<!-- -->
+<img src="../figures/two_pop_sim_fixed_m2_pos_average_fst_gatk.png" width="1800" />
 
 #### Fst in 1000bp windows
 
@@ -566,7 +586,7 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_windowed_fst_gatk.png", windowed_fst
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_windowed_fst_gatk.png")
 ```
 
-![](../figures/two_pop_sim_fixed_m2_pos_windowed_fst_gatk.png)<!-- -->
+<img src="../figures/two_pop_sim_fixed_m2_pos_windowed_fst_gatk.png" width="4500" />
 
 In general, these Fst results are very similar to those from the
 Samtools GL model.
@@ -667,16 +687,16 @@ group_by(maf_final, sample_size, n_rad_tag) %>%
   kable()
 ```
 
-    ## `summarise()` regrouping output by 'sample_size' (override with `.groups` argument)
+    ## `summarise()` has grouped output by 'sample_size'. You can override using the `.groups` argument.
 
 | n\_rad\_tag |         5 |        10 |        20 |        40 |        80 |       160 |
 | ----------: | --------: | --------: | --------: | --------: | --------: | --------: |
-|           4 | 0.0033753 | 0.0035577 | 0.0036674 | 0.0037537 | 0.0038450 | 0.0038126 |
-|           8 | 0.0034398 | 0.0035614 | 0.0036205 | 0.0036860 | 0.0037190 | 0.0037028 |
-|          16 | 0.0033141 | 0.0034242 | 0.0035067 | 0.0035776 | 0.0036231 | 0.0036235 |
-|          32 | 0.0032981 | 0.0034204 | 0.0035125 | 0.0035752 | 0.0036206 | 0.0036185 |
-|          64 | 0.0032879 | 0.0034148 | 0.0035083 | 0.0035587 | 0.0035994 | 0.0036082 |
-|         128 | 0.0032864 | 0.0034177 | 0.0035249 | 0.0035683 | 0.0036006 | 0.0036114 |
+|           4 | 0.0034172 | 0.0037172 | 0.0037767 | 0.0038606 | 0.0038467 | 0.0038469 |
+|           8 | 0.0034785 | 0.0036573 | 0.0037160 | 0.0037961 | 0.0037992 | 0.0037979 |
+|          16 | 0.0033529 | 0.0035337 | 0.0036096 | 0.0036648 | 0.0036629 | 0.0036807 |
+|          32 | 0.0032978 | 0.0034857 | 0.0036057 | 0.0036658 | 0.0036752 | 0.0036911 |
+|          64 | 0.0032792 | 0.0034941 | 0.0035935 | 0.0036522 | 0.0036677 | 0.0036800 |
+|         128 | 0.0033012 | 0.0035033 | 0.0035941 | 0.0036462 | 0.0036613 | 0.0036771 |
 
 #### Watterson’s estimator
 
@@ -688,16 +708,16 @@ filter(maf_final, p1 > 0, p1 < 1) %>%
   kable()
 ```
 
-    ## `summarise()` regrouping output by 'sample_size' (override with `.groups` argument)
+    ## `summarise()` has grouped output by 'sample_size'. You can override using the `.groups` argument.
 
 | n\_rad\_tag |         5 |        10 |        20 |        40 |        80 |       160 |
 | ----------: | --------: | --------: | --------: | --------: | --------: | --------: |
-|           4 | 0.0038236 | 0.0039045 | 0.0038275 | 0.0037550 | 0.0036634 | 0.0035928 |
-|           8 | 0.0038138 | 0.0037723 | 0.0036588 | 0.0035934 | 0.0034973 | 0.0034449 |
-|          16 | 0.0036377 | 0.0036093 | 0.0035365 | 0.0034945 | 0.0034428 | 0.0033750 |
-|          32 | 0.0036604 | 0.0036004 | 0.0035632 | 0.0034952 | 0.0034374 | 0.0033648 |
-|          64 | 0.0036750 | 0.0036155 | 0.0035690 | 0.0035026 | 0.0034251 | 0.0033638 |
-|         128 | 0.0036608 | 0.0035999 | 0.0035741 | 0.0035192 | 0.0034381 | 0.0033565 |
+|           4 | 0.0036870 | 0.0037956 | 0.0037237 | 0.0035878 | 0.0034875 | 0.0034188 |
+|           8 | 0.0037651 | 0.0036789 | 0.0036588 | 0.0035544 | 0.0034436 | 0.0034057 |
+|          16 | 0.0036870 | 0.0036517 | 0.0035712 | 0.0035098 | 0.0034265 | 0.0033905 |
+|          32 | 0.0036584 | 0.0036203 | 0.0035945 | 0.0035207 | 0.0034366 | 0.0033532 |
+|          64 | 0.0036425 | 0.0036477 | 0.0035924 | 0.0035476 | 0.0034454 | 0.0033424 |
+|         128 | 0.0036381 | 0.0036342 | 0.0035700 | 0.0035289 | 0.0034507 | 0.0033488 |
 
 ### Plot per SNP Fst
 

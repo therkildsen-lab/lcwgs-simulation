@@ -19,12 +19,12 @@ Data analysis with neutral simulation
         distribution](#plot-the-estimated-allele-frequency-distribution)
       - [Plot estimated allele frequency vs. true allele frequency (this
         includes the false positives but not the false
-        negatives)](#plot-estimated-allele-frequency-vs.-true-allele-frequency-this-includes-the-false-positives-but-not-the-false-negatives)
+        negatives)](#plot-estimated-allele-frequency-vs-true-allele-frequency-this-includes-the-false-positives-but-not-the-false-negatives)
       - [Plot estimated allele frequency vs. true allele frequency in
         bins (this includes the false positives but not the false
-        negatives)](#plot-estimated-allele-frequency-vs.-true-allele-frequency-in-bins-this-includes-the-false-positives-but-not-the-false-negatives)
+        negatives)](#plot-estimated-allele-frequency-vs-true-allele-frequency-in-bins-this-includes-the-false-positives-but-not-the-false-negatives)
       - [Plot error vs. true allele frequency in
-        bins](#plot-error-vs.-true-allele-frequency-in-bins)
+        bins](#plot-error-vs-true-allele-frequency-in-bins)
       - [Check the SNPs with highest
         error](#check-the-snps-with-highest-error)
       - [True frequency distribution of false
@@ -48,20 +48,20 @@ Data analysis with neutral simulation
         Pool-seq](#get-minor-allele-frequencies-estimated-from-pool-seq)
       - [Plot estimated allele frequency vs. true allele frequency (this
         includes the false positives but not the false
-        negatives)](#plot-estimated-allele-frequency-vs.-true-allele-frequency-this-includes-the-false-positives-but-not-the-false-negatives-1)
+        negatives)](#plot-estimated-allele-frequency-vs-true-allele-frequency-this-includes-the-false-positives-but-not-the-false-negatives-1)
       - [Plot estimated allele frequency vs. true allele frequency in
         bins (this includes the false positives but not the false
-        negatives)](#plot-estimated-allele-frequency-vs.-true-allele-frequency-in-bins-this-includes-the-false-positives-but-not-the-false-negatives-1)
+        negatives)](#plot-estimated-allele-frequency-vs-true-allele-frequency-in-bins-this-includes-the-false-positives-but-not-the-false-negatives-1)
       - [Plot absolute values of error vs. true allele frequency in bins
         (this includes the false positives but not the false
-        negatives)](#plot-absolute-values-of-error-vs.-true-allele-frequency-in-bins-this-includes-the-false-positives-but-not-the-false-negatives)
+        negatives)](#plot-absolute-values-of-error-vs-true-allele-frequency-in-bins-this-includes-the-false-positives-but-not-the-false-negatives)
   - [LD estimation](#ld-estimation)
       - [Estimate LD and LD decay with
         ngsLD](#estimate-ld-and-ld-decay-with-ngsld)
       - [When fitting an LD decay model to the estimated LD
         result](#when-fitting-an-ld-decay-model-to-the-estimated-ld-result)
       - [Average r-squared per position vs. Theoretical
-        expectation](#average-r-squared-per-position-vs.-theoretical-expectation)
+        expectation](#average-r-squared-per-position-vs-theoretical-expectation)
 
 ``` r
 library(tidyverse)
@@ -329,7 +329,7 @@ ggsave("../figures/neutral_estimated_vs_true_frequency_gatk.png", estimated_vs_t
 include_graphics("../figures/neutral_estimated_vs_true_frequency_gatk.png")
 ```
 
-![](../figures/neutral_estimated_vs_true_frequency_gatk.png)<!-- -->
+<img src="../figures/neutral_estimated_vs_true_frequency_gatk.png" width="4500" />
 
 ## Plot estimated allele frequency vs. true allele frequency in bins (this includes the false positives but not the false negatives)
 
@@ -342,7 +342,7 @@ ggsave("../figures/neutral_estimated_vs_true_frequency_bin_gatk.png", estimated_
 include_graphics("../figures/neutral_estimated_vs_true_frequency_bin_gatk.png")
 ```
 
-![](../figures/neutral_estimated_vs_true_frequency_bin_gatk.png)<!-- -->
+<img src="../figures/neutral_estimated_vs_true_frequency_bin_gatk.png" width="4500" />
 
 ## Plot error vs. true allele frequency in bins
 
@@ -355,7 +355,7 @@ ggsave("../figures/neutral_error_vs_true_frequency_bin_gatk.png", error_vs_true_
 include_graphics("../figures/neutral_error_vs_true_frequency_bin_gatk.png")
 ```
 
-![](../figures/neutral_error_vs_true_frequency_bin_gatk.png)<!-- -->
+<img src="../figures/neutral_error_vs_true_frequency_bin_gatk.png" width="4500" />
 
 ## Check the SNPs with highest error
 
@@ -367,28 +367,28 @@ filter(joined_frequency_final, coverage==8, sample_size==160) %>%
 ```
 
     ## # A tibble: 20 x 13
-    ##    type  position frequency base  major minor anc   estimated_frequ…  nInd
-    ##    <chr>    <dbl>     <dbl> <chr> <chr> <chr> <chr>            <dbl> <dbl>
-    ##  1 m1    23704228     0.683 C     G     C     G                0.567   160
-    ##  2 m1    28110618     0.36  T     G     T     G                0.471   160
-    ##  3 m1    28604410     0.469 T     G     T     G                0.367   160
-    ##  4 m1    19794246     0.567 A     G     A     G                0.668   160
-    ##  5 m1    23705146     0.458 C     T     C     T                0.357   160
-    ##  6 m1    19462710     0.496 G     T     G     T                0.395   160
-    ##  7 m1    23705057     0.464 T     G     T     G                0.364   160
-    ##  8 m1           6     0.674 T     C     T     C                0.773    22
-    ##  9 m1    28110381     0.359 C     T     C     T                0.458   160
-    ## 10 m1    19794252     0.414 C     T     C     T                0.316   160
-    ## 11 m1    19794182     0.584 C     A     C     A                0.681   160
-    ## 12 m1      824660     0.337 C     T     C     T                0.434   160
-    ## 13 m1    23543799     0.352 C     A     C     A                0.256   160
-    ## 14 m1    27387986     0.487 T     A     T     A                0.583   160
-    ## 15 m1    11118911     0.527 G     T     G     T                0.432   160
-    ## 16 m1    24595214     0.376 G     C     G     C                0.280   160
-    ## 17 m1    18417553     0.523 A     C     A     C                0.428   160
-    ## 18 m1    24354179     0.494 T     C     T     C                0.588   160
-    ## 19 m1     1061503     0.569 T     G     T     G                0.663   160
-    ## 20 m1    23775604     0.387 T     G     T     G                0.481   160
+    ##    type  position frequency base  major minor anc   estimated_frequency  nInd
+    ##    <chr>    <dbl>     <dbl> <chr> <chr> <chr> <chr>               <dbl> <dbl>
+    ##  1 m1    23704228     0.683 C     G     C     G                   0.567   160
+    ##  2 m1    28110618     0.36  T     G     T     G                   0.471   160
+    ##  3 m1    28604410     0.469 T     G     T     G                   0.367   160
+    ##  4 m1    19794246     0.567 A     G     A     G                   0.668   160
+    ##  5 m1    23705146     0.458 C     T     C     T                   0.357   160
+    ##  6 m1    19462710     0.496 G     T     G     T                   0.395   160
+    ##  7 m1    23705057     0.464 T     G     T     G                   0.364   160
+    ##  8 m1           6     0.674 T     C     T     C                   0.773    22
+    ##  9 m1    28110381     0.359 C     T     C     T                   0.458   160
+    ## 10 m1    19794252     0.414 C     T     C     T                   0.316   160
+    ## 11 m1    19794182     0.584 C     A     C     A                   0.681   160
+    ## 12 m1      824660     0.337 C     T     C     T                   0.434   160
+    ## 13 m1    23543799     0.352 C     A     C     A                   0.256   160
+    ## 14 m1    27387986     0.487 T     A     T     A                   0.583   160
+    ## 15 m1    11118911     0.527 G     T     G     T                   0.432   160
+    ## 16 m1    24595214     0.376 G     C     G     C                   0.280   160
+    ## 17 m1    18417553     0.523 A     C     A     C                   0.428   160
+    ## 18 m1    24354179     0.494 T     C     T     C                   0.588   160
+    ## 19 m1     1061503     0.569 T     G     T     G                   0.663   160
+    ## 20 m1    23775604     0.387 T     G     T     G                   0.481   160
     ## # … with 4 more variables: coverage <dbl>, sample_size <dbl>,
     ## #   frequency_bin <fct>, error <dbl>
 
@@ -529,7 +529,8 @@ on.
 samtools_thetas <- read_tsv("../neutral_sim/rep_1/angsd/thetas.tsv")
 ```
 
-    ## Parsed with column specification:
+    ## 
+    ## ── Column specification ────────────────────────────────────────────────────────
     ## cols(
     ##   position = col_double(),
     ##   coverage = col_double(),
@@ -574,10 +575,61 @@ thetas_combined %>%
   theme_cowplot() +
   theme(strip.text = element_text(size=20),
         axis.text.x = element_text(angle=0),
-        panel.border = element_rect(colour = "black", fill=NA, size=1)) 
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
 ```
 
 ![](data_analysis_neutral_gatk_files/figure-gfm/unnamed-chunk-25-2.png)<!-- -->
+
+``` r
+## For presentations
+thetas_combined %>%
+  filter(summary_stats == "theta_t", 
+         sample_size %in% c(10, 20, 40, 80), 
+         coverage %in% c(1, 2, 4, 8)) %>%
+  ggplot(aes(x=model, y=value, fill=model)) +
+  geom_hline(yintercept=0.004, color = "red", size = 1, linetype=1) +
+  geom_boxplot(outlier.alpha = 0, width=0.6) +
+  scale_fill_manual(values = c("#005493", "#FFB900"), guide = guide_legend(reverse = TRUE)) +
+  facet_grid(coverage ~ sample_size) +
+  scale_y_continuous(breaks=(1:3)/500, limits = c(0.0016, 0.0062)) +
+  ylab("Estimated value in 10kb windows") +
+  xlab("Genotype likelihood model") +
+  coord_flip() +
+  theme_cowplot() +
+  theme(text = element_text(size=20),
+        axis.text.x = element_text(angle=0),
+        panel.border = element_rect(colour = "black", fill=NA, size=1),
+        legend.position = "none") 
+```
+
+    ## Warning: Removed 215 rows containing non-finite values (stat_boxplot).
+
+![](data_analysis_neutral_gatk_files/figure-gfm/unnamed-chunk-25-3.png)<!-- -->
+
+``` r
+thetas_combined %>%
+  filter(summary_stats == "theta_w", 
+         sample_size %in% c(10, 20, 40, 80), 
+         coverage %in% c(1, 2, 4, 8)) %>%
+  ggplot(aes(x=model, y=value, fill=model)) +
+  geom_hline(yintercept=0.004, color = "red", size = 1, linetype=1) +
+  geom_boxplot(outlier.alpha = 0, width=0.6) +
+  scale_fill_manual(values = c("#005493", "#FFB900"), guide = guide_legend(reverse = TRUE)) +
+  facet_grid(coverage ~ sample_size) +
+  scale_y_continuous(breaks=(1:3)/500, limits = c(0.0016, 0.0062)) +
+  ylab("Estimated value in 10kb windows") +
+  xlab("Genotype likelihood model") +
+  coord_flip() +
+  theme_cowplot() +
+  theme(text = element_text(size=20),
+        axis.text.x = element_text(angle=0),
+        panel.border = element_rect(colour = "black", fill=NA, size=1),
+        legend.position = "none") 
+```
+
+    ## Warning: Removed 25 rows containing non-finite values (stat_boxplot).
+
+![](data_analysis_neutral_gatk_files/figure-gfm/unnamed-chunk-25-4.png)<!-- -->
 
 # Compare individual barcoding with Pool-seq
 
@@ -645,7 +697,7 @@ ggsave("../figures/neutral_estimated_vs_true_frequency_pool_gatk.png", estimated
 include_graphics("../figures/neutral_estimated_vs_true_frequency_pool_gatk.png")
 ```
 
-![](../figures/neutral_estimated_vs_true_frequency_pool_gatk.png)<!-- -->
+<img src="../figures/neutral_estimated_vs_true_frequency_pool_gatk.png" width="4500" />
 
 ## Plot estimated allele frequency vs. true allele frequency in bins (this includes the false positives but not the false negatives)
 
@@ -658,7 +710,7 @@ ggsave("../figures/neutral_estimated_vs_true_frequency_pool_bin_gatk.png", estim
 include_graphics("../figures/neutral_estimated_vs_true_frequency_pool_bin_gatk.png")
 ```
 
-![](../figures/neutral_estimated_vs_true_frequency_pool_bin_gatk.png)<!-- -->
+<img src="../figures/neutral_estimated_vs_true_frequency_pool_bin_gatk.png" width="4500" />
 
 ## Plot absolute values of error vs. true allele frequency in bins (this includes the false positives but not the false negatives)
 
@@ -671,7 +723,7 @@ ggsave("../figures/neutral_error_vs_true_frequency_pool_bin_gatk.png", error_vs_
 include_graphics("../figures/neutral_error_vs_true_frequency_pool_bin_gatk.png")
 ```
 
-![](../figures/neutral_error_vs_true_frequency_pool_bin_gatk.png)<!-- -->
+<img src="../figures/neutral_error_vs_true_frequency_pool_bin_gatk.png" width="4500" />
 
 # LD estimation
 

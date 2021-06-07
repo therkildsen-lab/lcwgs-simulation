@@ -4,7 +4,7 @@ Figures for presentation and paper
   - [Error in allele frequency
     estimation](#error-in-allele-frequency-estimation)
   - [Estimated vs. true allele
-    frequency](#estimated-vs.-true-allele-frequency)
+    frequency](#estimated-vs-true-allele-frequency)
   - [PCA](#pca)
   - [Fst](#fst)
 
@@ -97,7 +97,7 @@ ggsave("../figures/error_plot_combined.png", error_plot_combined_new, width = 12
 include_graphics("../figures/error_plot_combined.png")
 ```
 
-![](../figures/error_plot_combined.png)<!-- -->
+<img src="../figures/error_plot_combined.png" width="3600" />
 
 #### For the paper, Box 2
 
@@ -172,7 +172,7 @@ ggsave("../figures/error_plot_combined_for_box_2.pdf", error_plot_combined_new, 
 include_graphics("../figures/error_plot_combined_for_box_2.png")
 ```
 
-![](../figures/error_plot_combined_for_box_2.png)<!-- -->
+<img src="../figures/error_plot_combined_for_box_2.png" width="4960" />
 
 #### For the paper, supplement
 
@@ -246,7 +246,7 @@ ggsave("../figures/error_plot_combined_for_supplement.png", error_plot_combined_
 include_graphics("../figures/error_plot_combined_for_supplement.png")
 ```
 
-![](../figures/error_plot_combined_for_supplement.png)<!-- -->
+<img src="../figures/error_plot_combined_for_supplement.png" width="4960" />
 
 ## Estimated vs. true allele frequency
 
@@ -311,13 +311,14 @@ ggsave("../figures/frequency_plot_even_coverage_for_paper.pdf", frequency_plot_c
 include_graphics("../figures/frequency_plot_even_coverage_for_paper.png")
 ```
 
-![](../figures/frequency_plot_even_coverage_for_paper.png)<!-- -->
+<img src="../figures/frequency_plot_even_coverage_for_paper.png" width="4960" />
 
-#### LCWGS vs pool-seq, testing
+#### Even coverage, for presentations
 
 ``` r
 ## combine these
-joined_frequency_final_combined <- bind_rows(joined_frequency_final_uneven, joined_frequency_final_pooled_uneven) 
+joined_frequency_final_combined <- joined_frequency_final_even %>%
+  filter(coverage %in% c(0.5, 1, 2, 4), sample_size %in% c(10, 20, 40, 80))
 
 ## get summary stats (number of SNPs, RMSE, R-squared)
 joined_summary_table <- group_by(joined_frequency_final_combined, coverage, sample_size, design) %>%
@@ -329,20 +330,19 @@ joined_frequency_final_combined_test <- joined_frequency_final_combined[sample(1
 ## make the plot
 frequency_plot_combined <- joined_frequency_final_combined %>%
   arrange(desc(design)) %>%
-  ggplot(aes(x=frequency, y=estimated_frequency, color=design)) +
-  geom_hex(data = filter(joined_frequency_final_combined, design == "poolseq_uneven"), size=0.05, alpha=0.5, aes(fill=design), show.legend = F) +
-  geom_hex(data = filter(joined_frequency_final_combined, design == "lcwgs_uneven"), size=0.05, aes(alpha=log(..density..), fill=design), show.legend = F) +
-  geom_text(data = joined_summary_table, x = 0.9, aes(label=r_squared, color = design, y = 0.3-as.numeric(as.factor(design))/8), fontface = "bold", size=4.8) +
-  geom_text(data = filter(joined_summary_table, design == "lcwgs_uneven"), x = 0.18, aes(label=n, y = 0.97-1/8), fontface = "bold", size = 4.8, show.legend = F, color = "black") +
-  annotate("text", x = 0.9, y = 0.3, label="R^2", parse=T , size=4.8) +
-  annotate("text", x = 0.18, y = 0.97, label="SNP count", size=4.8) +
+  ggplot(aes(x=frequency, y=estimated_frequency)) +
+  geom_hex(bins = 100, size= 0.05, color="white", aes(fill=log(stat(density))), show.legend = T) +
+  geom_text(data = joined_summary_table, x = 0.92, aes(label=r_squared, y = 0.15-as.numeric(as.factor(design))/8), fontface = "bold", size=4.8) +
+  #geom_text(data = joined_summary_table, x = 0.18, aes(label=n, y = 1.08-1/8), fontface = "bold", size = 4.8, show.legend = F, color = "black") +
+  annotate("text", x = 0.92, y = 0.15, label="r^2", parse=T , size=4.8) +
+  #annotate("text", x = 0.18, y = 1.08, label="SNP count", size=4.8) +
   geom_segment(data = tibble(a = 0, b = 1), aes(x=a, y=a, xend=b, yend=b), color = "black") +
   facet_grid(coverage~sample_size) +
   scale_x_continuous(breaks = (0:5)/5) +
-  scale_y_continuous(breaks = (0:5)/5) +
-  scale_color_viridis_d(labels=c("lcWGS with even coverage", "lcWGS with uneven coverage"), begin = 0.75, end = 0) +
-  scale_fill_viridis_d(labels=c("lcWGS with even coverage", "lcWGS with uneven coverage"), begin = 0.75, end = 0) +
-  xlab("true frequency of derived allele") +
+  scale_y_continuous(breaks = (0:5)/5, limits = c(0, 1.1)) +
+  #scale_fill_continuous(high = "#133e69", low = "#5fb7fa") +
+  scale_fill_viridis_c(direction = 1) +
+  #scale_color_viridis_c() +
   ylab("estimated frequency") +
   theme_cowplot() +
   theme(strip.text = element_text(size=20),
@@ -356,25 +356,25 @@ frequency_plot_combined <- joined_frequency_final_combined %>%
 
 frequency_plot_combined_grob <- ggplotGrob(frequency_plot_combined)
 
-frequency_plot_combined_new <- gtable_add_cols(frequency_plot_combined_grob, unit(frequency_plot_combined_grob$widths[[16]], 'cm'), 16)  %>%
+frequency_plot_combined_new <- gtable_add_cols(frequency_plot_combined_grob, unit(frequency_plot_combined_grob$widths[[12]], 'cm'), 12)  %>%
   gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
-                       textGrob("coverage", rot = -90, gp = gpar(col = gray(1)))),
-                  10, 17, 20, 17, name = paste(runif(2))) %>%
+                       textGrob("coverage per sample", rot = -90, gp = gpar(col = gray(1)))),
+                  10, 13, 16, 13, name = paste(runif(2))) %>%
   gtable_add_cols(unit(1/8, "line"), 16) %>%
   gtable_add_rows(unit(frequency_plot_combined_grob$heights[[9]], 'cm'), 8) %>%
   gtable_add_grob(list(rectGrob(gp = gpar(col = NA, fill = gray(0.5))),
                           textGrob("sample size", gp = gpar(col = gray(1)))),
-                     9, 5, 9, 15, name = paste(runif(2))) %>%
+                     9, 5, 9, 11, name = paste(runif(2))) %>%
   gtable_add_rows(unit(1/8, "line"), 9)
 
-ggsave("../figures/frequency_plot_combined_for_paper.png", frequency_plot_combined_new, width = 42, height = 35, units = "cm", pointsize = 20)
+ggsave("../figures/frequency_plot_even_coverage_for_presentation.png", frequency_plot_combined_new, width = 30, height = 24, units = "cm", pointsize = 20)
 ```
 
 ``` r
-include_graphics("../figures/frequency_plot_combined_for_paper.png")
+include_graphics("../figures/frequency_plot_even_coverage_for_presentation.png")
 ```
 
-![](../figures/frequency_plot_combined_for_paper.png)<!-- -->
+<img src="../figures/frequency_plot_even_coverage_for_presentation.png" width="3543" />
 
 ## PCA
 
@@ -407,7 +407,7 @@ ggsave("../figures/spatial_pop_lower_m_genotype_pca.pdf", pca_plot, width = 5, h
 include_graphics("../figures/spatial_pop_lower_m_genotype_pca.png")
 ```
 
-![](../figures/spatial_pop_lower_m_genotype_pca.png)<!-- -->
+<img src="../figures/spatial_pop_lower_m_genotype_pca.png" width="590" />
 
 ###### PCA with lcWGS
 
@@ -485,7 +485,7 @@ ggsave("../figures/spatial_pop_lower_m_cov_mat_pca.pdf", pca_plot_new, width = 2
 include_graphics("../figures/spatial_pop_lower_m_cov_mat_pca.png")
 ```
 
-![](../figures/spatial_pop_lower_m_cov_mat_pca.png)<!-- -->
+<img src="../figures/spatial_pop_lower_m_cov_mat_pca.png" width="3307" />
 
 #### Higher migration rate
 
@@ -516,7 +516,7 @@ ggsave("../figures/spatial_pop_genotype_pca.pdf", pca_plot, width = 5, height = 
 include_graphics("../figures/spatial_pop_genotype_pca.png")
 ```
 
-![](../figures/spatial_pop_genotype_pca.png)<!-- -->
+<img src="../figures/spatial_pop_genotype_pca.png" width="590" />
 
 ###### PCA with LG-WGS
 
@@ -595,7 +595,7 @@ ggsave("../figures/spatial_pop_cov_mat_pca.pdf", pca_plot_new, width = 28, heigh
 include_graphics("../figures/spatial_pop_cov_mat_pca.png")
 ```
 
-![](../figures/spatial_pop_cov_mat_pca.png)<!-- -->
+<img src="../figures/spatial_pop_cov_mat_pca.png" width="3307" />
 
 Subsequently, I combined these two figures with schematics of their true
 population structures using PowerPoint. The result looks like this:
@@ -604,7 +604,7 @@ population structures using PowerPoint. The result looks like this:
 include_graphics("../figures/spatial_pca_combined.png")
 ```
 
-![](../figures/spatial_pca_combined.png)<!-- -->
+<img src="../figures/spatial_pca_combined.png" width="4850" />
 
 ## Fst
 
@@ -770,7 +770,7 @@ ggsave("../figures/true_fst_plot.pdf", true_fst_plot, width = 42, height = 5, un
 include_graphics("../figures/true_fst_plot.png")
 ```
 
-![](../figures/true_fst_plot.png)<!-- -->
+<img src="../figures/true_fst_plot.png" width="4960" />
 
 #### Read in files for lcWGS
 
@@ -833,7 +833,7 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_windowed_fst.png", fst_plot_new, wid
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_windowed_fst.png")
 ```
 
-![](../figures/two_pop_sim_fixed_m2_pos_windowed_fst.png)<!-- -->
+<img src="../figures/two_pop_sim_fixed_m2_pos_windowed_fst.png" width="4500" />
 
 ``` r
 fst_plot_radseq <- maf_final %>%
@@ -881,13 +881,13 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_rad_seq_windowed_fst_single_row.png"
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_rad_seq_windowed_fst.png")
 ```
 
-![](../figures/two_pop_sim_fixed_m2_pos_rad_seq_windowed_fst.png)<!-- -->
+<img src="../figures/two_pop_sim_fixed_m2_pos_rad_seq_windowed_fst.png" width="3600" />
 
 ``` r
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_rad_seq_windowed_fst_single_row.png")
 ```
 
-![](../figures/two_pop_sim_fixed_m2_pos_rad_seq_windowed_fst_single_row.png)<!-- -->
+<img src="../figures/two_pop_sim_fixed_m2_pos_rad_seq_windowed_fst_single_row.png" width="4500" />
 
 #### For papers
 
@@ -929,7 +929,7 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_windowed_fst_for_paper.pdf", fst_plo
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_windowed_fst_for_paper.png")
 ```
 
-![](../figures/two_pop_sim_fixed_m2_pos_windowed_fst_for_paper.png)<!-- -->
+<img src="../figures/two_pop_sim_fixed_m2_pos_windowed_fst_for_paper.png" width="4960" />
 
 ``` r
 fst_plot_radseq <- maf_final %>%
@@ -963,4 +963,4 @@ ggsave("../figures/two_pop_sim_fixed_m2_pos_rad_seq_fst_for_paper.pdf", fst_plot
 include_graphics("../figures/two_pop_sim_fixed_m2_pos_rad_seq_fst_for_paper.png")
 ```
 
-![](../figures/two_pop_sim_fixed_m2_pos_rad_seq_fst_for_paper.png)<!-- -->
+<img src="../figures/two_pop_sim_fixed_m2_pos_rad_seq_fst_for_paper.png" width="4960" />
