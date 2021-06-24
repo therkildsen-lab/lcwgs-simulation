@@ -48,5 +48,6 @@ This GitHub repository contains our entire simulation and analysis pipeline.
 [Imputation without a reference panel](https://github.com/therkildsen-lab/lcwgs-simulation/blob/master/markdowns/imputation.md)
 
 ## Miscellaneous
-[figures for presentations and the paper](https://github.com/therkildsen-lab/lcwgs-simulation/blob/master/markdowns/figures.md)
+
+[Figures for presentations and the paper](https://github.com/therkildsen-lab/lcwgs-simulation/blob/master/markdowns/figures.md)
 
