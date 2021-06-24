@@ -41,7 +41,7 @@ This GitHub repository contains our entire simulation and analysis pipeline.
 
 [Data acquisition and analysis with Heliconius butterflies](https://github.com/therkildsen-lab/lcwgs-simulation/blob/master/markdowns/empirical_data.md)
 
-## Box 3. Using imputation to bolster genotype estimation from lcWGS
+## Box 4. Using imputation to bolster genotype estimation from lcWGS
 
 [Simulation workflow with neutral simulation used for genotype imputation](https://github.com/therkildsen-lab/lcwgs-simulation/blob/master/markdowns/simulation_workflow_neutral_sim_with_replacement.md)
 

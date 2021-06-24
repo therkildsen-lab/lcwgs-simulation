@@ -113,7 +113,7 @@ write_lines(shell_script, "RunStitch.R")
 
 ```
 
-## Impute genotypes, genotype dosages and MAFS at SNPs in STITCH (may remove MAFS from this section)
+## Impute genotypes, genotype dosages and MAFS at SNPs in STITCH
 
 ```{bash}
 

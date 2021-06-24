@@ -7,9 +7,8 @@ Aryn Wilder
   - [Call SNPs and estimate MAFs in
     ANGSD](#call-snps-and-estimate-mafs-in-angsd)
   - [Define RunStitch.R](#define-runstitchr)
-  - [Impute genotypes, genotype dosages and MAFS at SNPs in STITCH (may
-    remove MAFS from this
-    section)](#impute-genotypes-genotype-dosages-and-mafs-at-snps-in-stitch-may-remove-mafs-from-this-section)
+  - [Impute genotypes, genotype dosages and MAFS at SNPs in
+    STITCH](#impute-genotypes-genotype-dosages-and-mafs-at-snps-in-stitch)
   - [Impute genotypes and genotype dosages at SNPs in
     Beagle](#impute-genotypes-and-genotype-dosages-at-snps-in-beagle)
   - [Estimate ANGSD genotypes at called
@@ -157,7 +156,7 @@ tempdir = 'tmpfiles')"
 write_lines(shell_script, "RunStitch.R")
 ```
 
-## Impute genotypes, genotype dosages and MAFS at SNPs in STITCH (may remove MAFS from this section)
+## Impute genotypes, genotype dosages and MAFS at SNPs in STITCH
 
 ``` bash
 
