@@ -3,6 +3,45 @@ structure for empirical data
 ================
 Arne Jacobs
 
+  - [Download whole genome re-sequencing data for Heliconius erato
+    subspecies from
+    NCBI:](#download-whole-genome-re-sequencing-data-for-heliconius-erato-subspecies-from-ncbi)
+  - [Map raw reads to Heliconius erato demophoon reference genome using
+    the low-coverage
+    pipeline::](#map-raw-reads-to-heliconius-erato-demophoon-reference-genome-using-the-low-coverage-pipeline)
+      - [Estimating depth of coverage and standard deviation for each
+        sample:](#estimating-depth-of-coverage-and-standard-deviation-for-each-sample)
+  - [Downsampling of NGS data, and estimation of genetic differentiation
+    and population
+    structure:](#downsampling-of-ngs-data-and-estimation-of-genetic-differentiation-and-population-structure)
+      - [Global SNP calling for subsampled datasets on scaffold 1801
+        (optix
+        region)](#global-snp-calling-for-subsampled-datasets-on-scaffold-1801-optix-region)
+          - [SNP calling for the dataset at 8x
+            coverage](#snp-calling-for-the-dataset-at-8x-coverage)
+          - [4x coverage](#4x-coverage)
+          - [2x coverage](#2x-coverage)
+          - [1x coverage](#1x-coverage)
+          - [0.5x coverage](#05x-coverage)
+          - [0.25x coverage](#025x-coverage)
+          - [Gridplot for all 50kb Fst manhattan plots (8x -
+            0.25x)](#gridplot-for-all-50kb-fst-manhattan-plots-8x---025x)
+          - [Correlation of Fst values](#correlation-of-fst-values)
+  - [Genome-wide Principal Components Analysis (PCA) for heliconius data
+    for different
+    coverages:](#genome-wide-principal-components-analysis-pca-for-heliconius-data-for-different-coverages)
+      - [Create global and population specific SNP files for population
+        genomic
+        analyses:](#create-global-and-population-specific-snp-files-for-population-genomic-analyses)
+          - [Call SNPs for each subsampled
+            dataset:](#call-snps-for-each-subsampled-dataset)
+      - [Principal components analysis for each
+        coverage](#principal-components-analysis-for-each-coverage)
+          - [PCA and plotting](#pca-and-plotting)
+  - [Coverage vs Number of SNPs](#coverage-vs-number-of-snps)
+  - [Generate multi-panel plot across analyses using
+    patchwork](#generate-multi-panel-plot-across-analyses-using-patchwork)
+
 Load R-packages
 
 ``` r

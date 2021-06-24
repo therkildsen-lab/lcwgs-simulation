@@ -1,7 +1,9 @@
 ---
 title: "Assessing the effect of coverage on estimates of Fst and population structure for empirical data"
 author: "Arne Jacobs"
-output: github_document
+output: 
+  github_document:
+    toc: true
 editor_options:
   chunk_output_type: console
 ---
