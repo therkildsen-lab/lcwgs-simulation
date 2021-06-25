@@ -4,7 +4,7 @@
 
 <br> 
 
-This GitHub repository contains our entire simulation and analysis pipeline. 
+This GitHub repository contains our entire simulation and analysis pipeline. Below are links to markdown files containing the pipeline, and the shell scripts and SLiM scripts used in the pipeline are available in the `shell_scripts` and `slim_scripts` folder.
 
 <br> 
 
@@ -65,5 +65,3 @@ This GitHub repository contains our entire simulation and analysis pipeline.
 [Figures for presentations and the paper](https://github.com/therkildsen-lab/lcwgs-simulation/blob/master/markdowns/figures.md)
 
 <br> 
-
-Note that some scripts used in the pipeline are available in the `shell_scripts` and `slim_scripts` folder.
