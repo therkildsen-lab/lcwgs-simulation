@@ -1,3 +1,6 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5037406.svg)](https://doi.org/10.5281/zenodo.5037406)
+
+
 # A beginner’s guide to low-coverage whole genome sequencing for population genomics
 
 <br> 
