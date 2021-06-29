@@ -544,6 +544,7 @@ thetas_combined <- mutate(thetas_final, model="GATK") %>%
   bind_rows(mutate(samtools_thetas, model="Samtools"))
 thetas_combined %>%
   filter(summary_stats != "tajima_d") %>%
+  mutate(summary_stats=ifelse(summary_stats=="theta_w", "Watterson's\ntheta", "Tajima's\ntheta")) %>%
   ggplot(aes(x=summary_stats, y=value, fill=model)) +
   geom_hline(yintercept=0.004, color = "red", size = 1, linetype=1) +
   geom_boxplot(outlier.alpha = 0, width=0.6) +
@@ -555,7 +556,8 @@ thetas_combined %>%
   theme_cowplot() +
   theme(strip.text = element_text(size=20),
         axis.text.x = element_text(angle=0),
-        panel.border = element_rect(colour = "black", fill=NA, size=1)) 
+        panel.border = element_rect(colour = "black", fill=NA, size=1),
+        axis.title.y = element_blank()) 
 ```
 
     ## Warning: Removed 1760 rows containing non-finite values (stat_boxplot).
@@ -575,7 +577,10 @@ thetas_combined %>%
   theme_cowplot() +
   theme(strip.text = element_text(size=20),
         axis.text.x = element_text(angle=0),
-        panel.border = element_rect(colour = "black", fill=NA, size=1))
+        panel.border = element_rect(colour = "black", fill=NA, size=1),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())
 ```
 
 ![](data_analysis_neutral_gatk_files/figure-gfm/unnamed-chunk-25-2.png)<!-- -->
